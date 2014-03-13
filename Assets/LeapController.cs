@@ -156,9 +156,9 @@ public class LeapController : MonoBehaviour {
 		else if(currentTechnique == technique.LASSO)
 			lasso.SetEnabled(true);
 		
-		techniqueLock[(int)technique.SLICENSWIPE] = slicenSwipe.Update(frame, goHandList, goFingerList);
-		techniqueLock[(int)technique.BUBBLEZOOM]  = bubbleZoom.Update(frame, goHandList, goFingerList);
-		techniqueLock[(int)technique.LASSO]       = lasso.Update(frame, goHandList, goFingerList);
+		techniqueLock[(int)technique.SLICENSWIPE] = slicenSwipe.ProcessFrame(frame, goHandList, goFingerList);
+		techniqueLock[(int)technique.BUBBLEZOOM]  = bubbleZoom.ProcessFrame(frame, goHandList, goFingerList);
+		techniqueLock[(int)technique.LASSO]       = lasso.ProcessFrame(frame, goHandList, goFingerList);
 		
 		if(!Input.GetKeyDown(KeyCode.Slash) && !Input.GetKeyUp(KeyCode.Slash) && !Input.GetKey(KeyCode.Slash))
 		{

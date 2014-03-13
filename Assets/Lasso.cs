@@ -46,7 +46,7 @@ public class Lasso : MonoBehaviour {
 		fingerLineRenderer.SetWidth(0.2F,0.2F);
 	}
 	
-	public bool Update (Frame frame, List<GameObject> goHandList, List<GameObject> goFingerList) {
+	public bool ProcessFrame (Frame frame, List<GameObject> goHandList, List<GameObject> goFingerList) {
 		bool locked = false; // return true if in any other state other than the initial one
 		
 		// if its not enabled, simply clear and return
@@ -59,7 +59,7 @@ public class Lasso : MonoBehaviour {
 		needsClear = true;
 
 		// calculate how much time has passed since last update
-		float currentTime = Time.time;
+		float currentTime = Time.timeSinceLevelLoad;
 		float timeSinceLastUpdate = currentTime - timeLastUpdate;
 		timeLastUpdate = currentTime;
 		

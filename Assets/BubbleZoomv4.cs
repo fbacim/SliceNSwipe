@@ -61,7 +61,7 @@ public class BubbleZoomv4 : MonoBehaviour {
 		volumeTrailSpheres = new List<Sphere>();
 	}
 	
-	public bool Update (Frame frame, List<GameObject> goHandList, List<GameObject> goFingerList) {
+	public bool ProcessFrame (Frame frame, List<GameObject> goHandList, List<GameObject> goFingerList) {
 		bool locked = false; // return true if in any other state other than the initial one
 
 		// if its not enabled, simply clear and return
@@ -74,7 +74,7 @@ public class BubbleZoomv4 : MonoBehaviour {
 		needsClear = true;
 
 		// calculate how much time has passed since last update
-		float currentTime = Time.time;
+		float currentTime = Time.timeSinceLevelLoad;
 		float timeSinceLastUpdate = currentTime - timeLastUpdate;
 		timeLastUpdate = currentTime;
 		
@@ -82,6 +82,8 @@ public class BubbleZoomv4 : MonoBehaviour {
 		if(timeSinceLastClickCompleted < 0.5F) return false; // avoid detecting two clicks in one
 		
 		timeSinceLastStateChange += timeSinceLastUpdate;
+
+		Debug.Log(currentState);
 		
 		HandList hl = frame.Hands;
 		FingerList fl = frame.Fingers;

@@ -23,7 +23,6 @@ public class mPointCloudViewer1 : MonoBehaviour {
 	private bool animating = false;  // is it currently animating?
 	
 	public TextAsset fileName;
-	public Vector3 offset;
 	
 	void Start() {
 		// load from file
@@ -48,6 +47,10 @@ public class mPointCloudViewer1 : MonoBehaviour {
 			colors[i] = new Vector3(1,0,0);
 		}
 
+		// normalized offset of each instance of the point cloud
+		pos = new Vector3[instanceCount];
+		pos[0] = new Vector3(0.0f,0,0);
+		pos[1] = new Vector3(0.0f,0,0);
 		// OR for testing
 		/*
 		// generate random points (up to 40mil points)
@@ -71,11 +74,6 @@ public class mPointCloudViewer1 : MonoBehaviour {
 		bufferColors = new ComputeBuffer (vertexCount, 12);
 		bufferColors.SetData (colors);
 		material.SetBuffer ("buf_Colors", bufferColors);
-
-		// normalized offset of each instance of the point cloud
-		pos = new Vector3[instanceCount];
-		pos[0] = new Vector3(0.0f,0,0);
-		pos[1] = new Vector3(0.0f,0,0);
 		
 		bufferPos = new ComputeBuffer (instanceCount, 12);
 		material.SetBuffer ("buf_Positions", bufferPos);

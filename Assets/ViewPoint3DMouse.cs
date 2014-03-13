@@ -55,7 +55,7 @@ public class ViewPoint3DMouse : MonoBehaviour {
 	const double timeDelayThershould = 2000;
 
 	public float distance = 35;
-	public PointCloud pointCloud;
+	PointCloud pointCloud;
 
 	// Use this for initialization
 	void Start () {
@@ -77,6 +77,8 @@ public class ViewPoint3DMouse : MonoBehaviour {
 		
 		stopWatch = new Stopwatch();
 		stopWatch.Start();
+		
+		pointCloud = GameObject.Find("Point Cloud").GetComponent<PointCloud>();
 	}
 	
 	// Update is called once per frame
@@ -148,13 +150,13 @@ public class ViewPoint3DMouse : MonoBehaviour {
 					float minDistance = Mathf.Infinity;
 					float distance = 0;
 					
-					for (int ii = 0; ii < pointCloud.cloud.Length; ++ii) //ii+=10)
+					for (int i = 0; i < pointCloud.vertexCount; ++i) //ii+=10)
 					{
-						distance = Vector3.Cross(ray.direction, pointCloud.cloud[ii].position - ray.origin).magnitude;
+						distance = Vector3.Cross(ray.direction, pointCloud.verts[i] - ray.origin).magnitude;
 						if (distance < minDistance)
 						{
 							minDistance = distance;
-							closestPoint = pointCloud.cloud[ii].position;
+							closestPoint = pointCloud.verts[i];
 						}
 					}
 					rayCenter = closestPoint;

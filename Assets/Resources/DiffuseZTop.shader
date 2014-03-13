@@ -1,8 +1,10 @@
 ﻿Shader "Custom/DiffuseZTop" {
 	SubShader {
-		Tags {"Queue"="Overlay" "RenderType"="Opaque"}
+		Tags { "RenderType"="Transparent" "Queue"="Overlay+1" }
+		Blend SrcAlpha OneMinusSrcAlpha
+
 		LOD 200
-		ZTest Always
+		Cull off
 		
 		CGPROGRAM
 		#pragma surface surf Lambert finalcolor:mycolor

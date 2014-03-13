@@ -45,7 +45,7 @@ public class ClickZoom {
 	
 	public bool Update (Frame frame, List<GameObject> goHandList, List<GameObject> goFingerList) {
 		// calculate how much time has passed since last update
-		float currentTime = Time.time;
+		float currentTime = Time.timeSinceLevelLoad;
 		float timeSinceLastUpdate = currentTime - timeLastUpdate;
 		timeLastUpdate = currentTime;
 		

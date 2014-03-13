@@ -28,7 +28,7 @@ public class SlicenSwipe {
 	List<Vector3> handPosition;
 	List<Vector3> fingerPosition;
 	List<float> fingerPositionTime;
-	float traceTime = 0.4F;
+	public float traceTime = 0.1F;
 
 	bool useRubberBand = false;
 	bool rubberBandActive = false;
@@ -73,7 +73,7 @@ public class SlicenSwipe {
 		fingerHandLineRenderer.gameObject.SetActive(enabled);
 	}
 	
-	public bool Update (Frame frame, List<GameObject> goHandList, List<GameObject> goFingerList) {
+	public bool ProcessFrame (Frame frame, List<GameObject> goHandList, List<GameObject> goFingerList) {
 		bool locked = false; // return true if in any other state other than the initial one
 		
 		// if its not enabled, simply clear and return
@@ -86,7 +86,7 @@ public class SlicenSwipe {
 		needsClear = true;
 
 		// calculate how much time has passed since last update
-		float currentTime = Time.time;
+		float currentTime = Time.timeSinceLevelLoad;
 		float timeSinceLastUpdate = currentTime - timeLastUpdate;
 		timeLastUpdate = currentTime;
 		
