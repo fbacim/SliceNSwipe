@@ -21,6 +21,7 @@ public class SlicenSwipe {
 	GameObject go1, go2, go3;
 
 	GameObject fingerHandTrail;
+	Mesh fingerHandTrailMesh;
 	
 	LineRenderer fingerLineRenderer;
 	LineRenderer handLineRenderer;
@@ -28,17 +29,16 @@ public class SlicenSwipe {
 	List<Vector3> handPosition;
 	List<Vector3> fingerPosition;
 	List<float> fingerPositionTime;
-	public float traceTime = 0.1F;
+	public float traceTime = 0.3F;
 
 	bool useRubberBand = false;
 	bool rubberBandActive = false;
-	int rubberBandStartIndex = -1;
 	
-	bool enabled = true;
+	bool isEnabled = true;
 	bool needsClear = true;
 	
 	public SlicenSwipe() {
-		pointCloud = GameObject.Find("Point Cloud").GetComponent<PointCloud>();
+		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();
 		
 		fingerPosition = new List<Vector3>();
@@ -67,17 +67,17 @@ public class SlicenSwipe {
 
 	public void SetEnabled(bool enable)
 	{
-		enabled = enable;
-		fingerHandTrail.SetActive(enabled);
-		fingerLineRenderer.gameObject.SetActive(enabled);
-		fingerHandLineRenderer.gameObject.SetActive(enabled);
+		isEnabled = enable;
+		fingerHandTrail.SetActive(isEnabled);
+		fingerLineRenderer.gameObject.SetActive(isEnabled);
+		fingerHandLineRenderer.gameObject.SetActive(false);
 	}
 	
 	public bool ProcessFrame (Frame frame, List<GameObject> goHandList, List<GameObject> goFingerList) {
 		bool locked = false; // return true if in any other state other than the initial one
 		
 		// if its not enabled, simply clear and return
-		if(!enabled)
+		if(!isEnabled)
 		{
 			Clear();
 			return locked;
@@ -139,7 +139,7 @@ public class SlicenSwipe {
 			fingerHandLineRenderer.SetPosition(1,fingerPosition[fingerPosition.Count-1]);
 
 			// create trail
-			Mesh fingerHandTrailMesh = new Mesh(); //this is the mesh we’re creating.
+			fingerHandTrailMesh = new Mesh(); //this is the mesh we’re creating.
 
 			if(!rubberBandActive)
 			{
@@ -223,9 +223,9 @@ public class SlicenSwipe {
 
 			fingerHandTrailMesh.RecalculateNormals();
 
-			fingerHandTrail.GetComponent<MeshFilter>().mesh = fingerHandTrailMesh;
-			if(!fingerHandTrail.GetComponent<MeshCollider>())
-				fingerHandTrail.AddComponent<MeshCollider>();
+			//fingerHandTrail.GetComponent<MeshFilter>().mesh = fingerHandTrailMesh;
+			//if(!fingerHandTrail.GetComponent<MeshCollider>())
+			//	fingerHandTrail.AddComponent<MeshCollider>();
 			fingerHandTrail.renderer.material = Resources.Load("Trail", typeof(Material)) as Material;
 		}
 		else if(fingerPosition.Count > 0)
@@ -380,5 +380,14 @@ public class SlicenSwipe {
 	public void SetRubberBand(bool use)
 	{
 		useRubberBand = use;
+	}
+
+	public void RenderTransparentObjects()
+	{
+		if(fingerHandTrailMesh != null && isEnabled)
+		{
+			fingerHandTrail.renderer.material.SetPass(0);
+			Graphics.DrawMeshNow(fingerHandTrailMesh,Matrix4x4.identity);
+		}
 	}
 }

@@ -23,16 +23,11 @@ public class BubbleZoomv4 : MonoBehaviour {
 	float timeSinceLastStateChange = 0.0F;
 	float timeSinceLastClickCompleted = 0.0F;
 	float timeLastUpdate = 0.0F;
-	float lastScalarVelocity = 0.0F;
 	float velocityThreshold = 300.0F;
-	float stateChangeTimeThreshold = 0.2F;
-	int updateCountSinceMovingSlashStarted = 0;
-	float angularTriggerThreshold = 25.0F; // 10 degrees
 
 	List<Vector3> handPosition;
 	List<Vector3> fingerPosition;
 	List<float> fingerPositionTime;
-	float traceTime = 0.3F;
 	float pinchVelocity = 0.0F;
 	float lastPinchVelocity = 0.0F;
 	float lastFingerDistance = 0.0F;
@@ -43,11 +38,11 @@ public class BubbleZoomv4 : MonoBehaviour {
 	
 	bool select = false;
 
-	bool enabled = true;
+	bool isEnabled = true;
 	bool needsClear = true;
 	
 	public BubbleZoomv4() {
-		pointCloud = GameObject.Find("Point Cloud").GetComponent<PointCloud>();
+		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();
 		
 		fingerPosition = new List<Vector3>();
@@ -55,8 +50,9 @@ public class BubbleZoomv4 : MonoBehaviour {
 		fingerPositionTime = new List<float>();
 		
 		selectionVolume = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+		selectionVolume.name = "Bubble";
 		selectionVolume.renderer.material = Resources.Load("DiffuseZ", typeof(Material)) as Material;
-		selectionVolume.renderer.material.color = new Color(0.7F, 0.7F, 0.8F, 0.5F);
+		selectionVolume.renderer.material.color = new Color(0.3F, 0.3F, 0.3F, 0.5F);
 
 		volumeTrailSpheres = new List<Sphere>();
 	}
@@ -65,7 +61,7 @@ public class BubbleZoomv4 : MonoBehaviour {
 		bool locked = false; // return true if in any other state other than the initial one
 
 		// if its not enabled, simply clear and return
-		if(!enabled)
+		if(!isEnabled)
 		{
 			Clear();
 			return locked;
@@ -199,7 +195,7 @@ public class BubbleZoomv4 : MonoBehaviour {
 			locked = true;
 		}
 
-		if(Input.GetKeyDown(KeyCode.Slash) || Input.GetKeyUp(KeyCode.Slash))
+		if(Input.GetKeyDown(KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.RightControl))
 			SelectBubble();
 
 		if(currentState != state.NONE && currentState != state.MOVING_FINGER)
@@ -215,24 +211,33 @@ public class BubbleZoomv4 : MonoBehaviour {
 	
 	public void SetEnabled(bool enable)
 	{
-		enabled = enable;
-		selectionVolume.SetActive(enabled);
+		isEnabled = enable;
+		selectionVolume.SetActive(false);
 	}
-	
+
 	public void Clear()
 	{
 		if(!needsClear)
 			return;
 		needsClear = false;
-		Debug.Log("BUBBLE");
 
 		// if two seconds have passed without a state change, reset state machine
-		if((currentState != state.NONE && currentState != state.MOVING_FINGER) || !enabled)
+		if((currentState != state.NONE && currentState != state.MOVING_FINGER) || !isEnabled)
 		{
 			pointCloud.ResetSelected();
 			currentState = state.NONE;
 			timeSinceLastStateChange = 0.0F;
 		}
+	}
+
+	public void RenderTransparentObjects()
+	{
+		if(selectionVolume != null && isEnabled)
+		{
+			selectionVolume.renderer.material.SetPass(0);
+			Graphics.DrawMeshNow(selectionVolume.GetComponent<MeshFilter>().mesh,selectionVolume.transform.localToWorldMatrix);
+		}
+
 	}
 }
 

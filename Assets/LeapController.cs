@@ -5,9 +5,9 @@ using Leap;
 
 public class LeapController : MonoBehaviour {
 
-	SlicenSwipe slicenSwipe;
-	BubbleZoomv4 bubbleZoom;
-	Lasso lasso;
+	public SlicenSwipe slicenSwipe;
+	public BubbleZoomv4 bubbleZoom;
+	public Lasso lasso;
 	
 	enum technique { SLICENSWIPE=0, BUBBLEZOOM=1, LASSO=2, SIZE=3 };
 	technique currentTechnique = technique.SLICENSWIPE;  
@@ -22,15 +22,13 @@ public class LeapController : MonoBehaviour {
 
 	float fingerAvg = 0.0F;
 
-	bool lassoEnabled = false;
-
 	// Use this for initialization
 	void Start () {
 		controller = new Leap.Controller();
 		
 		annotationTextInput = GameObject.Find("Annotation Input").GetComponent<GUIText>();
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();
-		pointCloud = GameObject.Find("Point Cloud").GetComponent<PointCloud>();
+		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 
 		slicenSwipe = new SlicenSwipe();
 		bubbleZoom = new BubbleZoomv4();
@@ -160,13 +158,10 @@ public class LeapController : MonoBehaviour {
 		techniqueLock[(int)technique.BUBBLEZOOM]  = bubbleZoom.ProcessFrame(frame, goHandList, goFingerList);
 		techniqueLock[(int)technique.LASSO]       = lasso.ProcessFrame(frame, goHandList, goFingerList);
 		
-		if(!Input.GetKeyDown(KeyCode.Slash) && !Input.GetKeyUp(KeyCode.Slash) && !Input.GetKey(KeyCode.Slash))
+		if(UpdateAnnotation())
 		{
-			if(UpdateAnnotation())
-			{
-				pointCloud.Annotate(annotationTextInput.text);
-				annotationTextInput.text = "";
-			}
+			pointCloud.Annotate(annotationTextInput.text);
+			annotationTextInput.text = "";
 		}
 	}
 

@@ -11,15 +11,22 @@ public class PointCloud : MonoBehaviour {
 	private ComputeBuffer bufferPoints;
 	private ComputeBuffer bufferPos;
 	private ComputeBuffer bufferColors;
+	private ComputeBuffer bufferSizes;
 	
 	private Vector3[] pos;
-	private Vector3[] originalVerts;
 	public Vector3[] verts;
-	private Vector3[] originalColors;
-	private Vector3[] colors;
+	private Vector3[] originalVerts;
+	private Vector4[] colors;
+	private Vector4[] originalColors;
+	private float[] sizes;
 	private bool[] selected;
-	private List< List<string> > annotations;
-	
+	private List< List<string> > cloudAnnotations;
+	public List<string> annotations;
+	public float selectedAlpha = 0.7F;
+	public float deselectedAlpha = 0.3F;
+	public float selectedSize = 7.0F;
+	public float deselectedSize = 1.0F;
+
 	private bool separate  = false;  // are the point cloud instances separate?
 	private bool animating = false;  // is it currently animating?
 
@@ -28,7 +35,7 @@ public class PointCloud : MonoBehaviour {
 
 	Vector3 min, max, size, oMin, oMax, oSize;
 	
-	public float animationTotalTime = 0.25f;
+	public float animationTotalTime = 0.25F;
 	private float animationStartTime;
 	private float separationDistance;
 
@@ -55,17 +62,19 @@ public class PointCloud : MonoBehaviour {
 		//   logo
 		//   LongHornBeetle_PointCloud
 		//   QCAT_N3_Zebedee_color
-		string fileName = Application.dataPath+@"/QCAT_N3_Zebedee_color.pointcloud.csv";
+		string fileName = Application.dataPath+@"/LongHornBeetle_PointCloud.pointcloud.csv";
 		vertexCount = CountLinesInFile(fileName);
 		Debug.Log("Points: "+vertexCount);
 		
 		// vertex, color, selected, annotations arrays
 		verts = new Vector3[vertexCount];
 		originalVerts = new Vector3[vertexCount];
-		colors = new Vector3[vertexCount];
-		originalColors = new Vector3[vertexCount];
+		colors = new Vector4[vertexCount];
+		originalColors = new Vector4[vertexCount];
+		sizes = new float[vertexCount];
 		selected = new bool[vertexCount];
-		annotations = new List< List<string> >();
+		cloudAnnotations = new List< List<string> >();
+		annotations = new List<string>();
 
 		// normalized offset of each instance of the point cloud
 		pos = new Vector3[instanceCount];
@@ -84,11 +93,11 @@ public class PointCloud : MonoBehaviour {
 
 			// populate arrays
 			verts[lineCount] = new Vector3(float.Parse(values[0]),float.Parse(values[1]),float.Parse(values[2]));
-			originalVerts[lineCount] = new Vector3(float.Parse(values[0]),float.Parse(values[1]),float.Parse(values[2]));
-			colors[lineCount] = new Vector3(float.Parse(values[3]),float.Parse(values[4]),float.Parse(values[5]));
-			originalColors[lineCount] = new Vector3(float.Parse(values[3]),float.Parse(values[4]),float.Parse(values[5]));
+			colors[lineCount] = new Vector4(float.Parse(values[3]),float.Parse(values[4]),float.Parse(values[5]),selectedAlpha);
+			originalColors[lineCount] = new Vector4(float.Parse(values[3]),float.Parse(values[4]),float.Parse(values[5]),selectedAlpha);
+			sizes[lineCount] = selectedSize;
 			selected[lineCount] = true;
-			annotations.Add(new List<string>());
+			cloudAnnotations.Add(new List<string>());
 
 			// accumulate center
 			center = center + new Vector3(float.Parse(values[0]),float.Parse(values[1]),float.Parse(values[2]));
@@ -107,6 +116,7 @@ public class PointCloud : MonoBehaviour {
 			verts[i].x -= center.x;
 			verts[i].y -= center.y;
 			verts[i].z -= center.z;
+			originalVerts[i] = new Vector3(verts[i].x,verts[i].y,verts[i].z);
 
 			// calculate min/max
 			if(verts[i].x < min.x)
@@ -136,14 +146,17 @@ public class PointCloud : MonoBehaviour {
 		bufferPoints.SetData (verts);
 		material.SetBuffer ("buf_Points", bufferPoints);
 		
-		bufferColors = new ComputeBuffer (vertexCount, 12);
+		bufferColors = new ComputeBuffer (vertexCount, 16);
 		bufferColors.SetData (colors);
 		material.SetBuffer ("buf_Colors", bufferColors);
 		
 		bufferPos = new ComputeBuffer (instanceCount, 12);
 		material.SetBuffer ("buf_Positions", bufferPos);
-		
 		bufferPos.SetData (pos);
+		
+		bufferSizes = new ComputeBuffer (vertexCount, 4);
+		material.SetBuffer ("buf_Sizes", bufferSizes);
+		bufferSizes.SetData (sizes);
 
 		//pointsUpdated = true;
 	}
@@ -156,6 +169,8 @@ public class PointCloud : MonoBehaviour {
 		bufferPos = null;
 		if (bufferColors != null) bufferColors.Release();
 		bufferColors = null;
+		if (bufferSizes != null) bufferSizes.Release();
+		bufferSizes = null;
 	}
 	
 	void OnDisable() {
@@ -169,20 +184,21 @@ public class PointCloud : MonoBehaviour {
 		{
 			bufferPoints.SetData (verts);
 			bufferColors.SetData (colors);
+			bufferSizes.SetData (sizes);
 			pointsUpdated = false;
 		}
 
 		float currentTime = Time.timeSinceLevelLoad;
 		// animation
 		// cut event, for now using slash but should be something else
-		if(Input.GetKeyDown(KeyCode.Period))
+		if((Input.GetKeyDown(KeyCode.LeftAlt) || Input.GetKeyDown(KeyCode.RightAlt)) && !animating)
 		{
 			animating = true;
 			animationStartTime = currentTime;
 		}
 		
 		if(!animating && !separate)
-			separationDistance = Mathf.Min(new float[] {oSize.x, oSize.y, oSize.z})/2.0f;
+			separationDistance = Mathf.Max(new float[] {oSize.x, oSize.y, oSize.z})/3.0f;
 		
 		if(animating)
 		{
@@ -216,10 +232,14 @@ public class PointCloud : MonoBehaviour {
 	}
 	
 	//void OnPostRender() 
-	void OnRenderObject () 
+	void OnRenderObject() 
 	{
 		material.SetPass(0);
 		Graphics.DrawProcedural(MeshTopology.Points, vertexCount, instanceCount);
+		
+		GameObject.Find("Leap").GetComponent<LeapController>().slicenSwipe.RenderTransparentObjects();
+		
+		GameObject.Find("Leap").GetComponent<LeapController>().bubbleZoom.RenderTransparentObjects();
 	}
 
 	public void setLasso(List<Vector3> vertices)
@@ -238,7 +258,7 @@ public class PointCloud : MonoBehaviour {
 			if(selected[i])
 			{
 				colors[i] = originalColors[i];
-				Vector3 tmp = colors[i];
+				Vector4 tmp = colors[i];
 				Vector3 screenPoint = GameObject.Find("Camera").camera.WorldToScreenPoint(verts[i]);
 				Vector2 point2D = new Vector2(screenPoint.x, screenPoint.y);
 				if(wn_PnPoly(point2D,vertices2D,vertices.Count-1) == 0) // outside
@@ -264,7 +284,7 @@ public class PointCloud : MonoBehaviour {
 			if(selected[i])
 			{
 				colors[i] = originalColors[i];
-				Vector3 tmp = colors[i];
+				Vector4 tmp = colors[i];
 				if(Vector3.Distance(center,verts[i]) > radius)
 				{
 					tmp.x += 0.5F;
@@ -287,7 +307,7 @@ public class PointCloud : MonoBehaviour {
 			if(selected[i])
 			{
 				colors[i] = originalColors[i];
-				Vector3 tmp = colors[i];
+				Vector4 tmp = colors[i];
 				bool inside = false;
 				for(int j = 0; j < spheres.Count; j++)
 				{
@@ -316,7 +336,7 @@ public class PointCloud : MonoBehaviour {
 			if(selected[i])
 			{
 				colors[i] = originalColors[i];
-				Vector3 tmp = colors[i];
+				Vector4 tmp = colors[i];
 				if(plane.GetSide(verts[i]))
 				{
 					tmp.x += 0.5F;
@@ -341,12 +361,14 @@ public class PointCloud : MonoBehaviour {
 			if(selected[i])
 			{
 				colors[i] = originalColors[i];
-				Vector3 tmp = colors[i];
+				Vector4 tmp = colors[i];
 				if(plane.GetSide(verts[i]) == side)
 				{
 					tmp.x += 0.3F;
 					tmp.y += 0.3F;
 					tmp.z += 0.3F;
+					tmp.w = deselectedAlpha;
+					sizes[i] = deselectedSize;
 					selected[i] = false;
 				}
 				else
@@ -416,12 +438,14 @@ public class PointCloud : MonoBehaviour {
 			if(selected[i])
 			{
 				colors[i] = originalColors[i];
-				Vector3 tmp = colors[i];
+				Vector4 tmp = colors[i];
 				if((Vector3.Distance(center,verts[i]) > radius && inside) || (Vector3.Distance(center,verts[i]) < radius && !inside))
 				{
 					tmp.x += 0.3F;
 					tmp.y += 0.3F;
 					tmp.z += 0.3F;
+					tmp.w = deselectedAlpha;
+					sizes[i] = deselectedSize;
 					selected[i] = false;
 				}
 				else
@@ -492,7 +516,7 @@ public class PointCloud : MonoBehaviour {
 			if(selected[i])
 			{
 				colors[i] = originalColors[i];
-				Vector3 tmp = colors[i];
+				Vector4 tmp = colors[i];
 				bool isInside = false;
 				for(int j = 0; j < spheres.Count; j++)
 				{
@@ -507,6 +531,8 @@ public class PointCloud : MonoBehaviour {
 					tmp.x += 0.3F;
 					tmp.y += 0.3F;
 					tmp.z += 0.3F;
+					tmp.w = deselectedAlpha;
+					sizes[i] = deselectedSize;
 					selected[i] = false;
 				}
 				else
@@ -587,6 +613,7 @@ public class PointCloud : MonoBehaviour {
 			verts[i]    = originalVerts[i];
 			colors[i]   = originalColors[i];
 			selected[i] = true;
+			sizes[i]    = selectedSize;
 		}
 		
 		min = new Vector3(oMin.x, oMin.y, oMin.z);
@@ -606,11 +633,15 @@ public class PointCloud : MonoBehaviour {
 		{
 			if(selected[i])
 			{
-				annotations[i].Add(annotation);
+				cloudAnnotations[i].Add(annotation);
 				center = center + verts[i];
 				selectedCount++;
 			}
 		}
+		// and to the list of annotations
+		if(!annotations.Contains(annotation))
+			annotations.Add(annotation);
+
 		center = center / selectedCount;
 
 		GameObject tmpGo = new GameObject("Annotation");
@@ -672,7 +703,7 @@ public class PointCloud : MonoBehaviour {
 			if(selected[i])
 			{
 				colors[i] = originalColors[i];
-				Vector3 tmp = colors[i];
+				Vector4 tmp = colors[i];
 				Vector3 screenPoint = GameObject.Find("Camera").camera.WorldToScreenPoint(verts[i]);
 				Vector2 point2D = new Vector2(screenPoint.x, screenPoint.y);
 				int windings = wn_PnPoly(point2D,vertices2D,vertices.Count-1);
@@ -681,6 +712,8 @@ public class PointCloud : MonoBehaviour {
 					tmp.x += 0.3F;
 					tmp.y += 0.3F;
 					tmp.z += 0.3F;
+					tmp.w = deselectedAlpha;
+					sizes[i] = deselectedSize;
 					selected[i] = false;
 				}
 				else

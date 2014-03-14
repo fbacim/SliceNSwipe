@@ -57,6 +57,8 @@ public class ViewPoint3DMouse : MonoBehaviour {
 	public float distance = 35;
 	PointCloud pointCloud;
 
+	public Camera currentCamera;
+
 	// Use this for initialization
 	void Start () {
 		_center = new Vector3 (0, 0, 0);
@@ -78,7 +80,7 @@ public class ViewPoint3DMouse : MonoBehaviour {
 		stopWatch = new Stopwatch();
 		stopWatch.Start();
 		
-		pointCloud = GameObject.Find("Point Cloud").GetComponent<PointCloud>();
+		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 	}
 	
 	// Update is called once per frame
@@ -101,24 +103,26 @@ public class ViewPoint3DMouse : MonoBehaviour {
 		if (Input.GetKeyDown (KeyCode.T)){
 			realtimeCasting = !realtimeCasting;
 		}
-		if ((Input.GetKeyDown (KeyCode.S)) || (Input.GetKeyDown (KeyCode.LeftControl))|| (Input.GetKeyDown (KeyCode.RightControl))){
+		if (Input.GetKeyDown (KeyCode.S)){
 			showSphere = !showSphere;
 		}
 		
 		
 		if (_coordSystem == CoordinateSystem.RayCasting) {
-			Camera.current.transform.RotateAround (rayCenter, -1*Camera.current.transform.up, SpaceNavigator.Rotation.Yaw () 
+			camera.transform.RotateAround (rayCenter, -1*camera.transform.up, SpaceNavigator.Rotation.Yaw () 
 			                                       * Mathf.Rad2Deg * yRotationCoef*100);
-			Camera.current.transform.RotateAround (rayCenter, -1*Camera.current.transform.right, SpaceNavigator.Rotation.Pitch () 
+			camera.transform.RotateAround (rayCenter, -1*camera.transform.right, SpaceNavigator.Rotation.Pitch () 
 			                                       * Mathf.Rad2Deg * xRotationCoef*100);
-			Camera.current.transform.RotateAround (rayCenter, -1*Camera.current.transform.forward, SpaceNavigator.Rotation.Roll () 
+			camera.transform.RotateAround (rayCenter, -1*camera.transform.forward, SpaceNavigator.Rotation.Roll () 
 			                                       * Mathf.Rad2Deg * zRotationCoef*100);
-			
-			Camera.current.transform.Translate (new Vector3 (-SpaceNavigator.Translation.x * xTranslationCoef ,
+
+			UnityEngine.Debug.Log(SpaceNavigator.Translation);
+
+			camera.transform.Translate (new Vector3 (-SpaceNavigator.Translation.x * xTranslationCoef ,
 			                                                 -SpaceNavigator.Translation.y * yTranslationCoef ,
 			                                                 -SpaceNavigator.Translation.z * zTranslationCoef ));
 			
-			sphereR.transform.position = Camera.current.transform.position+ Camera.current.transform.forward*50;
+			sphereR.transform.position = camera.transform.position+ camera.transform.forward*50;
 			
 			
 			TimeSpan ts = stopWatch.Elapsed;
@@ -135,7 +139,7 @@ public class ViewPoint3DMouse : MonoBehaviour {
 			{
 				if (ts.TotalMilliseconds > timeDelayThershould)
 				{
-					Transform cam  = Camera.current.transform;
+					Transform cam  = camera.transform;
 					Ray ray = new Ray(cam.position, cam.forward);
 					//Debug.DrawRay (ray.origin, ray.direction *  50, Color.yellow);
 					
@@ -178,45 +182,45 @@ public class ViewPoint3DMouse : MonoBehaviour {
 				
 			}
 		}
-		else if (_coordSystem == CoordinateSystem.CameraMode) {
-			Camera.current.transform.Translate (new Vector3 (SpaceNavigator.Translation.x,
+		/*else if (_coordSystem == CoordinateSystem.CameraMode) {
+			camera.transform.Translate (new Vector3 (SpaceNavigator.Translation.x,
 			                                                 SpaceNavigator.Translation.y,
 			                                                 SpaceNavigator.Translation.z));
 			
-			Camera.current.transform.RotateAround (Camera.current.transform.up, SpaceNavigator.Rotation.Yaw () 
+			camera.transform.RotateAround (camera.transform.up, SpaceNavigator.Rotation.Yaw () 
 			                                       * Mathf.Rad2Deg * yRotationCoef);
-			Camera.current.transform.RotateAround (Camera.current.transform.right, SpaceNavigator.Rotation.Pitch () 
+			camera.transform.RotateAround (camera.transform.right, SpaceNavigator.Rotation.Pitch () 
 			                                       * Mathf.Rad2Deg * xRotationCoef);
-			Camera.current.transform.RotateAround (Camera.current.transform.forward, SpaceNavigator.Rotation.Roll () 
+			camera.transform.RotateAround (camera.transform.forward, SpaceNavigator.Rotation.Roll () 
 			                                       * Mathf.Rad2Deg * zRotationCoef);
 			
 		} 
 		else if (_coordSystem == CoordinateSystem.CameraInCenter) {
 			
-			Camera.current.transform.Translate (new Vector3 (-SpaceNavigator.Translation.x * xTranslationCoef ,
+			camera.transform.Translate (new Vector3 (-SpaceNavigator.Translation.x * xTranslationCoef ,
 			                                                 -SpaceNavigator.Translation.y * yTranslationCoef ,
 			                                                 -SpaceNavigator.Translation.z * zTranslationCoef ));
 			
-			Camera.current.transform.RotateAround (Camera.current.transform.position, -1*Camera.current.transform.up, SpaceNavigator.Rotation.Yaw () 
+			camera.transform.RotateAround (camera.transform.position, -1*camera.transform.up, SpaceNavigator.Rotation.Yaw () 
 			                                       * Mathf.Rad2Deg * yRotationCoef*100);
-			Camera.current.transform.RotateAround (Camera.current.transform.position, -1*Camera.current.transform.right, SpaceNavigator.Rotation.Pitch () 
+			camera.transform.RotateAround (camera.transform.position, -1*camera.transform.right, SpaceNavigator.Rotation.Pitch () 
 			                                       * Mathf.Rad2Deg * xRotationCoef*100);
-			Camera.current.transform.RotateAround (Camera.current.transform.position, -1*Camera.current.transform.forward, SpaceNavigator.Rotation.Roll () 
+			camera.transform.RotateAround (camera.transform.position, -1*camera.transform.forward, SpaceNavigator.Rotation.Roll () 
 			                                       * Mathf.Rad2Deg * zRotationCoef*100);
 		}
 		
 		else if (_coordSystem == CoordinateSystem.ObjectMode) {
-			Camera.current.transform.RotateAround (_center, -1*Camera.current.transform.up, SpaceNavigator.Rotation.Yaw () 
+			camera.transform.RotateAround (_center, -1*camera.transform.up, SpaceNavigator.Rotation.Yaw () 
 			                                       * Mathf.Rad2Deg * yRotationCoef*100);
-			Camera.current.transform.RotateAround (_center, -1*Camera.current.transform.right, SpaceNavigator.Rotation.Pitch () 
+			camera.transform.RotateAround (_center, -1*camera.transform.right, SpaceNavigator.Rotation.Pitch () 
 			                                       * Mathf.Rad2Deg * xRotationCoef*100);
-			Camera.current.transform.RotateAround (_center, -1*Camera.current.transform.forward, SpaceNavigator.Rotation.Roll () 
+			camera.transform.RotateAround (_center, -1*camera.transform.forward, SpaceNavigator.Rotation.Roll () 
 			                                       * Mathf.Rad2Deg * zRotationCoef*100);
 			
-			Camera.current.transform.Translate (new Vector3 (-SpaceNavigator.Translation.x * xTranslationCoef ,
+			camera.transform.Translate (new Vector3 (-SpaceNavigator.Translation.x * xTranslationCoef ,
 			                                                 -SpaceNavigator.Translation.y * yTranslationCoef ,
 			                                                 -SpaceNavigator.Translation.z * zTranslationCoef ));
 			
-		}
+		}*/
 	}
 }
