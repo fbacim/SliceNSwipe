@@ -10,7 +10,6 @@ Shader "DX11/VertexColorPoints"
 {
 	Properties 
 	{
-		_PointSize("PointSize", Float) = 3.0
 	}
 	SubShader 
 	{
@@ -31,7 +30,7 @@ Shader "DX11/VertexColorPoints"
 			StructuredBuffer<float4> buf_Colors;
 			StructuredBuffer<float3> buf_Positions;
 			StructuredBuffer<float>  buf_Sizes;
-			float _PointSize;
+			//StructuredBuffer<bool>   buf_UseColorOffset;
 			
 			struct GS_INPUT
 			{
@@ -91,11 +90,11 @@ Shader "DX11/VertexColorPoints"
 			{
 				if(p[0].color.w == 0.0f)
 					return;
-				
+
 				// calculate billboard vectors
 				float3 up = float3(0, 1, 0);
+				up = mul(UNITY_MATRIX_T_MV,up);
 				float3 look = _WorldSpaceCameraPos - p[0].pos;
-				look.y = 0;
 				look = normalize(look);
 				float3 right = cross(up, look);
 				

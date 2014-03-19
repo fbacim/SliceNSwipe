@@ -89,6 +89,15 @@ public class SlicenSwipe {
 		float currentTime = Time.timeSinceLevelLoad;
 		float timeSinceLastUpdate = currentTime - timeLastUpdate;
 		timeLastUpdate = currentTime;
+
+		if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+		{
+			SetRubberBand(true);
+		}
+		else
+		{
+			SetRubberBand(false);
+		}
 		
 		// update finger trace
 		if(frame.Fingers.Count > 0)
@@ -251,20 +260,20 @@ public class SlicenSwipe {
 		lastScalarVelocity = scalarVelocity;
 		
 		// reset state machine
-		if((hl.Count == 0) || (hl.Count >= 1 && (fl.Count >= 3 || fl.Count < 1))) 
+		/*if((hl.Count == 0) || (hl.Count >= 1 && (fl.Count >= 3 || fl.Count < 1))) 
 		{
 			pointCloud.ResetSelected();
 			currentState = state.NONE;
 			timeSinceLastStateChange = 0.0F;
 		}
 		// change state to moving finger (initial state) 
-		else if(currentState == state.NONE && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 2) 
+		else */if(currentState == state.NONE && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 3) 
 		{
 			currentState = state.MOVING_FINGER;
 			timeSinceLastStateChange = 0.0F;
 		}
 		// if velocity above threshold, record motion in moving cut state
-		else if(currentState == state.MOVING_FINGER && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 2 && (filteredVelocity > velocityThreshold || useRubberBand)) 
+		else if(currentState == state.MOVING_FINGER && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 3 && (filteredVelocity > velocityThreshold || useRubberBand)) 
 		{
 			currentState = state.MOVING_CUT;
 			timeSinceLastStateChange = 0.0F;
@@ -325,8 +334,10 @@ public class SlicenSwipe {
 		}
 		
 		// if two seconds have passed without a state change, reset state machine
-		if(currentState != state.NONE && currentState != state.MOVING_FINGER && !rubberBandActive && timeSinceLastStateChange > 4.0F)
+		if(Input.GetKeyDown(KeyCode.Escape))
 		{
+			if((currentState == state.NONE || currentState == state.MOVING_FINGER) && !rubberBandActive)//timeSinceLastStateChange > 4.0F)
+				pointCloud.Undo();
 			pointCloud.ResetSelected();
 			currentState = state.NONE;
 			timeSinceLastStateChange = 0.0F;

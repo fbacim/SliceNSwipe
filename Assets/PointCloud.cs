@@ -20,6 +20,7 @@ public class PointCloud : MonoBehaviour {
 	private Vector4[] originalColors;
 	private float[] sizes;
 	private bool[] selected;
+	private List< List<bool> > selectedHistory;
 	private List< List<string> > cloudAnnotations;
 	public List<string> annotations;
 	public float selectedAlpha = 0.7F;
@@ -73,6 +74,7 @@ public class PointCloud : MonoBehaviour {
 		originalColors = new Vector4[vertexCount];
 		sizes = new float[vertexCount];
 		selected = new bool[vertexCount];
+		selectedHistory = new List< List<bool> >();
 		cloudAnnotations = new List< List<string> >();
 		annotations = new List<string>();
 
@@ -236,13 +238,107 @@ public class PointCloud : MonoBehaviour {
 	{
 		material.SetPass(0);
 		Graphics.DrawProcedural(MeshTopology.Points, vertexCount, instanceCount);
-		
 		GameObject.Find("Leap").GetComponent<LeapController>().slicenSwipe.RenderTransparentObjects();
-		
 		GameObject.Find("Leap").GetComponent<LeapController>().bubbleZoom.RenderTransparentObjects();
+		GameObject.Find("Leap").GetComponent<LeapController>().volumeSweep.RenderTransparentObjects();
 	}
 
-	public void setLasso(List<Vector3> vertices)
+	private void SaveToHistory()
+	{
+		List<bool> entry = new List<bool>();
+		for (int i = 0; i < vertexCount; i++)
+			entry.Add(selected[i]);
+		selectedHistory.Add(entry);
+		if(selectedHistory.Count > 50)
+			selectedHistory.RemoveAt(0);
+	}
+
+	public void Undo()
+	{
+		if(selectedHistory.Count == 0)
+			return;
+
+		List<bool> entry = selectedHistory[selectedHistory.Count-1];
+		selectedHistory.RemoveAt(selectedHistory.Count-1);
+	
+		Vector3 selectedCenter = new Vector3();
+		int selectedCount = 0;
+		for (int i = 0; i < vertexCount; ++i)
+		{
+			selected[i] = entry[i];
+
+			colors[i] = originalColors[i];
+			Vector4 tmp = colors[i];
+
+			if(selected[i])
+			{
+				sizes[i] = selectedSize;
+				selectedCenter = selectedCenter + verts[i];
+				selectedCount++;
+			}
+			else 
+			{
+				tmp.x += 0.3F;
+				tmp.y += 0.3F;
+				tmp.z += 0.3F;
+				tmp.w = deselectedAlpha;
+				sizes[i] = deselectedSize;
+				selected[i] = false;
+			}
+			colors[i] = tmp;
+		}
+		
+		if(selectedCount == 0)
+		{
+			ResetSelected();
+			return;
+		}
+		
+		selectedCenter = selectedCenter / selectedCount;
+		
+		min = new Vector3(float.MaxValue,float.MaxValue,float.MaxValue);
+		max = new Vector3(float.MinValue,float.MinValue,float.MinValue);
+		
+		for (int i = 0; i < vertexCount; i++) 
+		{
+			Vector3 tmp = verts[i];
+			
+			// offset for the center of the selected points in the point cloud to be at 0,0,0
+			tmp.x -= selectedCenter.x;
+			tmp.y -= selectedCenter.y;
+			tmp.z -= selectedCenter.z;
+			
+			verts[i] = tmp;
+			
+			// calculate min/max of selected points
+			if(selected[i])
+			{
+				if(tmp.x < min.x)
+					min.x = tmp.x;
+				if(tmp.y < min.y)
+					min.y = tmp.y;
+				if(tmp.z < min.z)
+					min.z = tmp.z;
+				
+				if(tmp.x > max.x)
+					max.x = tmp.x;
+				if(tmp.y > max.y)
+					max.y = tmp.y;
+				if(tmp.z > max.z)
+					max.z = tmp.z;
+			}
+		}
+		
+		size = new Vector3(max.x-min.x,max.y-min.y,max.z-min.z);
+		
+		GameObject.Find("Camera").GetComponent<ViewPoint3DMouse>().distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
+		GameObject.Find("Camera").GetComponent<Orbit>().distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
+		
+		pointsUpdated = true;
+
+	}
+
+	public void SetLasso(List<Vector3> vertices)
 	{
 		Debug.Log("setLasso");
 
@@ -276,22 +372,25 @@ public class PointCloud : MonoBehaviour {
 		pointsUpdated = true;
 	}
 	
-	public void SetSphere(Vector3 center, float radius)
+	public void SetSphere(Vector3 center, float radius, bool resetColor)
 	{
-
 		for (int i = 0; i < vertexCount; ++i)
 		{
 			if(selected[i])
 			{
-				colors[i] = originalColors[i];
+				if(resetColor)
+					colors[i] = originalColors[i];
 				Vector4 tmp = colors[i];
 				if(Vector3.Distance(center,verts[i]) > radius)
 				{
-					tmp.x += 0.5F;
+					if(resetColor)
+						tmp.x += 0.5F;
 				}
 				else
 				{
-					tmp.z += 0.5F;
+					if(!resetColor)
+						tmp.x = originalColors[i].x;
+					tmp.z = originalColors[i].z+0.5F;
 				}
 				colors[i] = tmp;
 			}
@@ -354,6 +453,8 @@ public class PointCloud : MonoBehaviour {
 
 	public void SelectSide(Plane plane, bool side) // side is true when we want points in the same side as normal
 	{
+		SaveToHistory();
+
 		Vector3 selectedCenter = new Vector3();
 		int selectedCount = 0;
 		for (int i = 0; i < vertexCount; ++i)
@@ -431,6 +532,8 @@ public class PointCloud : MonoBehaviour {
 
 	public void SelectSphere(Vector3 center, float radius, bool inside)
 	{
+		SaveToHistory();
+
 		Vector3 selectedCenter = new Vector3();
 		int selectedCount = 0;
 		for (int i = 0; i < vertexCount; ++i)
@@ -508,6 +611,8 @@ public class PointCloud : MonoBehaviour {
 
 	public void SelectSphereTrail(List<Sphere> spheres, bool inside)
 	{
+		SaveToHistory();
+
 		Vector3 selectedCenter = new Vector3();
 		int selectedCount = 0;
 
@@ -527,6 +632,106 @@ public class PointCloud : MonoBehaviour {
 					}
 				}
 				if((!isInside && inside) || (isInside && !inside))
+				{
+					tmp.x += 0.3F;
+					tmp.y += 0.3F;
+					tmp.z += 0.3F;
+					tmp.w = deselectedAlpha;
+					sizes[i] = deselectedSize;
+					selected[i] = false;
+				}
+				else
+				{
+					selectedCenter = selectedCenter + verts[i];
+					selectedCount++;
+				}
+				colors[i] = tmp;
+			}
+		}
+		
+		if(selectedCount == 0)
+		{
+			ResetSelected();
+			return;
+		}
+		
+		selectedCenter = selectedCenter / selectedCount;
+		
+		min = new Vector3(float.MaxValue,float.MaxValue,float.MaxValue);
+		max = new Vector3(float.MinValue,float.MinValue,float.MinValue);
+		
+		for (int i = 0; i < vertexCount ; i++) 
+		{
+			Vector3 tmp = verts[i];
+			
+			// offset for the center of the selected points in the point cloud to be at 0,0,0
+			tmp.x -= selectedCenter.x;
+			tmp.y -= selectedCenter.y;
+			tmp.z -= selectedCenter.z;
+			
+			verts[i] = tmp;
+			
+			// calculate min/max of selected points
+			if(selected[i])
+			{
+				if(tmp.x < min.x)
+					min.x = tmp.x;
+				if(tmp.y < min.y)
+					min.y = tmp.y;
+				if(tmp.z < min.z)
+					min.z = tmp.z;
+				
+				if(tmp.x > max.x)
+					max.x = tmp.x;
+				if(tmp.y > max.y)
+					max.y = tmp.y;
+				if(tmp.z > max.z)
+					max.z = tmp.z;
+			}
+		}
+		
+		size = new Vector3(max.x-min.x,max.y-min.y,max.z-min.z);
+		
+		GameObject.Find("Camera").GetComponent<ViewPoint3DMouse>().distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
+		GameObject.Find("Camera").GetComponent<Orbit>().distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
+		
+		pointsUpdated = true;
+	}
+
+	public void SelectLasso(List<Vector3> vertices, bool inside)
+	{
+		SaveToHistory();
+		
+		// pseudo-code for lasso
+		// for vertex in lasso
+		//    vscreen = camera.worldtoscreen(vertex)
+		//    lassoScreen.add(vscreen)
+		Vector2[] vertices2D = new Vector2[vertices.Count];
+		for(int i = 0; i < vertices.Count; i++)
+		{
+			Vector3 screenPoint = GameObject.Find("Camera").camera.WorldToScreenPoint(vertices[i]);
+			vertices2D[i] = new Vector2(screenPoint.x,screenPoint.y);
+		}
+		
+		// for point in pointcloud
+		//    pscreen = camera.worldtoscreen(point)
+		//    if(wn_PnPoly(pscreen,lassoScreen,lassoScreen.count))
+		//       point red
+		//    else
+		//       point blue
+		Vector3 selectedCenter = new Vector3();
+		int selectedCount = 0;
+		
+		for (int i = 0; i < vertexCount; ++i)
+		{
+			if(selected[i])
+			{
+				colors[i] = originalColors[i];
+				Vector4 tmp = colors[i];
+				Vector3 screenPoint = GameObject.Find("Camera").camera.WorldToScreenPoint(verts[i]);
+				Vector2 point2D = new Vector2(screenPoint.x, screenPoint.y);
+				int windings = wn_PnPoly(point2D,vertices2D,vertices.Count-1);
+				if((windings == 0 && inside) || (windings > 0 && !inside)) 
 				{
 					tmp.x += 0.3F;
 					tmp.y += 0.3F;
@@ -674,104 +879,6 @@ public class PointCloud : MonoBehaviour {
 	public Vector3 Max()
 	{
 		return max;
-	}
-
-	public void Lasso(List<Vector3> vertices, bool inside)
-	{
-		// pseudo-code for lasso
-		// for vertex in lasso
-		//    vscreen = camera.worldtoscreen(vertex)
-		//    lassoScreen.add(vscreen)
-		Vector2[] vertices2D = new Vector2[vertices.Count];
-		for(int i = 0; i < vertices.Count; i++)
-		{
-			Vector3 screenPoint = GameObject.Find("Camera").camera.WorldToScreenPoint(vertices[i]);
-			vertices2D[i] = new Vector2(screenPoint.x,screenPoint.y);
-		}
-
-		// for point in pointcloud
-		//    pscreen = camera.worldtoscreen(point)
-		//    if(wn_PnPoly(pscreen,lassoScreen,lassoScreen.count))
-		//       point red
-		//    else
-		//       point blue
-		Vector3 selectedCenter = new Vector3();
-		int selectedCount = 0;
-
-		for (int i = 0; i < vertexCount; ++i)
-		{
-			if(selected[i])
-			{
-				colors[i] = originalColors[i];
-				Vector4 tmp = colors[i];
-				Vector3 screenPoint = GameObject.Find("Camera").camera.WorldToScreenPoint(verts[i]);
-				Vector2 point2D = new Vector2(screenPoint.x, screenPoint.y);
-				int windings = wn_PnPoly(point2D,vertices2D,vertices.Count-1);
-				if((windings == 0 && inside) || (windings > 0 && !inside)) 
-				{
-					tmp.x += 0.3F;
-					tmp.y += 0.3F;
-					tmp.z += 0.3F;
-					tmp.w = deselectedAlpha;
-					sizes[i] = deselectedSize;
-					selected[i] = false;
-				}
-				else
-				{
-					selectedCenter = selectedCenter + verts[i];
-					selectedCount++;
-				}
-				colors[i] = tmp;
-			}
-		}
-
-		if(selectedCount == 0)
-		{
-			ResetSelected();
-			return;
-		}
-		
-		selectedCenter = selectedCenter / selectedCount;
-		
-		min = new Vector3(float.MaxValue,float.MaxValue,float.MaxValue);
-		max = new Vector3(float.MinValue,float.MinValue,float.MinValue);
-		
-		for (int i = 0; i < vertexCount ; i++) 
-		{
-			Vector3 tmp = verts[i];
-			
-			// offset for the center of the selected points in the point cloud to be at 0,0,0
-			tmp.x -= selectedCenter.x;
-			tmp.y -= selectedCenter.y;
-			tmp.z -= selectedCenter.z;
-			
-			verts[i] = tmp;
-			
-			// calculate min/max of selected points
-			if(selected[i])
-			{
-				if(tmp.x < min.x)
-					min.x = tmp.x;
-				if(tmp.y < min.y)
-					min.y = tmp.y;
-				if(tmp.z < min.z)
-					min.z = tmp.z;
-				
-				if(tmp.x > max.x)
-					max.x = tmp.x;
-				if(tmp.y > max.y)
-					max.y = tmp.y;
-				if(tmp.z > max.z)
-					max.z = tmp.z;
-			}
-		}
-		
-		size = new Vector3(max.x-min.x,max.y-min.y,max.z-min.z);
-		
-		GameObject.Find("Camera").GetComponent<ViewPoint3DMouse>().distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
-		GameObject.Find("Camera").GetComponent<Orbit>().distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
-		
-		pointsUpdated = true;
 	}
 
 

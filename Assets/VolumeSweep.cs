@@ -3,18 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Leap;
 
-public struct Sphere {
-	public Vector3 center;
-	public float radius;
-	
-	public Sphere(Vector3 pos, float rad)
-	{
-		center = pos;
-		radius = rad;
-	}
-}
-
-public class BubbleZoomv4 : MonoBehaviour {
+public class VolumeSweep : MonoBehaviour {
 	Transform cameraTransform;
 	PointCloud pointCloud;
 	
@@ -41,7 +30,7 @@ public class BubbleZoomv4 : MonoBehaviour {
 	bool isEnabled = true;
 	bool needsClear = true;
 	
-	public BubbleZoomv4() {
+	public VolumeSweep() {
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();
 		
@@ -110,19 +99,13 @@ public class BubbleZoomv4 : MonoBehaviour {
 		{
 			if(pinchVelocity > velocityThreshold)
 			{
-				if(volumeTrailSpheres.Count == 0)
-					pointCloud.SelectSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,true);
-				else
-					pointCloud.SelectSphereTrail(volumeTrailSpheres,true);
+				pointCloud.SelectSphereTrail(volumeTrailSpheres,true);
 				selectionVolume.SetActive(true);
 				currentState = state.SELECT_BUBBLE;
 			}
 			else if(pinchVelocity < -velocityThreshold)
 			{
-				if(volumeTrailSpheres.Count == 0)
-					pointCloud.SelectSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,false);
-				else
-					pointCloud.SelectSphereTrail(volumeTrailSpheres,false);
+				pointCloud.SelectSphereTrail(volumeTrailSpheres,false);
 				selectionVolume.SetActive(true);
 				currentState = state.SELECT_BUBBLE;
 			}
@@ -156,12 +139,15 @@ public class BubbleZoomv4 : MonoBehaviour {
 		if(currentState != state.NONE)
 		{
 			if(volumeTrailSpheres.Count == 0)
-				pointCloud.SetSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F, true);
+				pointCloud.SetSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,true);
+			else if(currentState == state.MOVING_FINGER)
+				pointCloud.SetSphere(volumeTrailSpheres[volumeTrailSpheres.Count-1].center,volumeTrailSpheres[volumeTrailSpheres.Count-1].radius,false);//pointCloud.SetSphereTrail(volumeTrailSpheres);
 		}
 
 		//hold key for bubble sweep
 		
-		// if two seconds have passed without a state change, reset state machine		
+		// if two seconds have passed without a state change, reset state machine
+		
 		if(Input.GetKeyDown(KeyCode.Escape))
 		{
 			if(currentState == state.NONE || currentState == state.MOVING_FINGER)//timeSinceLastStateChange > 4.0F)
@@ -179,8 +165,21 @@ public class BubbleZoomv4 : MonoBehaviour {
 			volumeTrailSpheres.Clear();
 		}
 
-		if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+
+		if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // reset
+		{
 			SelectBubble();
+			locked = true;
+		}
+		else if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) // ready to select
+		{
+			//volumeTrail.Add(Instantiate(selectionVolume) as GameObject);
+			//volumeTrail[volumeTrail.Count-1].renderer.material.color = new Color(0.7F, 0.7F, 0.7F, 0.5F);
+			Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);
+			volumeTrailSpheres.Add(s);
+
+			locked = true;
+		}
 
 		if(currentState != state.NONE && currentState != state.MOVING_FINGER)
 			locked = true;

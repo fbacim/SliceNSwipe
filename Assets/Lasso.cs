@@ -7,8 +7,8 @@ public class Lasso : MonoBehaviour {
 	Transform cameraTransform;
 	PointCloud pointCloud;
 	
-	enum state { DRAW, WAITING_TWO_FINGERS, SELECT_IN_OUT, SELECT };
-	state currentState = state.DRAW;
+	enum state { NONE, DRAW, WAITING_TWO_FINGERS, SELECT_IN_OUT, SELECT };
+	state currentState = state.NONE;
 	float timeSinceLastStateChange = 0.0F;
 	float timeSinceLastClickCompleted = 0.0F;
 	float timeLastUpdate = 0.0F;
@@ -81,6 +81,10 @@ public class Lasso : MonoBehaviour {
 
 		locked = true;
 
+		if(currentState == state.NONE && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
+		{
+			currentState = state.DRAW;
+		}
 		if(currentState == state.DRAW)
 		{
 			fingerPosition.Add(goFingerList[0].transform.position);
@@ -94,7 +98,7 @@ public class Lasso : MonoBehaviour {
 
 			List<Vector3> lasso = new List<Vector3>(fingerPosition);
 			lasso.Add(fingerPosition[0]);
-			pointCloud.setLasso(lasso);
+			pointCloud.SetLasso(lasso);
 		}
 		else if(currentState == state.WAITING_TWO_FINGERS && hl.Count >= 1 && fl.Count >= 2 && timeSinceLastStateChange >= 1.0F && Mathf.Abs(pinchVelocity) < velocityThreshold)
 		{
@@ -107,33 +111,47 @@ public class Lasso : MonoBehaviour {
 			{
 				// close the loop
 				fingerPosition.Add(fingerPosition[0]);
-				pointCloud.Lasso(fingerPosition,true);
+				pointCloud.SelectLasso(fingerPosition,true);
 				currentState = state.SELECT;
 			}
 			else if(pinchVelocity < -velocityThreshold)
 			{
 				// close the loop
 				fingerPosition.Add(fingerPosition[0]);
-				pointCloud.Lasso(fingerPosition,false);
+				pointCloud.SelectLasso(fingerPosition,false);
 				currentState = state.SELECT;
 			}
 		}
 		
 		if(currentState == state.SELECT)
 		{
-			currentState = state.DRAW;
+			currentState = state.NONE;
+			fingerPosition.Clear();
+			handPosition.Clear();
+			fingerPositionTime.Clear();
+			fingerLineRenderer.SetVertexCount(0);
 			locked = false;
 		}
 
-		if(Input.GetKeyUp(KeyCode.LeftControl) || Input.GetKeyUp(KeyCode.RightControl)) // ready to select
+		if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // ready to select
 		{
 			currentState = state.WAITING_TWO_FINGERS;
 			locked = true;
 		}
-		else if(currentState != state.DRAW && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))) // reset?
+		else if(currentState != state.NONE && currentState != state.DRAW && (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.LeftShift))) // reset?
 		{
 			Clear();
 			currentState = state.DRAW;
+		}
+
+		// if two seconds have passed without a state change, reset state machine
+		if(Input.GetKeyDown(KeyCode.Escape))
+		{
+			if(currentState == state.NONE || currentState == state.DRAW)//timeSinceLastStateChange > 4.0F)
+				pointCloud.Undo();
+			currentState = state.NONE;
+			timeSinceLastStateChange = 0.0F;
+			Clear();
 		}
 		
 		return locked;
@@ -152,7 +170,7 @@ public class Lasso : MonoBehaviour {
 		needsClear = false;
 		Debug.Log("LASSO");
 
-		currentState = state.DRAW;
+		currentState = state.NONE;
 
 		fingerPosition.Clear();
 		handPosition.Clear();

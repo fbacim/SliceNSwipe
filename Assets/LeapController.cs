@@ -7,11 +7,11 @@ public class LeapController : MonoBehaviour {
 
 	public SlicenSwipe slicenSwipe;
 	public BubbleZoomv4 bubbleZoom;
+	public VolumeSweep volumeSweep;
 	public Lasso lasso;
 	
-	enum technique { SLICENSWIPE=0, BUBBLEZOOM=1, LASSO=2, SIZE=3 };
+	enum technique { SLICENSWIPE=0, BUBBLEZOOM=1, VOLUMESWEEP=2, LASSO=3, SIZE=4 };
 	technique currentTechnique = technique.SLICENSWIPE;  
-	bool[] techniqueLock = new bool[(int)technique.SIZE]; // use this to determine if we can change techniques or not
 
 	Leap.Controller controller;
 	List<GameObject> goFingerList;
@@ -32,6 +32,7 @@ public class LeapController : MonoBehaviour {
 
 		slicenSwipe = new SlicenSwipe();
 		bubbleZoom = new BubbleZoomv4();
+		volumeSweep = new VolumeSweep();
 		lasso = new Lasso();
 
 		goFingerList = new List<GameObject>();
@@ -122,57 +123,48 @@ public class LeapController : MonoBehaviour {
 			goFingerList[i].transform.position = position;
 		}
 
-		if(!techniqueLock[(int)currentTechnique])
+		if(Input.GetKeyDown(KeyCode.Plus) || Input.GetKeyDown(KeyCode.KeypadPlus))
 		{
-			fingerAvg = fingerAvg * 0.9F + fl.Count * 0.1F;
-
-			if(fingerAvg > 0.9F && fingerAvg <= 1.5F)
-			{
-				if(Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
-				{
-					currentTechnique = technique.LASSO;
-				}
-				else
-				{
-					currentTechnique = technique.SLICENSWIPE;
-				}
-			}
-			else if(fingerAvg > 1.5F)
-			{
-				currentTechnique = technique.BUBBLEZOOM;
-			}
+			currentTechnique++;
+			if(currentTechnique == technique.SIZE)
+				currentTechnique = 0;
 		}
+		else if(Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus))
+		{
+			currentTechnique--;
+			if(currentTechnique < 0)
+				currentTechnique = technique.SIZE-1;
+		}
+
+		fingerAvg = fingerAvg * 0.9F + fl.Count * 0.1F;
+		Debug.Log(fingerAvg);
 
 		slicenSwipe.SetEnabled(false);
 		bubbleZoom.SetEnabled(false);
+		volumeSweep.SetEnabled(false);
 		lasso.SetEnabled(false);
 
 		if(currentTechnique == technique.SLICENSWIPE)
 			slicenSwipe.SetEnabled(true);
 		else if(currentTechnique == technique.BUBBLEZOOM)
 			bubbleZoom.SetEnabled(true);
+		else if(currentTechnique == technique.VOLUMESWEEP)
+			volumeSweep.SetEnabled(true);
 		else if(currentTechnique == technique.LASSO)
 			lasso.SetEnabled(true);
-		
-		techniqueLock[(int)technique.SLICENSWIPE] = slicenSwipe.ProcessFrame(frame, goHandList, goFingerList);
-		techniqueLock[(int)technique.BUBBLEZOOM]  = bubbleZoom.ProcessFrame(frame, goHandList, goFingerList);
-		techniqueLock[(int)technique.LASSO]       = lasso.ProcessFrame(frame, goHandList, goFingerList);
+		Debug.Log(currentTechnique);
+
+		bool techniqueLock;
+		techniqueLock = slicenSwipe.ProcessFrame(frame, goHandList, goFingerList);
+		techniqueLock = bubbleZoom.ProcessFrame(frame, goHandList, goFingerList);
+		techniqueLock = volumeSweep.ProcessFrame(frame, goHandList, goFingerList);
+		techniqueLock = lasso.ProcessFrame(frame, goHandList, goFingerList);
+		Debug.Log(techniqueLock);
 		
 		if(UpdateAnnotation())
 		{
 			pointCloud.Annotate(annotationTextInput.text);
 			annotationTextInput.text = "";
-		}
-	}
-
-	void OnGUI () {
-		if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-		{
-			slicenSwipe.SetRubberBand(true);
-		}
-		else
-		{
-			slicenSwipe.SetRubberBand(false);
 		}
 	}
 }
