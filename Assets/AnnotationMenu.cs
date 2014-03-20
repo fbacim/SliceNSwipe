@@ -146,7 +146,7 @@ public class AnnotationMenu : MonoBehaviour {
 					GUI.SetNextControlName (menuOptions [i]);
 					//GUI.skin.button.focused = Color.red;
 					GUI.skin.button.focused.textColor = Color.yellow;
-					GUIStyle style = new GUIStyle(
+					GUIStyle style = new GUIStyle();
 
 					if (GUI.Button (new Rect (5, 5 + i * 30, 20 + menuLength * 9, 30), menuOptions [i])) {
 						selectedAnnotation(i);
