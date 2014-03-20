@@ -6,11 +6,11 @@ using Leap;
 public class LeapController : MonoBehaviour {
 
 	public SlicenSwipe slicenSwipe;
-	public BubbleZoomv4 bubbleZoom;
+	//public BubbleZoomv4 bubbleZoom;
 	public VolumeSweep volumeSweep;
 	public Lasso lasso;
 	
-	enum technique { SLICENSWIPE=0, BUBBLEZOOM=1, VOLUMESWEEP=2, LASSO=3, SIZE=4 };
+	enum technique { SLICENSWIPE=0, VOLUMESWEEP=1, LASSO=2, SIZE=3 };
 	technique currentTechnique = technique.SLICENSWIPE;  
 
 	Leap.Controller controller;
@@ -31,7 +31,7 @@ public class LeapController : MonoBehaviour {
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 
 		slicenSwipe = new SlicenSwipe();
-		bubbleZoom = new BubbleZoomv4();
+		//bubbleZoom = new BubbleZoomv4();
 		volumeSweep = new VolumeSweep();
 		lasso = new Lasso();
 
@@ -47,7 +47,7 @@ public class LeapController : MonoBehaviour {
 	bool UpdateAnnotation() {
 		foreach (char c in Input.inputString) 
 		{
-			Debug.Log((int)c);
+			//Debug.Log((int)c);
 			// if backspace, erase text character
 			if (c == "\b"[0])
 			{
@@ -79,7 +79,7 @@ public class LeapController : MonoBehaviour {
 
 		for(int i = 0; i < gl.Count; i++)
 		{
-			Debug.Log("["+gl[i].DurationSeconds+"] "+gl[i].Type+" -> "+gl[i].State);
+			//Debug.Log("["+gl[i].DurationSeconds+"] "+gl[i].Type+" -> "+gl[i].State);
 		}
 
 		//Debug.Log("<"+frame.InteractionBox.Width+", "+frame.InteractionBox.Height+", "+frame.InteractionBox.Depth+">  "+frame.InteractionBox.Center); // +"   "+pointCloud.Size()
@@ -123,13 +123,13 @@ public class LeapController : MonoBehaviour {
 			goFingerList[i].transform.position = position;
 		}
 
-		if(Input.GetKeyDown(KeyCode.Plus) || Input.GetKeyDown(KeyCode.KeypadPlus))
+		if(Input.GetKeyDown(KeyCode.PageUp))
 		{
 			currentTechnique++;
 			if(currentTechnique == technique.SIZE)
 				currentTechnique = 0;
 		}
-		else if(Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus))
+		else if(Input.GetKeyDown(KeyCode.PageDown))
 		{
 			currentTechnique--;
 			if(currentTechnique < 0)
@@ -137,29 +137,29 @@ public class LeapController : MonoBehaviour {
 		}
 
 		fingerAvg = fingerAvg * 0.9F + fl.Count * 0.1F;
-		Debug.Log(fingerAvg);
+		//Debug.Log(fingerAvg);
 
 		slicenSwipe.SetEnabled(false);
-		bubbleZoom.SetEnabled(false);
+		//bubbleZoom.SetEnabled(false);
 		volumeSweep.SetEnabled(false);
 		lasso.SetEnabled(false);
 
 		if(currentTechnique == technique.SLICENSWIPE)
 			slicenSwipe.SetEnabled(true);
-		else if(currentTechnique == technique.BUBBLEZOOM)
-			bubbleZoom.SetEnabled(true);
+		//else if(currentTechnique == technique.BUBBLEZOOM)
+		//	bubbleZoom.SetEnabled(true);
 		else if(currentTechnique == technique.VOLUMESWEEP)
 			volumeSweep.SetEnabled(true);
 		else if(currentTechnique == technique.LASSO)
 			lasso.SetEnabled(true);
-		Debug.Log(currentTechnique);
+		//Debug.Log(currentTechnique);
 
 		bool techniqueLock;
 		techniqueLock = slicenSwipe.ProcessFrame(frame, goHandList, goFingerList);
-		techniqueLock = bubbleZoom.ProcessFrame(frame, goHandList, goFingerList);
+		//techniqueLock = bubbleZoom.ProcessFrame(frame, goHandList, goFingerList);
 		techniqueLock = volumeSweep.ProcessFrame(frame, goHandList, goFingerList);
 		techniqueLock = lasso.ProcessFrame(frame, goHandList, goFingerList);
-		Debug.Log(techniqueLock);
+		//Debug.Log(techniqueLock);
 		
 		if(UpdateAnnotation())
 		{

@@ -10,6 +10,8 @@ Shader "DX11/VertexColorPoints"
 {
 	Properties 
 	{
+		_OffsetColorMask1("Offset Color 1", Color) = (1.0,0.0,0.0,0.0)
+		_OffsetColorMask2("Offset Color 2", Color) = (0.0,0.0,1.0,0.0)
 	}
 	SubShader 
 	{
@@ -28,9 +30,13 @@ Shader "DX11/VertexColorPoints"
 
 			StructuredBuffer<float3> buf_Points;
 			StructuredBuffer<float4> buf_Colors;
-			StructuredBuffer<float3> buf_Positions;
+			StructuredBuffer<float3> buf_ColorsOffset;
+			StructuredBuffer<float4> buf_Positions;
 			StructuredBuffer<float>  buf_Sizes;
-			//StructuredBuffer<bool>   buf_UseColorOffset;
+			StructuredBuffer<int>    buf_Selected;
+			
+			fixed4 _OffsetColorMask1;
+			fixed4 _OffsetColorMask2;
 			
 			struct GS_INPUT
 			{
@@ -74,12 +80,21 @@ Shader "DX11/VertexColorPoints"
 					else
 						alpha -= abs(buf_Positions[0].x-buf_Positions[1].x)/2.0f*clamp(((_ScreenParams.x-screenCoord.x-_ScreenParams.x*0.4f)/(_ScreenParams.x*0.1f))*alpha,0.0f,alpha);
 				}
-				output.color  =  float4(buf_Colors[id].x, buf_Colors[id].y, buf_Colors[id].z, alpha);
-				//if(inst == 0)
-				//	output.color  =  float4(1,0,0,alpha);
-				//else
-				//	output.color  =  float4(0,1,0,alpha);
-				//output.size = buf_Sizes[id];
+				float3 colorOffset = float3(0,0,0);
+				if(buf_Selected[id] == 1)
+				{
+					if(inst == 0)
+						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-_OffsetColorMask1.x*buf_Positions[0].w),
+											 buf_ColorsOffset[id].y*(1.0-_OffsetColorMask1.y*buf_Positions[0].w),
+											 buf_ColorsOffset[id].z*(1.0-_OffsetColorMask1.z*buf_Positions[0].w));
+					else
+						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-_OffsetColorMask2.x*buf_Positions[0].w),
+											 buf_ColorsOffset[id].y*(1.0-_OffsetColorMask2.y*buf_Positions[0].w),
+											 buf_ColorsOffset[id].z*(1.0-_OffsetColorMask2.z*buf_Positions[0].w));
+				}
+				// from 0 to 1, 0 should be both colors, 1 just the one from my instance, interpolate in between
+				
+				output.color = float4(buf_Colors[id].x+colorOffset.x, buf_Colors[id].y+colorOffset.y, buf_Colors[id].z+colorOffset.z, alpha);
 				output.psize = buf_Sizes[id];
 				return output;
 			}

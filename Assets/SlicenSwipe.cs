@@ -269,12 +269,14 @@ public class SlicenSwipe {
 		// change state to moving finger (initial state) 
 		else */if(currentState == state.NONE && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 3) 
 		{
+			pointCloud.TriggerSeparation(false);
 			currentState = state.MOVING_FINGER;
 			timeSinceLastStateChange = 0.0F;
 		}
 		// if velocity above threshold, record motion in moving cut state
 		else if(currentState == state.MOVING_FINGER && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 3 && (filteredVelocity > velocityThreshold || useRubberBand)) 
 		{
+			pointCloud.TriggerSeparation(false);
 			currentState = state.MOVING_CUT;
 			timeSinceLastStateChange = 0.0F;
 			updateCountSinceMovingSlashStarted = 0;
@@ -295,16 +297,17 @@ public class SlicenSwipe {
 		// if velocity goes below the threshold again, change state to cut slash, where the cut has been made
 		else if(currentState == state.MOVING_CUT && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 2 && ((!rubberBandActive && filteredVelocity < velocityThreshold) || (rubberBandActive && !useRubberBand))) 
 		{
+			pointCloud.TriggerSeparation(true);
 			if(rubberBandActive)
 				updateCountSinceMovingSlashStarted = 1;
 			rubberBandActive = false;
-			Debug.Log("SLICE");
+			//Debug.Log("SLICE");
 			int initialPosition = fingerPosition.Count-1-updateCountSinceMovingSlashStarted;
 			slashPlane.Set3Points(fingerPosition[initialPosition < 0 ? 0 : initialPosition],
 			                      handPosition[1],
 			                      fingerPosition[fingerPosition.Count-1]);
 
-			Debug.Log("normal: "+slashPlane.normal+"  d: "+slashPlane.distance);
+			//Debug.Log("normal: "+slashPlane.normal+"  d: "+slashPlane.distance);
 			
 			pointCloud.SetSelectionPlane(slashPlane);
 			currentState = state.CUT_SLASH;
@@ -313,22 +316,35 @@ public class SlicenSwipe {
 		// if a cut has been made, velocity is above threshold again and significant time has passed since cut slash was registered, we record motions again for selection of 
 		else if(currentState == state.CUT_SLASH && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 2 && filteredVelocity > velocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
 		{
-			Debug.Log("STARTING SWIPE");
+			pointCloud.TriggerSeparation(true);
+			//Debug.Log("STARTING SWIPE");
 			currentState = state.MOVING_SELECT;
 			timeSinceLastStateChange = 0.0F;
 			updateCountSinceMovingSlashStarted = 0;
 		}
 		else if(currentState == state.MOVING_SELECT && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 2 && filteredVelocity < velocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
 		{
-			Debug.Log("SWIPE");
+			pointCloud.TriggerSeparation(true);
+			//Debug.Log("SWIPE");
 			int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
 			Vector3 direction = new Vector3();
 			for(int i = initialPosition; i < fingerPosition.Count; i++)
-			 	direction += fingerPosition[i];
+				direction += fingerPosition[i];
 			direction /= fingerPosition.Count-initialPosition;
-			Debug.Log(direction.normalized);
-			Debug.Log(Mathf.Abs(Vector3.Angle(slashPlane.normal,direction.normalized)));
-			pointCloud.SelectSide(slashPlane,(Mathf.Abs(Vector3.Angle(slashPlane.normal,direction.normalized)) < 90.0F));
+			//Debug.Log(direction.normalized);
+			//Debug.Log(Mathf.Abs(Vector3.Angle(slashPlane.normal,direction.normalized)));
+			if(pointCloud.useSeparation)
+			{
+				Plane tmp = new Plane();
+				tmp.Set3Points(cameraTransform.position+cameraTransform.forward,
+				               cameraTransform.position,
+				               cameraTransform.position+cameraTransform.up);
+				//Debug.Log(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
+
+				pointCloud.SelectSide(slashPlane,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
+			}
+			else
+				pointCloud.SelectSide(slashPlane,(Mathf.Abs(Vector3.Angle(slashPlane.normal,direction.normalized)) < 90.0F));
 			currentState = state.SELECT_SLASH;
 			timeSinceLastStateChange = 0.0F;
 		}
@@ -336,6 +352,7 @@ public class SlicenSwipe {
 		// if two seconds have passed without a state change, reset state machine
 		if(Input.GetKeyDown(KeyCode.Escape))
 		{
+			pointCloud.TriggerSeparation(false);
 			if((currentState == state.NONE || currentState == state.MOVING_FINGER) && !rubberBandActive)//timeSinceLastStateChange > 4.0F)
 				pointCloud.Undo();
 			pointCloud.ResetSelected();
@@ -377,7 +394,7 @@ public class SlicenSwipe {
 			return;
 		needsClear = false;
 
-		Debug.Log("SLICENSWIPE");
+		//Debug.Log("SLICENSWIPE");
 
 		// if two seconds have passed without a state change, reset state machine
 		if(currentState != state.NONE && currentState != state.MOVING_FINGER)

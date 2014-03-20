@@ -23,7 +23,9 @@ public class BubbleZoomv4 : MonoBehaviour {
 	float timeSinceLastStateChange = 0.0F;
 	float timeSinceLastClickCompleted = 0.0F;
 	float timeLastUpdate = 0.0F;
-	float velocityThreshold = 300.0F;
+	float velocityThreshold = 500.0F;
+	float lastScalarVelocity = 0.0F;
+	int updateCountSinceMovingSlashStarted = 0;
 
 	List<Vector3> handPosition;
 	List<Vector3> fingerPosition;
@@ -83,6 +85,10 @@ public class BubbleZoomv4 : MonoBehaviour {
 		
 		HandList hl = frame.Hands;
 		FingerList fl = frame.Fingers;
+		
+		float scalarVelocity = fl[0].TipVelocity.Magnitude; 
+		float filteredVelocity = 0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
+		lastScalarVelocity = scalarVelocity;
 
 		// distance between fingers
 		if(fl.Count == 2)
@@ -94,47 +100,82 @@ public class BubbleZoomv4 : MonoBehaviour {
 		}
 		
 		// reset state machine
-		if(hl.Count == 0 || (hl.Count >= 1 && fl.Count < 1)) 
+		/*if(hl.Count == 0 || (hl.Count >= 1 && fl.Count < 1)) 
 		{
+			pointCloud.TriggerSeparation(false);
 			currentState = state.NONE;
 			timeSinceLastStateChange = 0.0F;
 		}
 		// change state to moving finger (initial state) if there are two fingers 
-		else if(currentState == state.NONE && hl.Count >= 1 && fl.Count >= 2) 
+		else */if(currentState == state.NONE && hl.Count >= 1 && fl.Count >= 1) 
 		{
+			pointCloud.TriggerSeparation(false);
 			currentState = state.MOVING_FINGER;
 			timeSinceLastStateChange = 0.0F;
+			updateCountSinceMovingSlashStarted = 0;
 		}
 		// if angle between two hand-finger vectors is smaller than angle trigger threshold, change to 
 		else if(currentState == state.SELECT_IN_OUT && hl.Count >= 1 && fl.Count >= 1) 
 		{
-			if(pinchVelocity > velocityThreshold)
+			pointCloud.TriggerSeparation(true);
+			if(pointCloud.useSeparation)
 			{
-				if(volumeTrailSpheres.Count == 0)
-					pointCloud.SelectSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,true);
+				Debug.Log(filteredVelocity);
+				if(filteredVelocity > velocityThreshold)
+				{
+					updateCountSinceMovingSlashStarted++;
+				}
+				else if(filteredVelocity < velocityThreshold && updateCountSinceMovingSlashStarted > 0)
+				{
+					int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
+					Vector3 direction = new Vector3();
+					for(int i = initialPosition; i < fingerPosition.Count; i++)
+						direction += fingerPosition[i];
+					direction /= fingerPosition.Count-initialPosition;
+
+					Plane tmp = new Plane();
+					tmp.Set3Points(cameraTransform.position+cameraTransform.forward,
+					               cameraTransform.position,
+					               cameraTransform.position+cameraTransform.up);
+					Debug.Log(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
+
+					pointCloud.SelectSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
+
+					selectionVolume.SetActive(true);
+					currentState = state.SELECT_BUBBLE;
+					timeSinceLastStateChange = 0.0F;
+				}
 				else
-					pointCloud.SelectSphereTrail(volumeTrailSpheres,true);
-				selectionVolume.SetActive(true);
-				currentState = state.SELECT_BUBBLE;
-			}
-			else if(pinchVelocity < -velocityThreshold)
-			{
-				if(volumeTrailSpheres.Count == 0)
-					pointCloud.SelectSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,false);
-				else
-					pointCloud.SelectSphereTrail(volumeTrailSpheres,false);
-				selectionVolume.SetActive(true);
-				currentState = state.SELECT_BUBBLE;
+				{
+					updateCountSinceMovingSlashStarted = 0;
+					selectionVolume.SetActive(false);
+				}
 			}
 			else
 			{
-				selectionVolume.SetActive(false);
+				if(pinchVelocity > velocityThreshold)
+				{
+					pointCloud.SelectSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,true);
+					selectionVolume.SetActive(true);
+					currentState = state.SELECT_BUBBLE;
+				}
+				else if(pinchVelocity < -velocityThreshold)
+				{
+					pointCloud.SelectSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,false);
+					selectionVolume.SetActive(true);
+					currentState = state.SELECT_BUBBLE;
+				}
+				else
+				{
+					selectionVolume.SetActive(false);
+				}
 			}
 		}
 
 		// if angle between two hand-finger vectors is smaller than angle trigger threshold, change to 
 		if(currentState == state.MOVING_FINGER && hl.Count >= 1 && fl.Count >= 2) 
 		{
+			pointCloud.TriggerSeparation(false);
 			// update selection volume position
 			selectionVolume.transform.position = (goFingerList[0].transform.position+goFingerList[1].transform.position)/2.0F;
 			// radius of the bubble is determined by the distance between the two fingers
@@ -164,6 +205,7 @@ public class BubbleZoomv4 : MonoBehaviour {
 		// if two seconds have passed without a state change, reset state machine		
 		if(Input.GetKeyDown(KeyCode.Escape))
 		{
+			pointCloud.TriggerSeparation(false);
 			if(currentState == state.NONE || currentState == state.MOVING_FINGER)//timeSinceLastStateChange > 4.0F)
 				pointCloud.Undo();
 			currentState = state.NONE;
