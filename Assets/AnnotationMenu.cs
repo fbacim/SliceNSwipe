@@ -5,7 +5,7 @@ public class AnnotationMenu : MonoBehaviour {
 	
 	// Array of menu item control names.
 	string[] menuOptions ;
-	
+
 	int menuLength;
 
 	PointCloud pointCloud;
