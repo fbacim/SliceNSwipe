@@ -141,18 +141,16 @@ public class AnnotationMenu : MonoBehaviour {
 	{
 
 		if (menuOn) {
-				for (int i=0; i<menuOptions.Length; i++) {
-		
-					GUI.SetNextControlName (menuOptions [i]);
-					//GUI.skin.button.focused = Color.red;
-					GUI.skin.button.focused.textColor = Color.yellow;
-					GUIStyle style = new GUIStyle();
+			for (int i=0; i<menuOptions.Length; i++) {
+				GUI.SetNextControlName (menuOptions [i]);
+				//GUI.skin.button.focused = Color.red;
+				GUI.skin.button.focused.textColor = Color.yellow;
+				GUIStyle style = new GUIStyle();
 
-					if (GUI.Button (new Rect (5, 5 + i * 30, 20 + menuLength * 9, 30), menuOptions [i])) {
-						selectedAnnotation(i);
+				if (GUI.Button (new Rect (5, 5 + i * 30, 20 + menuLength * 9, 30), menuOptions [i])) {
+					selectedAnnotation(i);
 				}		
 			}
-		
 
 			GUI.FocusControl (menuOptions [selectedIndex]);
 		}
