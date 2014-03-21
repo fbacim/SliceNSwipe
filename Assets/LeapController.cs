@@ -172,4 +172,17 @@ public class LeapController : MonoBehaviour {
 			annotationTextInput.text = "";
 		}
 	}
+	
+	void OnGUI ()
+	{
+		string name;
+		if(currentTechnique == technique.SLICENSWIPE)
+			name = "Slice\'n\'Swipe";
+		else if(currentTechnique == technique.VOLUMESWEEP)
+			name = "Bubble";
+		else 
+			name = "Lasso";
+		GUI.Button (new Rect (UnityEngine.Screen.width-205, 5, 200, 30), name);
+		
+	}
 }

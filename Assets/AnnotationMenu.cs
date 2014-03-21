@@ -13,7 +13,7 @@ public class AnnotationMenu : MonoBehaviour {
 	
 	public bool menuOn;
 	float menuLocationSN;
-	const float menuLocationThersholdSN = 10;
+	const float menuLocationThersholdSN = 15;
 	// selected menu item
 	int selectedIndex;
 	
@@ -120,12 +120,13 @@ public class AnnotationMenu : MonoBehaviour {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "down");
 			menuLocationSN = 0;
 		}
-		if (menuLocationSN > menuLocationThersholdSN) {
+		else if (menuLocationSN > menuLocationThersholdSN) {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "up");
 			menuLocationSN = 0;
 		}
-		
-		if (SpaceNavigator.Translation.y < -0.2) {
+		else if ((SpaceNavigator.Translation.y < -0.2)&& 
+		    (Mathf.Abs( SpaceNavigator.Translation.z)<0.5 )&& 
+		    (Mathf.Abs( SpaceNavigator.Rotation.Pitch())<0.2 )) {
 			pointCloud.SelectAnnotation(selectedIndex-1);
 		}
 		
