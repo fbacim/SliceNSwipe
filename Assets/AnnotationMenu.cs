@@ -5,17 +5,17 @@ public class AnnotationMenu : MonoBehaviour {
 	
 	// Array of menu item control names.
 	string[] menuOptions ;
-
+	
 	int menuLength;
-
+	
 	PointCloud pointCloud;
 	
-
-	bool menuOn;
+	
+	public bool menuOn;
 	float menuLocationSN;
 	const float menuLocationThersholdSN = 10;
 	// selected menu item
-	public int selectedIndex;
+	int selectedIndex;
 	
 	// Function to scroll through possible menu items array, looping back to start/end depending on direction of movement.
 	
@@ -29,7 +29,7 @@ public class AnnotationMenu : MonoBehaviour {
 				selectedItem -= 1;
 			}		
 		}
-
+		
 		if (direction == "down") {
 			
 			if (selectedItem == menuItems.Length - 1) {
@@ -41,12 +41,12 @@ public class AnnotationMenu : MonoBehaviour {
 		}
 		return selectedItem;
 	}
-
-
+	
+	
 	void Start () {
 		
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
-
+		
 		menuOn = false;
 		/*menuOptions = new string[pointCloud.annotations.Count + 1];
 
@@ -63,40 +63,41 @@ public class AnnotationMenu : MonoBehaviour {
 		menuOptions[2] = "annotation 1";
 		menuOptions[3] = "verrrrrrryyyyyyyy llllllllooooooooonggggggggggg annnnnnnnotation 4";
 */
-
+		
 		menuLocationSN = 0;
-
+		/*
 		menuLength = 0;
 
 		for (int i=0; i<menuOptions.Length; i++) {
 			if (menuOptions[i].Length > menuLength)
 				menuLength = menuOptions[i].Length;
 		}
-
+		*/
 		//if (menuLength > 20)
-			menuLength = 20;
-
+		menuLength = 20;
+		
 		selectedIndex = 0;
 	}
 	
 	// Update is called once per frame
 	void Update () {
-
+		
 		//Debug.Log (pointCloud.annotations.Count);
-
+		
 		//if (menuOn)
-			//OnGUI ();
+		//OnGUI ();
 		if (Input.GetKeyDown (KeyCode.Tab)) {
+			
 			menuOn = !menuOn;
 			if (menuOn){
 				menuOptions = new string[pointCloud.annotations.Count + 1];
-
+				
 				menuOptions[0] = "All";		
 				for (int i=1; i<= pointCloud.annotations.Count; i++) {
 					menuOptions[i] = pointCloud.annotations[i-1].ToString();
 				}
 				
-				menuLength = 0;
+				/*menuLength = 0;
 				
 				for (int i=0; i<menuOptions.Length; i++) {
 					if (menuOptions[i].Length > menuLength)
@@ -104,14 +105,17 @@ public class AnnotationMenu : MonoBehaviour {
 				}
 				
 				//if (menuLength > 40)
-					menuLength = 20;
+					menuLength = 20;*/
 			}
-
+			
 		}
 
+		if(!menuOn)
+			return;
+		
 		menuLocationSN += SpaceNavigator.Translation.z;
 		menuLocationSN += SpaceNavigator.Rotation.Pitch() * 10;
-
+		
 		if (menuLocationSN < -menuLocationThersholdSN) {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "down");
 			menuLocationSN = 0;
@@ -120,46 +124,35 @@ public class AnnotationMenu : MonoBehaviour {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "up");
 			menuLocationSN = 0;
 		}
-
+		
 		if (SpaceNavigator.Translation.y < -0.2) {
-			selectedAnnotation(selectedIndex);	
+			pointCloud.SelectAnnotation(selectedIndex-1);
 		}
-
-
+		
 		if (Input.GetKeyDown (KeyCode.DownArrow)) {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "down");
 		}
 		
 		if (Input.GetKeyDown (KeyCode.UpArrow)) {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "up");
-		}
-
+		}	
 	}
-
 
 	void OnGUI ()
 	{
-
 		if (menuOn) {
 			for (int i=0; i<menuOptions.Length; i++) {
 				GUI.SetNextControlName (menuOptions [i]);
 				//GUI.skin.button.focused = Color.red;
-				GUI.skin.button.focused.textColor = Color.yellow;
-				GUIStyle style = new GUIStyle();
-
+				//GUI.skin.button.focused.textColor = Color.yellow;
+				//GUIStyle style = new GUIStyle(
+				
 				if (GUI.Button (new Rect (5, 5 + i * 30, 20 + menuLength * 9, 30), menuOptions [i])) {
-					selectedAnnotation(i);
-				}		
+					pointCloud.SelectAnnotation(selectedIndex-1);
+				}
 			}
-
+				
 			GUI.FocusControl (menuOptions [selectedIndex]);
-		}
-		
+		}	
 	}
-
-	void selectedAnnotation(int selectedItem){
-		for (int j=0; j<100; j++)
-			print (selectedItem);
-	}
-
 }

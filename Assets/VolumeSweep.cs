@@ -3,6 +3,17 @@ using System.Collections;
 using System.Collections.Generic;
 using Leap;
 
+public struct Sphere {
+	public Vector3 center;
+	public float radius;
+	
+	public Sphere(Vector3 pos, float rad)
+	{
+		center = pos;
+		radius = rad;
+	}
+}
+
 public class VolumeSweep : MonoBehaviour {
 	Transform cameraTransform;
 	PointCloud pointCloud;
@@ -12,6 +23,7 @@ public class VolumeSweep : MonoBehaviour {
 	float timeSinceLastStateChange = 0.0F;
 	float timeSinceLastClickCompleted = 0.0F;
 	float timeLastUpdate = 0.0F;
+	float resetTimer = 0.0F;
 	float velocityThreshold = 300.0F;
 	int updateCountSinceMovingSlashStarted = 0;
 
@@ -71,6 +83,20 @@ public class VolumeSweep : MonoBehaviour {
 		timeSinceLastStateChange += timeSinceLastUpdate;
 
 		//Debug.Log(currentState);
+
+		if(frame.Fingers.Count > 0)
+		{
+			fingerPosition.Add(goFingerList[0].transform.position);
+			handPosition.Add(goHandList[0].transform.position);
+			fingerPositionTime.Add(currentTime);
+
+			while(fingerPosition.Count > 60)
+			{
+				fingerPosition.RemoveAt(0);
+				handPosition.RemoveAt(0);
+				fingerPositionTime.RemoveAt(0);
+			}
+		}
 		
 		HandList hl = frame.Hands;
 		FingerList fl = frame.Fingers;
@@ -98,7 +124,7 @@ public class VolumeSweep : MonoBehaviour {
 		// change state to moving finger (initial state) if there are two fingers 
 		else */if(currentState == state.NONE && hl.Count >= 1 && fl.Count >= 2) 
 		{
-			pointCloud.TriggerSeparation(false);
+			pointCloud.TriggerSeparation(false,0);
 			currentState = state.MOVING_FINGER;
 			timeSinceLastStateChange = 0.0F;
 			updateCountSinceMovingSlashStarted = 0;
@@ -106,7 +132,7 @@ public class VolumeSweep : MonoBehaviour {
 		// if angle between two hand-finger vectors is smaller than angle trigger threshold, change to 
 		else if(currentState == state.SELECT_IN_OUT && hl.Count >= 1 && fl.Count >= 1) 
 		{
-			pointCloud.TriggerSeparation(true);
+			pointCloud.TriggerSeparation(true,0);
 			if(pointCloud.useSeparation)
 			{
 				//Debug.Log(filteredVelocity);
@@ -119,16 +145,21 @@ public class VolumeSweep : MonoBehaviour {
 					int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
 					Vector3 direction = new Vector3();
 					for(int i = initialPosition; i < fingerPosition.Count; i++)
+					{
 						direction += fingerPosition[i];
+						print(direction);
+					}
 					direction /= fingerPosition.Count-initialPosition;
 					
 					Plane tmp = new Plane();
 					tmp.Set3Points(cameraTransform.position+cameraTransform.forward,
 					               cameraTransform.position,
 					               cameraTransform.position+cameraTransform.up);
-					//Debug.Log(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
+
+					Debug.Log(""+tmp.normal+direction.normalized+Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
 					
 					pointCloud.SelectSphereTrail(volumeTrailSpheres,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
+					pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
 					
 					selectionVolume.SetActive(true);
 					currentState = state.SELECT_BUBBLE;
@@ -164,7 +195,6 @@ public class VolumeSweep : MonoBehaviour {
 		// if angle between two hand-finger vectors is smaller than angle trigger threshold, change to 
 		if(currentState == state.MOVING_FINGER && hl.Count >= 1 && fl.Count >= 2) 
 		{
-			pointCloud.TriggerSeparation(false);
 			// update selection volume position
 			selectionVolume.transform.position = (goFingerList[0].transform.position+goFingerList[1].transform.position)/2.0F;
 			// radius of the bubble is determined by the distance between the two fingers
@@ -194,12 +224,25 @@ public class VolumeSweep : MonoBehaviour {
 		//hold key for bubble sweep
 		
 		// if two seconds have passed without a state change, reset state machine
-		
 		if(Input.GetKeyDown(KeyCode.Escape))
 		{
-			pointCloud.TriggerSeparation(false);
+			resetTimer = currentTime;
+		}
+		else if(Input.GetKey(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer > 3.0f)
+		{
+			pointCloud.TriggerSeparation(false,0);
+			currentState = state.NONE;
+			timeSinceLastStateChange = 0.0F;
+			volumeTrailSpheres.Clear();
+			pointCloud.ResetAll();
+			resetTimer = 0;
+		}
+		else if(Input.GetKeyUp(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer < 3.0f)
+		{
+			pointCloud.TriggerSeparation(false,0);
 			if(currentState == state.NONE || currentState == state.MOVING_FINGER)//timeSinceLastStateChange > 4.0F)
 				pointCloud.Undo();
+			pointCloud.ResetSelected();
 			currentState = state.NONE;
 			timeSinceLastStateChange = 0.0F;
 			volumeTrailSpheres.Clear();

@@ -56,7 +56,7 @@ Shader "DX11/VertexColorPoints"
 				GS_INPUT output;
 
 				// calculate the position, make the offset in screen coordinates
-				float3 worldPos = buf_Points[id] + mul(UNITY_MATRIX_T_MV,float4(buf_Positions[inst].x*buf_Positions[inst].z,buf_Positions[inst].y*buf_Positions[inst].z,0.0f,1.0f));
+				float3 worldPos = buf_Points[id] + mul(UNITY_MATRIX_T_MV,float4(buf_Positions[inst].x,buf_Positions[inst].y,buf_Positions[inst].z,1.0f));
 				output.pos =  float4(worldPos,1.0f);
 				
 				// redetermine alpha based on screen position
@@ -65,37 +65,58 @@ Shader "DX11/VertexColorPoints"
 				screenCoord /= screenCoord.w; // perspective divide
 				screenCoord.x = (screenCoord.x+1.0f)*_ScreenParams.x/2.0f;// + fViewport[0]; // viewport transformation
 				screenCoord.y = (screenCoord.y+1.0f)*_ScreenParams.y/2.0f;// + fViewport[1]; // viewport transformation
-				
-				if(inst == 0)
+				//if(buf_Positions[0].w == 1)
 				{
-					if(screenCoord.x > _ScreenParams.x*0.5f)
-						alpha = 0.0f;
-					else
-						alpha -= abs(buf_Positions[0].x-buf_Positions[1].x)/2.0f*clamp(((screenCoord.x-_ScreenParams.x*0.4f)/(_ScreenParams.x*0.1f))*alpha,0.0f,alpha);
-				}
-				else if(inst == 1)
-				{
-					if(screenCoord.x < _ScreenParams.x*0.5f)
-						alpha = 0.0f;
-					else
-						alpha -= abs(buf_Positions[0].x-buf_Positions[1].x)/2.0f*clamp(((_ScreenParams.x-screenCoord.x-_ScreenParams.x*0.4f)/(_ScreenParams.x*0.1f))*alpha,0.0f,alpha);
+					if(inst == 0)
+					{
+						
+						alpha -= abs(buf_Positions[0].w-buf_Positions[1].w)/2.0f*clamp(((screenCoord.x-_ScreenParams.x*0.4f)/(_ScreenParams.x*0.1f))*alpha,0.0f,alpha);
+					}
+					else if(inst == 1)
+					{
+						alpha -= abs(buf_Positions[0].w-buf_Positions[1].w)/2.0f*clamp(((_ScreenParams.x-screenCoord.x-_ScreenParams.x*0.4f)/(_ScreenParams.x*0.1f))*alpha,0.0f,alpha);
+					}
 				}
 				float3 colorOffset = float3(0,0,0);
 				if(buf_Selected[id] == 1)
 				{
 					if(inst == 0)
-						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-_OffsetColorMask1.x*buf_Positions[0].w),
-											 buf_ColorsOffset[id].y*(1.0-_OffsetColorMask1.y*buf_Positions[0].w),
-											 buf_ColorsOffset[id].z*(1.0-_OffsetColorMask1.z*buf_Positions[0].w));
+						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-buf_Positions[1].w),//_OffsetColorMask1.x*buf_Positions[1].w),
+											 buf_ColorsOffset[id].y*(1.0-buf_Positions[1].w),//_OffsetColorMask1.y*buf_Positions[1].w),
+											 buf_ColorsOffset[id].z*(1.0-buf_Positions[1].w));//_OffsetColorMask1.z*buf_Positions[1].w));
 					else
-						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-_OffsetColorMask2.x*buf_Positions[0].w),
-											 buf_ColorsOffset[id].y*(1.0-_OffsetColorMask2.y*buf_Positions[0].w),
-											 buf_ColorsOffset[id].z*(1.0-_OffsetColorMask2.z*buf_Positions[0].w));
+						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-buf_Positions[1].w),//_OffsetColorMask2.x*buf_Positions[1].w),
+											 buf_ColorsOffset[id].y*(1.0-buf_Positions[1].w),//_OffsetColorMask2.y*buf_Positions[1].w),
+											 buf_ColorsOffset[id].z*(1.0-buf_Positions[1].w));//_OffsetColorMask2.z*buf_Positions[1].w));
+
+//					if(inst == 0)
+//						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-_OffsetColorMask1.x*buf_Positions[1].w),
+//											 buf_ColorsOffset[id].y*(1.0-_OffsetColorMask1.y*buf_Positions[1].w),
+//											 buf_ColorsOffset[id].z*(1.0-_OffsetColorMask1.z*buf_Positions[1].w));
+//					else
+//						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-_OffsetColorMask2.x*buf_Positions[1].w),
+//											 buf_ColorsOffset[id].y*(1.0-_OffsetColorMask2.y*buf_Positions[1].w),
+//											 buf_ColorsOffset[id].z*(1.0-_OffsetColorMask2.z*buf_Positions[1].w));
 				}
 				// from 0 to 1, 0 should be both colors, 1 just the one from my instance, interpolate in between
 				
+				float pointOffset = 0.0;
+				if(buf_Selected[id] == 1)
+				{
+					if(inst == 0)
+					{
+						pointOffset = -3.0*2.0*buf_ColorsOffset[id].x*buf_Positions[1].w;
+						alpha = clamp(alpha-0.4*2.0*buf_ColorsOffset[id].x*buf_Positions[1].w,0,alpha);
+					}
+					else
+					{
+						pointOffset = -3.0*2.0*buf_ColorsOffset[id].z*buf_Positions[1].w;
+						alpha = clamp(alpha-0.4*2.0*buf_ColorsOffset[id].z*buf_Positions[1].w,0,alpha);
+					}
+				}
 				output.color = float4(buf_Colors[id].x+colorOffset.x, buf_Colors[id].y+colorOffset.y, buf_Colors[id].z+colorOffset.z, alpha);
-				output.psize = buf_Sizes[id];
+				output.psize = buf_Sizes[id] + pointOffset; // need to be sending selected/deselected as values
+				
 				return output;
 			}
 			

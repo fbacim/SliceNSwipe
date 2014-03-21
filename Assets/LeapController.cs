@@ -6,7 +6,6 @@ using Leap;
 public class LeapController : MonoBehaviour {
 
 	public SlicenSwipe slicenSwipe;
-	//public BubbleZoomv4 bubbleZoom;
 	public VolumeSweep volumeSweep;
 	public Lasso lasso;
 	
@@ -22,6 +21,8 @@ public class LeapController : MonoBehaviour {
 
 	float fingerAvg = 0.0F;
 
+	bool techniqueMenuActive = false;
+
 	// Use this for initialization
 	void Start () {
 		controller = new Leap.Controller();
@@ -31,7 +32,6 @@ public class LeapController : MonoBehaviour {
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 
 		slicenSwipe = new SlicenSwipe();
-		//bubbleZoom = new BubbleZoomv4();
 		volumeSweep = new VolumeSweep();
 		lasso = new Lasso();
 
@@ -123,6 +123,13 @@ public class LeapController : MonoBehaviour {
 			goFingerList[i].transform.position = position;
 		}
 
+		fingerAvg = fingerAvg * 0.9F + fl.Count * 0.1F;
+		//Debug.Log(fingerAvg);
+
+		slicenSwipe.SetEnabled(false);
+		volumeSweep.SetEnabled(false);
+		lasso.SetEnabled(false);
+		
 		if(Input.GetKeyDown(KeyCode.PageUp))
 		{
 			currentTechnique++;
@@ -136,27 +143,25 @@ public class LeapController : MonoBehaviour {
 				currentTechnique = technique.SIZE-1;
 		}
 
-		fingerAvg = fingerAvg * 0.9F + fl.Count * 0.1F;
-		//Debug.Log(fingerAvg);
-
-		slicenSwipe.SetEnabled(false);
-		//bubbleZoom.SetEnabled(false);
-		volumeSweep.SetEnabled(false);
-		lasso.SetEnabled(false);
-
-		if(currentTechnique == technique.SLICENSWIPE)
-			slicenSwipe.SetEnabled(true);
-		//else if(currentTechnique == technique.BUBBLEZOOM)
-		//	bubbleZoom.SetEnabled(true);
-		else if(currentTechnique == technique.VOLUMESWEEP)
-			volumeSweep.SetEnabled(true);
-		else if(currentTechnique == technique.LASSO)
-			lasso.SetEnabled(true);
-		//Debug.Log(currentTechnique);
+		if(fingerAvg > 4 || techniqueMenuActive)
+		{
+			techniqueMenuActive = true;
+			if(Input.GetKeyUp(KeyCode.Escape) || fingerAvg == 0)
+				techniqueMenuActive = false;
+		}
+		else
+		{
+			if(currentTechnique == technique.SLICENSWIPE)
+				slicenSwipe.SetEnabled(true);
+			else if(currentTechnique == technique.VOLUMESWEEP)
+				volumeSweep.SetEnabled(true);
+			else if(currentTechnique == technique.LASSO)
+				lasso.SetEnabled(true);
+			//Debug.Log(currentTechnique);
+		}
 
 		bool techniqueLock;
 		techniqueLock = slicenSwipe.ProcessFrame(frame, goHandList, goFingerList);
-		//techniqueLock = bubbleZoom.ProcessFrame(frame, goHandList, goFingerList);
 		techniqueLock = volumeSweep.ProcessFrame(frame, goHandList, goFingerList);
 		techniqueLock = lasso.ProcessFrame(frame, goHandList, goFingerList);
 		//Debug.Log(techniqueLock);

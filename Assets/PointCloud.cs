@@ -35,15 +35,19 @@ public class PointCloud : MonoBehaviour {
 	private bool separate  = false;  // are the point cloud instances separate?
 	private bool animating = false;  // is it currently animating?
 
-	List<GUIText> goAnnotation;
-	bool pointsUpdated = false;
+	private List<GUIText> goAnnotation;
+	private bool pointsUpdated = false;
 
-	Vector3 min, max, size, oMin, oMax, oSize;
-	float bsRadius; // bounding sphere radius, always with center on 0,0,0
+	private Vector3 min, max, size, oMin, oMax, oSize;
+	private float bsRadius; // bounding sphere radius, always with center on 0,0,0
+	private float idealDistance;
 	
 	public float animationTotalTime = 0.25F;
 	private float animationStartTime;
 	private float separationDistance;
+	private int separationMode = 0;
+
+	private Vector3 lastSelectedCenter;
 
 	static int CountLinesInFile(string f)
 	{
@@ -114,9 +118,9 @@ public class PointCloud : MonoBehaviour {
 			lineCount++;
         }
 		center = center / vertexCount;
+		
+		lastSelectedCenter = center;
 		Debug.Log("center: "+center.x+","+center.y+","+center.z);
-
-		CenterPointCloud(center);
 
 		for (int i = 0; i < vertexCount ; i++) 
 			originalVerts[i] = new Vector3(verts[i].x,verts[i].y,verts[i].z);
@@ -126,7 +130,7 @@ public class PointCloud : MonoBehaviour {
 		oSize = new Vector3(size.x, size.y, size.z);
 		
 		ReleaseBuffers ();
-
+		
 		bufferPoints = new ComputeBuffer (vertexCount, 12);
 		bufferPoints.SetData (verts);
 		material.SetBuffer ("buf_Points", bufferPoints);
@@ -150,6 +154,8 @@ public class PointCloud : MonoBehaviour {
 		bufferSelected = new ComputeBuffer (vertexCount, 4);
 		bufferSelected.SetData (selected);
 		material.SetBuffer ("buf_Selected", bufferSelected);
+		
+		CenterPointCloud(center);
 	}
 	
 	private void ReleaseBuffers() {
@@ -171,29 +177,21 @@ public class PointCloud : MonoBehaviour {
 		ReleaseBuffers();
 	}
 
-	public void TriggerSeparation(bool s) {
+	// mode 0 cancel 1 left 2 right
+	public void TriggerSeparation(bool s, int mode) {
 		// animation
 		// cut event, for now using slash but should be something else
 		if(useSeparation && s != separate && !animating)
 		{
 			animating = true;
 			animationStartTime = Time.timeSinceLevelLoad;
+			separationMode = mode;
 		}
 	}
 
 	// Update is called once per frame
 	void Update () 
 	{
-		if (pointsUpdated)
-		{
-			bufferPoints.SetData (verts);
-			bufferColors.SetData (colors);
-			bufferSizes.SetData (sizes);
-			bufferColorOffset.SetData (colorsOffset);
-			bufferSelected.SetData (selected);
-			pointsUpdated = false;
-		}
-
 		float currentTime = Time.timeSinceLevelLoad;
 		// animation
 		// cut event, for now using slash but should be something else
@@ -204,8 +202,11 @@ public class PointCloud : MonoBehaviour {
 			animationStartTime = Time.timeSinceLevelLoad;
 		}
 
-		if(!animating && !separate)
-			separationDistance = Mathf.Max(new float[] {oSize.x, oSize.y, oSize.z})/3.0f;
+		if(!animating)
+		{
+			separationDistance = bsRadius;
+			//separationDistance = Mathf.Max(new float[] {oSize.x, oSize.y, oSize.z})/3.0f;
+		}
 		
 		if(animating)
 		{
@@ -227,8 +228,25 @@ public class PointCloud : MonoBehaviour {
 			t *= Mathf.PI;
 			
 			// x,y offset, z scale
-			pos[0] = new Vector4(-((Mathf.Cos(t)+1.0f)*0.5f),0,separationDistance,(Mathf.Cos(t)+1.0f)*0.5f); // first instance goes to left
-			pos[1] = new Vector4( ((Mathf.Cos(t)+1.0f)*0.5f),0,separationDistance,(Mathf.Cos(t)+1.0f)*0.5f); // second goes to right
+			if(separationMode == 1 && t < Mathf.PI) // get rid of left
+			{
+				print("left");
+				pos[0] = new Vector4(-separationDistance*6.0F+((Mathf.Cos(t)+1.0f)*0.5f)*separationDistance*5.0F,0,0,-(Mathf.Cos(t)+1.0f)*0.5f); // first instance goes to left
+				print(pos[0]);
+				pos[1] = new Vector4( ((Mathf.Cos(t)+1.0f)*0.5f)*separationDistance,0,0,(Mathf.Cos(t)+1.0f)*0.5f); // second goes to right
+			}
+			else if(separationMode == 2 && t < Mathf.PI) // get rid of right
+			{
+				print("right");
+				pos[0] = new Vector4(-((Mathf.Cos(t)+1.0f)*0.5f)*separationDistance,0,0,-(Mathf.Cos(t)+1.0f)*0.5f); // first instance goes to left
+				pos[1] = new Vector4( separationDistance*6.0F-((Mathf.Cos(t)+1.0f)*0.5f)*separationDistance*5.0F,0,0,(Mathf.Cos(t)+1.0f)*0.5f); // second goes to right
+				print(pos[1]);
+			}
+			else // put them back together
+			{
+				pos[0] = new Vector4(-((Mathf.Cos(t)+1.0f)*0.5f)*separationDistance,0,0,-(Mathf.Cos(t)+1.0f)*0.5f); // first instance goes to left
+				pos[1] = new Vector4( ((Mathf.Cos(t)+1.0f)*0.5f)*separationDistance,0,0,(Mathf.Cos(t)+1.0f)*0.5f); // second goes to right
+			}
 			
 			// if it's done animating, invert variable that tells if point cloud is separated already
 			if(!animating)
@@ -278,7 +296,7 @@ public class PointCloud : MonoBehaviour {
 			if(selected[i] == 1)
 			{
 				// calculate bounding sphere radius
-				float r = Mathf.Sqrt(Mathf.Pow(verts[i].x, 2) + Mathf.Pow(verts[i].y, 2) + Mathf.Pow(verts[i].z, 2));
+				float r = Mathf.Sqrt(Mathf.Pow(verts[i].x-selectedCenter.x, 2) + Mathf.Pow(verts[i].y-selectedCenter.x, 2) + Mathf.Pow(verts[i].z-selectedCenter.x, 2));
 				if(r > bsRadius)
 					bsRadius = r;
 
@@ -302,11 +320,17 @@ public class PointCloud : MonoBehaviour {
 		size = new Vector3(max.x-min.x,max.y-min.y,max.z-min.z);
 
 		float fieldOfViewX = 2.0F * Mathf.Atan( Mathf.Tan( (camera.fieldOfView/57.2957795F) / 2.0F ) * camera.aspect ) * 57.2957795F;
-		float zdist = bsRadius/Mathf.Sin(Mathf.Min(camera.fieldOfView, fieldOfViewX) * 0.0174532925F * 0.5F);
-		GameObject.Find("Camera").GetComponent<ViewPoint3DMouse>().CenterView(zdist);//distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
-		GameObject.Find("Camera").GetComponent<Orbit>().CenterView(zdist);//distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
+		idealDistance = bsRadius/Mathf.Sin(Mathf.Min(camera.fieldOfView, fieldOfViewX) * 0.0174532925F * 0.5F);
+		GameObject.Find("Camera").GetComponent<ViewPoint3DMouse>().CenterView(idealDistance,selectedCenter);//distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
+		GameObject.Find("Camera").GetComponent<Orbit>().CenterView(idealDistance);//distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
+
+		lastSelectedCenter = selectedCenter;
 		
-		pointsUpdated = true;
+		bufferPoints.SetData (verts);
+		bufferColors.SetData (colors);
+		bufferSizes.SetData (sizes);
+		bufferColorOffset.SetData (colorsOffset);
+		bufferSelected.SetData (selected);
 	}
 
 	public void Undo()
@@ -325,6 +349,10 @@ public class PointCloud : MonoBehaviour {
 
 			if(selected[i] == 1)
 			{
+				colorsOffset[i].x = 0.0F;
+				colorsOffset[i].y = 0.0F;
+				colorsOffset[i].z = 0.0F;
+				colors[i].w = selectedAlpha;
 				sizes[i] = selectedSize;
 				selectedCenter = selectedCenter + verts[i];
 				selectedCount++;
@@ -349,6 +377,56 @@ public class PointCloud : MonoBehaviour {
 		
 		CenterPointCloud(selectedCenter);
 
+	}
+
+	public void SelectAnnotation(int index)
+	{
+		string annotation = "";
+		if(index >= 0)
+			annotation = annotations[index];
+		
+		Vector3 selectedCenter = new Vector3();
+		int selectedCount = 0;
+		for (int i = 0; i < vertexCount; ++i)
+		{
+			bool hasAnnotation = false;
+			for (int j = 0; j < cloudAnnotations[i].Count; j++)
+			{
+				if(cloudAnnotations[i][j] == annotation)
+				{
+					hasAnnotation = true;
+					break;
+				}
+			}
+
+			if(index == -1 || hasAnnotation) // -1 -> select all
+			{
+				colorsOffset[i].x = 0.0F;
+				colorsOffset[i].y = 0.0F;
+				colorsOffset[i].z = 0.0F;
+				colors[i].w = selectedAlpha;
+				sizes[i] = selectedSize;
+				selected[i] = 1;
+				selectedCenter = selectedCenter + verts[i];
+				selectedCount++;
+			}
+			else 
+			{
+				colorsOffset[i].x = 0.3F;
+				colorsOffset[i].y = 0.3F;
+				colorsOffset[i].z = 0.3F;
+				colors[i].w = deselectedAlpha;
+				sizes[i] = deselectedSize;
+				selected[i] = 0;
+			}
+		}
+		
+		if(selectedCount == 0)
+			return;
+
+		selectedCenter = selectedCenter / selectedCount;
+		
+		CenterPointCloud(selectedCenter);
 	}
 
 	public void SetLasso(List<Vector3> vertices)
@@ -382,8 +460,12 @@ public class PointCloud : MonoBehaviour {
 				}
 			}
 		}
-
-		pointsUpdated = true;
+		
+		bufferPoints.SetData (verts);
+		bufferColors.SetData (colors);
+		bufferSizes.SetData (sizes);
+		bufferColorOffset.SetData (colorsOffset);
+		bufferSelected.SetData (selected);
 	}
 	
 	public void SetSphere(Vector3 center, float radius, bool resetColor)
@@ -410,7 +492,11 @@ public class PointCloud : MonoBehaviour {
 			}
 		}
 		
-		pointsUpdated = true;
+		bufferPoints.SetData (verts);
+		bufferColors.SetData (colors);
+		bufferSizes.SetData (sizes);
+		bufferColorOffset.SetData (colorsOffset);
+		bufferSelected.SetData (selected);
 	}
 	
 	public void SetSphereTrail(List<Sphere> spheres)
@@ -440,7 +526,11 @@ public class PointCloud : MonoBehaviour {
 			}
 		}
 		
-		pointsUpdated = true;
+		bufferPoints.SetData (verts);
+		bufferColors.SetData (colors);
+		bufferSizes.SetData (sizes);
+		bufferColorOffset.SetData (colorsOffset);
+		bufferSelected.SetData (selected);
 	}
 
 	public void SetSelectionPlane(Plane plane)
@@ -463,8 +553,12 @@ public class PointCloud : MonoBehaviour {
 				}
 			}
 		}
-
-		pointsUpdated = true;
+		
+		bufferPoints.SetData (verts);
+		bufferColors.SetData (colors);
+		bufferSizes.SetData (sizes);
+		bufferColorOffset.SetData (colorsOffset);
+		bufferSelected.SetData (selected);
 	}
 
 	public void SelectSide(Plane plane, bool side) // side is true when we want points in the same side as normal
@@ -591,46 +685,34 @@ public class PointCloud : MonoBehaviour {
 	public void SelectLasso(List<Vector3> vertices, bool inside)
 	{
 		SaveToHistory();
-		
-		// pseudo-code for lasso
-		// for vertex in lasso
-		//    vscreen = camera.worldtoscreen(vertex)
-		//    lassoScreen.add(vscreen)
-		Vector2[] vertices2D = new Vector2[vertices.Count];
-		for(int i = 0; i < vertices.Count; i++)
-		{
-			Vector3 screenPoint = GameObject.Find("Camera").camera.WorldToScreenPoint(vertices[i]);
-			vertices2D[i] = new Vector2(screenPoint.x,screenPoint.y);
-		}
-		
-		// for point in pointcloud
-		//    pscreen = camera.worldtoscreen(point)
-		//    if(wn_PnPoly(pscreen,lassoScreen,lassoScreen.count))
-		//       point red
-		//    else
-		//       point blue
+
 		Vector3 selectedCenter = new Vector3();
 		int selectedCount = 0;
-		
+
+		Vector3 leftColorOffset = new Vector3(0.0F,0.0F,0.5F);
+		Vector3 rightColorOffset = new Vector3(0.5F,0.0F,0.0F);
+		Vector3 deselectedColorOffset = new Vector3(0.3F,0.3F,0.3F);
+
 		for (int i = 0; i < vertexCount; ++i)
 		{
 			if(selected[i] == 1)
 			{
-
-				Vector3 screenPoint = GameObject.Find("Camera").camera.WorldToScreenPoint(verts[i]);
-				Vector2 point2D = new Vector2(screenPoint.x, screenPoint.y);
-				int windings = wn_PnPoly(point2D,vertices2D,vertices.Count-1);
-				if((windings == 0 && inside) || (windings > 0 && !inside)) 
+				if((colorsOffset[i].x == leftColorOffset.x && colorsOffset[i].y == leftColorOffset.y && colorsOffset[i].z == leftColorOffset.z && inside) || 
+				   (colorsOffset[i].x == rightColorOffset.x && colorsOffset[i].y == rightColorOffset.y && colorsOffset[i].z == rightColorOffset.z && !inside)) 
 				{
-					colorsOffset[i].x = 0.3F;
-					colorsOffset[i].y = 0.3F;
-					colorsOffset[i].z = 0.3F;
+					//print("blah");
+					colorsOffset[i] = deselectedColorOffset;
 					colors[i].w = deselectedAlpha;
 					sizes[i] = deselectedSize;
 					selected[i] = 0;
 				}
 				else
 				{
+					colorsOffset[i].x = 0.0F;
+					colorsOffset[i].y = 0.0F;
+					colorsOffset[i].z = 0.0F;
+					colors[i].w = selectedAlpha;
+					sizes[i] = selectedSize;
 					selectedCenter = selectedCenter + verts[i];
 					selectedCount++;
 				}
@@ -662,11 +744,17 @@ public class PointCloud : MonoBehaviour {
 			}
 		}
 		
-		pointsUpdated = true;
+		bufferPoints.SetData (verts);
+		bufferColors.SetData (colors);
+		bufferSizes.SetData (sizes);
+		bufferColorOffset.SetData (colorsOffset);
+		bufferSelected.SetData (selected);
 	}
 	
 	public void ResetAll()
 	{
+		Vector3 selectedCenter = new Vector3();
+
 		for (int i = 0; i < vertexCount; ++i)
 		{
 			verts[i]    = originalVerts[i];
@@ -676,13 +764,17 @@ public class PointCloud : MonoBehaviour {
 			colorsOffset[i].x = 0.0F;
 			colorsOffset[i].y = 0.0F;
 			colorsOffset[i].z = 0.0F;
+
+			selectedCenter = selectedCenter + verts[i];
 		}
 		
+		selectedCenter = selectedCenter / vertexCount;
+
 		min = new Vector3(oMin.x, oMin.y, oMin.z);
 		max = new Vector3(oMax.x, oMax.y, oMax.z);
 		size = new Vector3(oSize.x, oSize.y, oSize.z);
-		
-		pointsUpdated = true;
+
+		CenterPointCloud(selectedCenter);
 	}
 
 	public void Annotate(string annotation)

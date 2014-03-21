@@ -7,8 +7,6 @@ using System.Diagnostics;
 using System.Threading;
 
 public class ViewPoint3DMouse : MonoBehaviour {
-	Vector3 cameraOffset;
-
 	const float xRotationCoef = 0.008f;
 	const float yRotationCoef = 0.008f;
 	const float zRotationCoef = 0.008f;
@@ -58,11 +56,19 @@ public class ViewPoint3DMouse : MonoBehaviour {
 
 	bool needRecenter = false;
 
+	// camera animation variables
+	public float totalAnimationTime = 0.25F;
+	float animationStartTime;
+	Vector3 initialPosition;
+	Vector3 initialCenter;
+	Vector3 positionOffset;
+	Vector3 centerOffset;
+
 	// Use this for initialization
 	void Start () {
 		_center = new Vector3 (0, 0, 0);
 
-		cameraOffset = new Vector3();
+		positionOffset = new Vector3();
 		
 		rayCenter = _center;
 		sphereC = GameObject.CreatePrimitive(PrimitiveType.Sphere);
@@ -70,9 +76,12 @@ public class ViewPoint3DMouse : MonoBehaviour {
 		
 		sphereR = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 		sphereR.transform.renderer.material.color = new Color(256, 1, 256);
+
+		initialPosition = new Vector3();
+		initialCenter = new Vector3();
 		
 		realtimeCasting = false;
-		showSphere = true;
+		showSphere = false;
 		
 		closestPoint = new Vector3(0,0,0);
 		
@@ -82,15 +91,18 @@ public class ViewPoint3DMouse : MonoBehaviour {
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 	}
 
-	public void CenterView(float d) {
+	public void CenterView(float d, Vector3 cameraOffset) {
 		distance = d;
+		
+		initialPosition = camera.transform.position-cameraOffset;
+		initialCenter = camera.transform.position+camera.transform.forward*distance-cameraOffset;
 
 		// set distance
 		Quaternion rotation = camera.transform.rotation;
 		Vector3 position = rotation * (new Vector3(0.0F, 0.0F, -distance)) + _center;
-		cameraOffset = position;
-		print (cameraOffset);
+		positionOffset = position;
 
+		animationStartTime = 0.0F;
 		needRecenter = true;
 	}
 	
@@ -98,14 +110,38 @@ public class ViewPoint3DMouse : MonoBehaviour {
 	void Update () {
 		if(needRecenter)
 		{
-			camera.transform.position = cameraOffset;
-			camera.transform.LookAt(new Vector3(0,0,0));
-			closestPoint = new Vector3(0,0,0);
-			needRecenter = false;
+			float currentTime = Time.timeSinceLevelLoad;
+
+			// if starting new animation, save transform
+			if(animationStartTime == 0.0F)
+			{
+				camera.transform.LookAt(new Vector3(0,0,0));
+				animationStartTime = currentTime;
+				
+				//print ("position:"+initialPosition+positionOffset);
+				//print ("center:"+initialCenter+_center);
+			}
+
+
+			float t = (currentTime-animationStartTime)/totalAnimationTime;
+
+			// end of animation
+			if(t >= 1.0F)
+			{
+				t = 1.0F;
+				closestPoint = new Vector3(0,0,0);
+				needRecenter = false;
+			}
+
+
+			camera.transform.position = Vector3.Lerp(initialPosition,positionOffset,t);
+			Vector3 lookat = Vector3.Lerp(initialCenter,_center,t);
+			camera.transform.LookAt(lookat);
+			//print("("+t+") "+camera.transform.position);
 		}
-		else
+		else if(!GameObject.Find("Camera").GetComponent<AnnotationMenu>().menuOn)
 		{
-			print(camera.transform.position);
+			//print(camera.transform.position);
 			camera.transform.RotateAround (rayCenter, -1*camera.transform.up, SpaceNavigator.Rotation.Yaw () * Mathf.Rad2Deg * yRotationCoef*100);
 			camera.transform.RotateAround (rayCenter, -1*camera.transform.right, SpaceNavigator.Rotation.Pitch () * Mathf.Rad2Deg * xRotationCoef*100);
 			camera.transform.RotateAround (rayCenter, -1*camera.transform.forward, SpaceNavigator.Rotation.Roll () * Mathf.Rad2Deg * zRotationCoef*100);
@@ -114,7 +150,6 @@ public class ViewPoint3DMouse : MonoBehaviour {
 			camera.transform.Translate(-SpaceNavigator.Translation.x * xTranslationCoef,
 									   -SpaceNavigator.Translation.y * yTranslationCoef,
 			                           -SpaceNavigator.Translation.z * zTranslationCoef);
-
 		}
 
 		sphereR.transform.position = camera.transform.position + camera.transform.forward*50;
