@@ -29,6 +29,8 @@ public class Lasso : MonoBehaviour {
 	bool isEnabled = true;
 	bool needsClear = true;
 
+	bool canSelect = false;
+
 	public Lasso() {
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();
@@ -72,8 +74,19 @@ public class Lasso : MonoBehaviour {
 		HandList hl = frame.Hands;
 		FingerList fl = frame.Fingers;
 		
-		float scalarVelocity = fl[0].TipVelocity.Magnitude; 
-		float filteredVelocity = 0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
+		float scalarVelocity;
+		float filteredVelocity;
+		if(fl.Count > 0 && fl[0].TimeVisible > 0.1)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
+		{
+			scalarVelocity = fl[0].TipVelocity.Magnitude;
+			filteredVelocity = 0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
+		}
+		else
+		{
+			scalarVelocity = 0;
+			filteredVelocity = 0;
+			currentState = state.NONE;
+		}
 		lastScalarVelocity = scalarVelocity;
 
 		// distance between fingers
@@ -113,7 +126,7 @@ public class Lasso : MonoBehaviour {
 
 			List<Vector3> lasso = new List<Vector3>(fingerPosition);
 			lasso.Add(fingerPosition[0]);
-			pointCloud.SetLasso(lasso);
+			canSelect = pointCloud.SetLasso(lasso);
 
 			updateCountSinceMovingSlashStarted = 0;
 		}
@@ -136,12 +149,14 @@ public class Lasso : MonoBehaviour {
 		}
 		if(currentState == state.WAITING_TWO_FINGERS && hl.Count >= 1 && fl.Count >= 2 && timeSinceLastStateChange >= 1.0F && Mathf.Abs(pinchVelocity) < velocityThreshold)
 		{
+			goFingerLineRenderer.SetActive(false);
 			pointCloud.TriggerSeparation(true,0);
 			currentState = state.SELECT_IN_OUT;
 		}
 		// if angle between two hand-finger vectors is smaller than angle trigger threshold, change to 
 		else if(currentState == state.SELECT_IN_OUT && hl.Count >= 1 && fl.Count >= 1) 
 		{
+			goFingerLineRenderer.SetActive(false);
 			pointCloud.TriggerSeparation(true,0);
 			if(pointCloud.useSeparation)
 			{
@@ -211,11 +226,16 @@ public class Lasso : MonoBehaviour {
 
 		if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // ready to select
 		{
-			if(pointCloud.useSeparation)
-				currentState = state.SELECT_IN_OUT;
+			if(canSelect)
+			{
+				if(pointCloud.useSeparation)
+					currentState = state.SELECT_IN_OUT;
+				else
+					currentState = state.WAITING_TWO_FINGERS;
+				locked = true;
+			}
 			else
-				currentState = state.WAITING_TWO_FINGERS;
-			locked = true;
+				currentState = state.SELECT;
 		}
 		else if(currentState != state.NONE && currentState != state.DRAW && (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.LeftShift))) // reset?
 		{
@@ -228,7 +248,7 @@ public class Lasso : MonoBehaviour {
 		{
 			resetTimer = currentTime;
 		}
-		else if(Input.GetKey(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer > 3.0f)
+		else if(Input.GetKey(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer > 2.0f)
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.NONE;
@@ -237,7 +257,7 @@ public class Lasso : MonoBehaviour {
 			pointCloud.ResetAll();
 			resetTimer = 0;
 		}
-		else if(Input.GetKeyUp(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer < 3.0f)
+		else if(Input.GetKeyUp(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer < 2.0f)
 		{
 			pointCloud.TriggerSeparation(false,0);
 			if(currentState == state.NONE || currentState == state.DRAW)//timeSinceLastStateChange > 4.0F)

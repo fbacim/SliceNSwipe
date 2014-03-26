@@ -79,7 +79,7 @@ Shader "DX11/VertexColorPoints"
 				}
 				float3 colorOffset = float3(0,0,0);
 				if(buf_Selected[id] == 1)
-				{
+				{					
 					if(inst == 0)
 						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-buf_Positions[1].w),//_OffsetColorMask1.x*buf_Positions[1].w),
 											 buf_ColorsOffset[id].y*(1.0-buf_Positions[1].w),//_OffsetColorMask1.y*buf_Positions[1].w),
@@ -97,6 +97,10 @@ Shader "DX11/VertexColorPoints"
 //						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-_OffsetColorMask2.x*buf_Positions[1].w),
 //											 buf_ColorsOffset[id].y*(1.0-_OffsetColorMask2.y*buf_Positions[1].w),
 //											 buf_ColorsOffset[id].z*(1.0-_OffsetColorMask2.z*buf_Positions[1].w));
+				}
+				else
+				{
+					colorOffset = float3(0.4-buf_Colors[id].x,0.4-buf_Colors[id].y,0.4-buf_Colors[id].z);//_OffsetColorMask1.z*buf_Positions[1].w));
 				}
 				// from 0 to 1, 0 should be both colors, 1 just the one from my instance, interpolate in between
 				

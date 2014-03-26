@@ -43,6 +43,7 @@ public class VolumeSweep : MonoBehaviour {
 
 	bool isEnabled = true;
 	bool needsClear = true;
+	bool canSelect = false;
 	
 	public VolumeSweep() {
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
@@ -101,14 +102,26 @@ public class VolumeSweep : MonoBehaviour {
 		HandList hl = frame.Hands;
 		FingerList fl = frame.Fingers;
 		
-		float scalarVelocity = fl[0].TipVelocity.Magnitude; 
-		float filteredVelocity = 0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
+		float scalarVelocity;
+		float filteredVelocity;
+		if(fl.Count > 0 && fl[0].TimeVisible > 0.1)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
+		{
+			scalarVelocity = fl[0].TipVelocity.Magnitude;
+			filteredVelocity = 0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
+		}
+		else
+		{
+			scalarVelocity = 0;
+			filteredVelocity = 0;
+			currentState = state.NONE;
+			Clear();
+		}
 		lastScalarVelocity = scalarVelocity;
 
 		// distance between fingers
 		if(fl.Count == 2)
 		{
-			float fingerDistance = fl[0].TipPosition.DistanceTo(fl[1].TipPosition);
+			float fingerDistance = fl[0].StabilizedTipPosition.DistanceTo(fl[1].StabilizedTipPosition);
 			pinchVelocity = ((fingerDistance-lastFingerDistance)/timeSinceLastUpdate);//0.6F*lastPinchVelocity + 0.4F*((fingerDistance-lastFingerDistance)/timeSinceLastUpdate);
 			lastPinchVelocity = pinchVelocity;
 			lastFingerDistance = fingerDistance;
@@ -215,10 +228,10 @@ public class VolumeSweep : MonoBehaviour {
 
 		if(currentState != state.NONE)
 		{
-			if(volumeTrailSpheres.Count == 0)
-				pointCloud.SetSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,true);
+			if(volumeTrailSpheres.Count == 0 || !canSelect)
+				canSelect = pointCloud.SetSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,true);
 			else if(currentState == state.MOVING_FINGER)
-				pointCloud.SetSphere(volumeTrailSpheres[volumeTrailSpheres.Count-1].center,volumeTrailSpheres[volumeTrailSpheres.Count-1].radius,false);//pointCloud.SetSphereTrail(volumeTrailSpheres);
+				canSelect = pointCloud.SetSphere(volumeTrailSpheres[volumeTrailSpheres.Count-1].center,volumeTrailSpheres[volumeTrailSpheres.Count-1].radius,false);//pointCloud.SetSphereTrail(volumeTrailSpheres);
 		}
 
 		//hold key for bubble sweep
@@ -228,7 +241,7 @@ public class VolumeSweep : MonoBehaviour {
 		{
 			resetTimer = currentTime;
 		}
-		else if(Input.GetKey(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer > 3.0f)
+		else if(Input.GetKey(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer > 2.0f)
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.NONE;
@@ -237,7 +250,7 @@ public class VolumeSweep : MonoBehaviour {
 			pointCloud.ResetAll();
 			resetTimer = 0;
 		}
-		else if(Input.GetKeyUp(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer < 3.0f)
+		else if(Input.GetKeyUp(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer < 2.0f)
 		{
 			pointCloud.TriggerSeparation(false,0);
 			if(currentState == state.NONE || currentState == state.MOVING_FINGER)//timeSinceLastStateChange > 4.0F)
@@ -259,7 +272,8 @@ public class VolumeSweep : MonoBehaviour {
 
 		if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // reset
 		{
-			SelectBubble();
+			if(canSelect)
+				SelectBubble();
 			locked = true;
 		}
 		else if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) // ready to select

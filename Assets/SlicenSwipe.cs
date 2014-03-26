@@ -14,6 +14,7 @@ public class SlicenSwipe {
 	float timeLastUpdate = 0.0F;
 	float resetTimer = 0.0F;
 	float lastScalarVelocity = 0.0F;
+	Vector lastTipPosition = new Vector();
 	float velocityThreshold = 500.0F;
 	float stateChangeTimeThreshold = 0.2F;
 	int updateCountSinceMovingSlashStarted = 0;
@@ -236,12 +237,19 @@ public class SlicenSwipe {
 			//if(!fingerHandTrail.GetComponent<MeshCollider>())
 			//	fingerHandTrail.AddComponent<MeshCollider>();
 			fingerHandTrail.renderer.material = Resources.Load("Trail", typeof(Material)) as Material;
+			fingerHandTrail.SetActive(true);
 		}
-		else if(fingerPosition.Count > 0)
+		else
 		{
-			fingerPosition.RemoveAt(0);
-			handPosition.RemoveAt(0);
-			fingerPositionTime.RemoveAt(0);
+			fingerHandTrail.SetActive(false);
+			fingerLineRenderer.SetVertexCount(0);
+			handLineRenderer.SetVertexCount(0);
+			if(fingerPosition.Count > 0)
+			{
+				fingerPosition.RemoveAt(0);
+				handPosition.RemoveAt(0);
+				fingerPositionTime.RemoveAt(0);
+			}
 		}
 		
 		timeSinceLastClickCompleted += timeSinceLastUpdate;
@@ -255,9 +263,26 @@ public class SlicenSwipe {
 		HandList hl = frame.Hands;
 		FingerList fl = frame.Fingers;
 		
-		float scalarVelocity = fl[0].TipVelocity.Magnitude; 
-		float filteredVelocity = 0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
+		float scalarVelocity;// = fl[0].TipVelocity.Magnitude; 
+		float filteredVelocity;
+		//float distance = fl[0].StabilizedTipPosition.DistanceTo(lastTipPosition);
+		//float velocity = distance/timeSinceLastUpdate;
+		//float scalarVelocity;
+		if(fl.Count > 0 && fl[0].TimeVisible > 0.1)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
+		{
+			scalarVelocity = fl[0].TipVelocity.Magnitude;
+			filteredVelocity = 0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
+		}
+		else
+		{
+			scalarVelocity = 0;
+			filteredVelocity = 0;
+			currentState = state.NONE;
+		}
+		//lastTipPosition = fl[0].StabilizedTipPosition;
 		lastScalarVelocity = scalarVelocity;
+
+		//Debug.Log("Velocity: "+scalarVelocity+"    filtered: "+filteredVelocity);
 		
 		// reset state machine
 		/*if((hl.Count == 0) || (hl.Count >= 1 && (fl.Count >= 3 || fl.Count < 1))) 
@@ -297,10 +322,6 @@ public class SlicenSwipe {
 		// if velocity goes below the threshold again, change state to cut slash, where the cut has been made
 		else if(currentState == state.MOVING_CUT && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 2 && ((!rubberBandActive && filteredVelocity < velocityThreshold) || (rubberBandActive && !useRubberBand))) 
 		{
-			pointCloud.TriggerSeparation(true,0);
-			if(rubberBandActive)
-				updateCountSinceMovingSlashStarted = 1;
-			rubberBandActive = false;
 			//Debug.Log("SLICE");
 			int initialPosition = fingerPosition.Count-1-updateCountSinceMovingSlashStarted;
 			slashPlane.Set3Points(fingerPosition[initialPosition < 0 ? 0 : initialPosition],
@@ -308,10 +329,18 @@ public class SlicenSwipe {
 			                      fingerPosition[fingerPosition.Count-1]);
 
 			//Debug.Log("normal: "+slashPlane.normal+"  d: "+slashPlane.distance);
+			// first check if slice is valid
+			if(pointCloud.SetSelectionPlane(slashPlane))
+			{
+				currentState = state.CUT_SLASH;
 			
-			pointCloud.SetSelectionPlane(slashPlane);
-			currentState = state.CUT_SLASH;
-			timeSinceLastStateChange = 0.0F;
+				pointCloud.TriggerSeparation(true,0);
+				if(rubberBandActive)
+					updateCountSinceMovingSlashStarted = 1;
+				rubberBandActive = false;
+
+				timeSinceLastStateChange = 0.0F;
+			}
 		}
 		// if a cut has been made, velocity is above threshold again and significant time has passed since cut slash was registered, we record motions again for selection of 
 		else if(currentState == state.CUT_SLASH && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 2 && filteredVelocity > velocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
@@ -355,7 +384,7 @@ public class SlicenSwipe {
 		{
 			resetTimer = currentTime;
 		}
-		else if(Input.GetKey(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer > 3.0f)
+		else if(Input.GetKey(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer > 2.0f)
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.NONE;
@@ -364,7 +393,7 @@ public class SlicenSwipe {
 			pointCloud.ResetAll();
 			resetTimer = 0;
 		}
-		else if(Input.GetKeyUp(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer < 3.0f)
+		else if(Input.GetKeyUp(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer < 2.0f)
 		{
 			pointCloud.TriggerSeparation(false,0);
 			if((currentState == state.NONE || currentState == state.MOVING_FINGER) && !rubberBandActive)//timeSinceLastStateChange > 4.0F)
@@ -426,7 +455,7 @@ public class SlicenSwipe {
 
 	public void RenderTransparentObjects()
 	{
-		if(fingerHandTrailMesh != null && isEnabled)
+		if(fingerHandTrailMesh != null && isEnabled && fingerHandTrail.activeSelf)
 		{
 			fingerHandTrail.renderer.material.SetPass(0);
 			Graphics.DrawMeshNow(fingerHandTrailMesh,Matrix4x4.identity);

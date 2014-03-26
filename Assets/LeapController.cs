@@ -9,8 +9,8 @@ public class LeapController : MonoBehaviour {
 	public VolumeSweep volumeSweep;
 	public Lasso lasso;
 	
-	enum technique { SLICENSWIPE=0, VOLUMESWEEP=1, LASSO=2, SIZE=3 };
-	technique currentTechnique = technique.SLICENSWIPE;  
+	enum technique { SLICENSWIPE=0, VOLUMESWEEP=1, LASSO=2, NONE=3, SIZE=4 };
+	technique currentTechnique = technique.VOLUMESWEEP;  
 
 	Leap.Controller controller;
 	List<GameObject> goFingerList;
@@ -22,6 +22,7 @@ public class LeapController : MonoBehaviour {
 	float fingerAvg = 0.0F;
 
 	bool techniqueMenuActive = false;
+	technique techniqueQuadrant = technique.VOLUMESWEEP;
 
 	// Use this for initialization
 	void Start () {
@@ -99,7 +100,7 @@ public class LeapController : MonoBehaviour {
 			position.z = -(((hl[0].PalmPosition.z - frame.InteractionBox.Center.z) / frame.InteractionBox.Depth ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Depth/maxd)));
 			// rotate position to match camera
 			position = cameraTransform.rotation * position;
-			//Debug.Log("["+Time.time+"] hand["+i+"]: "+position);
+			Debug.Log("["+Time.time+"] hand["+i+"]: "+position);
 			goHandList[i].SetActive(true);
 			goHandList[i].transform.position = position;
 		}
@@ -143,11 +144,31 @@ public class LeapController : MonoBehaviour {
 				currentTechnique = technique.SIZE-1;
 		}
 
+		// TRANSFORMING HAND POSITION TO MATCH POINT CLOUD SIZE
+		Vector3 p = new Vector3();
+		p.x =   ((hl[0].PalmPosition.x - frame.InteractionBox.Center.x) / frame.InteractionBox.Width ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Width/maxd));
+		p.y =   ((hl[0].PalmPosition.y - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
+
+		if(p.x < 0 && p.y > 0)
+			techniqueQuadrant = technique.SLICENSWIPE;
+		else if(p.x > 0 && p.y > 0)
+			techniqueQuadrant = technique.VOLUMESWEEP;
+		else if(p.x < 0 && p.y < 0)
+			techniqueQuadrant = technique.LASSO;
+		else if(p.x > 0 && p.y < 0)
+			techniqueQuadrant = technique.NONE;
+		Debug.Log(techniqueQuadrant);
+
 		if(fingerAvg > 4 || techniqueMenuActive)
 		{
 			techniqueMenuActive = true;
 			if(Input.GetKeyUp(KeyCode.Escape) || fingerAvg == 0)
 				techniqueMenuActive = false;
+			if(fingerAvg < 2)
+			{
+				currentTechnique = techniqueQuadrant;
+				techniqueMenuActive = false;
+			}
 		}
 		else
 		{
@@ -175,14 +196,48 @@ public class LeapController : MonoBehaviour {
 	
 	void OnGUI ()
 	{
-		string name;
-		if(currentTechnique == technique.SLICENSWIPE)
-			name = "Slice\'n\'Swipe";
-		else if(currentTechnique == technique.VOLUMESWEEP)
-			name = "Bubble";
-		else 
-			name = "Lasso";
-		GUI.Button (new Rect (UnityEngine.Screen.width-205, 5, 200, 30), name);
-		
+		if(!techniqueMenuActive)
+		{
+			string name;
+			if(currentTechnique == technique.SLICENSWIPE)
+				name = "Slice\'n\'Swipe";
+			else if(currentTechnique == technique.VOLUMESWEEP)
+				name = "Bubble";
+			else 
+				name = "Lasso";
+			GUIStyle style = new GUIStyle(GUI.skin.box);
+			style.fontSize = 20;
+			style.fontStyle = FontStyle.Bold;
+
+			GUI.Label (new Rect (UnityEngine.Screen.width-205, 5, 200, 30), name, style);
+		}
+		else
+		{
+			GUIStyle style = new GUIStyle(GUI.skin.box);
+			style.fontSize = 40;
+			style.fontStyle = FontStyle.Bold;
+			style.alignment = TextAnchor.MiddleCenter;
+
+			GUIStyle selectedStyle = new GUIStyle(GUI.skin.box);
+			selectedStyle.fontSize = 40;
+			selectedStyle.fontStyle = FontStyle.Bold;
+			selectedStyle.alignment = TextAnchor.MiddleCenter;
+			selectedStyle.normal.textColor = Color.black;
+			selectedStyle.normal.background = new Texture2D(1, 1);
+			selectedStyle.normal.background.SetPixel(1,1,Color.yellow);
+			selectedStyle.normal.background.Apply();
+
+			Color c = GUI.backgroundColor;
+
+			GUI.backgroundColor = techniqueQuadrant == technique.SLICENSWIPE ? Color.yellow : c;
+			GUI.Label (new Rect (0, 0, UnityEngine.Screen.width/2, UnityEngine.Screen.height/2), "Slice'n'Swipe", techniqueQuadrant == technique.SLICENSWIPE ? selectedStyle : style);
+			GUI.backgroundColor = techniqueQuadrant == technique.VOLUMESWEEP ? Color.yellow : c;
+			GUI.Label (new Rect (UnityEngine.Screen.width/2, 0, UnityEngine.Screen.width/2, UnityEngine.Screen.height/2), "Bubble", techniqueQuadrant == technique.VOLUMESWEEP ? selectedStyle : style);
+			GUI.backgroundColor = techniqueQuadrant == technique.LASSO ? Color.yellow : c;
+			GUI.Label (new Rect (0, UnityEngine.Screen.height/2, UnityEngine.Screen.width/2, UnityEngine.Screen.height/2), "Lasso", techniqueQuadrant == technique.LASSO ? selectedStyle : style);
+			GUI.backgroundColor = techniqueQuadrant == technique.NONE ? Color.yellow : c;
+			GUI.Label (new Rect (UnityEngine.Screen.width/2, UnityEngine.Screen.height/2, UnityEngine.Screen.width/2, UnityEngine.Screen.height/2), "Free Mode", techniqueQuadrant == technique.NONE ? selectedStyle : style);
+			//GUI.backgroundColor = c;
+		}
 	}
 }

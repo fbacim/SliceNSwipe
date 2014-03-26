@@ -17,6 +17,8 @@ public class AnnotationMenu : MonoBehaviour {
 	// selected menu item
 	int selectedIndex;
 	
+	int firstVisibleIndex = 0;
+	
 	// Function to scroll through possible menu items array, looping back to start/end depending on direction of movement.
 	
 	int menuSelection (string[] menuItems, int selectedItem, string direction) {
@@ -109,7 +111,7 @@ public class AnnotationMenu : MonoBehaviour {
 			}
 			
 		}
-
+		
 		if(!menuOn)
 			return;
 		
@@ -125,8 +127,8 @@ public class AnnotationMenu : MonoBehaviour {
 			menuLocationSN = 0;
 		}
 		else if ((SpaceNavigator.Translation.y < -0.2)&& 
-		    (Mathf.Abs( SpaceNavigator.Translation.z)<0.5 )&& 
-		    (Mathf.Abs( SpaceNavigator.Rotation.Pitch())<0.2 )) {
+		         (Mathf.Abs( SpaceNavigator.Translation.z)<0.5 )&& 
+		         (Mathf.Abs( SpaceNavigator.Rotation.Pitch())<0.2 )) {
 			pointCloud.SelectAnnotation(selectedIndex-1);
 		}
 		
@@ -138,21 +140,61 @@ public class AnnotationMenu : MonoBehaviour {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "up");
 		}	
 	}
-
+	
 	void OnGUI ()
 	{
 		if (menuOn) {
-			for (int i=0; i<menuOptions.Length; i++) {
+			
+			int screenHeight = Screen.height;
+			int visibleMenuItems = (screenHeight-5)/30;
+			
+			if ((selectedIndex - firstVisibleIndex) >= visibleMenuItems){
+				//firstVisibleIndex += (selectedIndex - firstVisibleIndex) - (visibleMenuItems-1);
+				firstVisibleIndex += 1;
+			}
+			if (selectedIndex < firstVisibleIndex){
+				//firstVisibleIndex = firstVisibleIndex - selectedIndex;
+				firstVisibleIndex -=1;
+			}
+			
+			
+			for (int i=0+firstVisibleIndex; i<menuOptions.Length; i++) {
 				GUI.SetNextControlName (menuOptions [i]);
 				//GUI.skin.button.focused = Color.red;
 				//GUI.skin.button.focused.textColor = Color.yellow;
 				//GUIStyle style = new GUIStyle(
+				GUIStyle customstyle = new GUIStyle();
+				customstyle.focused.textColor = Color.red;
 				
-				if (GUI.Button (new Rect (5, 5 + i * 30, 20 + menuLength * 9, 30), menuOptions [i])) {
-					pointCloud.SelectAnnotation(selectedIndex-1);
+				if (i == selectedIndex)
+				{
+					
+					//GUIStyle style = new GUIStyle(GUI.Button);
+					//style.fontSize = 24;
+					
+					GUIStyle buttonStyle;
+					buttonStyle = new GUIStyle(GUI.skin.button);
+					
+					buttonStyle.fontSize = 20;
+					buttonStyle.fontStyle = FontStyle.Bold;
+					//buttonStyle.normal.textColor = Color.red;
+					//buttonStyle.focused.textColor = Color.yellow;
+					buttonStyle.hover.textColor = Color.green;
+					//buttonStyle.active.textColor = Color.blue;
+					
+					//buttonStyle.onNormal.textColor = Color.black;
+					//buttonStyle.onFocused.textColor = Color.cyan;
+					//buttonStyle.onHover.textColor = Color.magenta;
+					//buttonStyle.onActive.textColor = Color.white;
+					
+					GUI.Button (new Rect (20, 5 + (i-firstVisibleIndex) * 30, 20 + menuLength * 9, 30), menuOptions [i], buttonStyle);
+					
 				}
+				else
+					GUI.Button (new Rect (5, 5 + (i-firstVisibleIndex) * 30, 20 + menuLength * 9, 30), menuOptions [i]);
 			}
-				
+			
+			
 			GUI.FocusControl (menuOptions [selectedIndex]);
 		}	
 	}
