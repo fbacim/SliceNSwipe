@@ -13,11 +13,13 @@ public class AnnotationMenu : MonoBehaviour {
 	
 	public bool menuOn;
 	float menuLocationSN;
-	const float menuLocationThersholdSN = 15;
+	const float menuLocationThersholdSN = 1;
 	// selected menu item
 	int selectedIndex;
 	
 	int firstVisibleIndex = 0;
+
+	float timeLastChange = 0.0F;
 	
 	// Function to scroll through possible menu items array, looping back to start/end depending on direction of movement.
 	
@@ -83,6 +85,8 @@ public class AnnotationMenu : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		float currentTime = Time.timeSinceLevelLoad;
+		float timeSinceLastChange = currentTime - timeLastChange;
 		
 		//Debug.Log (pointCloud.annotations.Count);
 		
@@ -115,15 +119,17 @@ public class AnnotationMenu : MonoBehaviour {
 		if(!menuOn)
 			return;
 		
-		menuLocationSN += Mathf.Max(SpaceNavigator.Translation.z, SpaceNavigator.Rotation.Pitch() * 10);
-		
-		if (menuLocationSN < -menuLocationThersholdSN) {
+		menuLocationSN = SpaceNavigator.Translation.z + SpaceNavigator.Rotation.Pitch() * 10;
+
+		if (menuLocationSN < -menuLocationThersholdSN && timeSinceLastChange > 0.3) {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "down");
 			menuLocationSN = 0;
+			timeLastChange = currentTime;
 		}
-		else if (menuLocationSN > menuLocationThersholdSN) {
+		else if (menuLocationSN > menuLocationThersholdSN && timeSinceLastChange > 0.3) {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "up");
 			menuLocationSN = 0;
+			timeLastChange = currentTime;
 		}
 		else if ((SpaceNavigator.Translation.y < -0.2)&& 
 		         (Mathf.Abs( SpaceNavigator.Translation.z)<0.5 )&& 
