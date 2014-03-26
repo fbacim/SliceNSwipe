@@ -94,7 +94,7 @@ public class AnnotationMenu : MonoBehaviour {
 			if (menuOn){
 				menuOptions = new string[pointCloud.annotations.Count + 1];
 				
-				menuOptions[0] = "All";		
+				menuOptions[0] = "Select All";		
 				for (int i=1; i<= pointCloud.annotations.Count; i++) {
 					menuOptions[i] = pointCloud.annotations[i-1].ToString();
 				}
@@ -115,8 +115,7 @@ public class AnnotationMenu : MonoBehaviour {
 		if(!menuOn)
 			return;
 		
-		menuLocationSN += SpaceNavigator.Translation.z;
-		menuLocationSN += SpaceNavigator.Rotation.Pitch() * 10;
+		menuLocationSN += Mathf.Max(SpaceNavigator.Translation.z, SpaceNavigator.Rotation.Pitch() * 10);
 		
 		if (menuLocationSN < -menuLocationThersholdSN) {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "down");
