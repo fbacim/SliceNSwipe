@@ -15,6 +15,7 @@ public class LeapController : MonoBehaviour {
 	Leap.Controller controller;
 	List<GameObject> goFingerList;
 	List<GameObject> goHandList;
+	AnnotationMenu annotationMenu;
 	Transform cameraTransform;
 	PointCloud pointCloud;
 	GUIText annotationTextInput;
@@ -29,6 +30,7 @@ public class LeapController : MonoBehaviour {
 		controller = new Leap.Controller();
 		
 		annotationTextInput = GameObject.Find("Annotation Input").GetComponent<GUIText>();
+		annotationMenu = GameObject.Find("Camera").GetComponent<AnnotationMenu>();
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 
@@ -58,7 +60,8 @@ public class LeapController : MonoBehaviour {
 			// if enter is pressed, need to process annotation
 			else if (c == "\n"[0] || c == "\r"[0])
 			{
-				return true; 
+				if(annotationTextInput.text.Replace(" ","").Length > 0)
+					return true; 
 			}
 			// if enter is pressed, need to process annotation
 			else if (c == 47)
@@ -100,9 +103,10 @@ public class LeapController : MonoBehaviour {
 			position.z = -(((hl[0].PalmPosition.z - frame.InteractionBox.Center.z) / frame.InteractionBox.Depth ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Depth/maxd)));
 			// rotate position to match camera
 			position = cameraTransform.rotation * position;
-			Debug.Log("["+Time.time+"] hand["+i+"]: "+position);
+			//Debug.Log("["+Time.time+"] hand["+i+"]: "+position);
 			goHandList[i].SetActive(true);
 			goHandList[i].transform.position = position;
+			goHandList[i].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
 		}
 
 		// update finger renderer
@@ -122,6 +126,7 @@ public class LeapController : MonoBehaviour {
 			//Debug.Log("["+Time.time+"] finger["+i+"]: "+position);
 			goFingerList[i].SetActive(true);
 			goFingerList[i].transform.position = position;
+			goFingerList[i].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
 		}
 
 		fingerAvg = fingerAvg * 0.9F + fl.Count * 0.1F;
@@ -149,28 +154,28 @@ public class LeapController : MonoBehaviour {
 		p.x =   ((hl[0].PalmPosition.x - frame.InteractionBox.Center.x) / frame.InteractionBox.Width ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Width/maxd));
 		p.y =   ((hl[0].PalmPosition.y - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
 
-		if(p.x < 0 && p.y > 0)
-			techniqueQuadrant = technique.SLICENSWIPE;
-		else if(p.x > 0 && p.y > 0)
-			techniqueQuadrant = technique.VOLUMESWEEP;
-		else if(p.x < 0 && p.y < 0)
-			techniqueQuadrant = technique.LASSO;
-		else if(p.x > 0 && p.y < 0)
-			techniqueQuadrant = technique.NONE;
-		Debug.Log(techniqueQuadrant);
-
 		if(fingerAvg > 4 || techniqueMenuActive)
 		{
 			techniqueMenuActive = true;
+
+			if(p.x < 0 && p.y > 0)
+				techniqueQuadrant = technique.SLICENSWIPE;
+			else if(p.x > 0 && p.y > 0)
+				techniqueQuadrant = technique.VOLUMESWEEP;
+			else if(p.x < 0 && p.y < 0)
+				techniqueQuadrant = technique.LASSO;
+			else if(p.x > 0 && p.y < 0)
+				techniqueQuadrant = technique.NONE;
+
 			if(Input.GetKeyUp(KeyCode.Escape) || fingerAvg == 0)
 				techniqueMenuActive = false;
-			if(fingerAvg < 2)
+			if(fingerAvg < 3)
 			{
 				currentTechnique = techniqueQuadrant;
 				techniqueMenuActive = false;
 			}
 		}
-		else
+		else if(!annotationMenu.menuOn)
 		{
 			if(currentTechnique == technique.SLICENSWIPE)
 				slicenSwipe.SetEnabled(true);
@@ -181,16 +186,19 @@ public class LeapController : MonoBehaviour {
 			//Debug.Log(currentTechnique);
 		}
 
-		bool techniqueLock;
-		techniqueLock = slicenSwipe.ProcessFrame(frame, goHandList, goFingerList);
-		techniqueLock = volumeSweep.ProcessFrame(frame, goHandList, goFingerList);
-		techniqueLock = lasso.ProcessFrame(frame, goHandList, goFingerList);
-		//Debug.Log(techniqueLock);
+		bool[] techniqueLock = new bool[3];
+		techniqueLock[0] = slicenSwipe.ProcessFrame(frame, goHandList, goFingerList);
+		techniqueLock[1] = volumeSweep.ProcessFrame(frame, goHandList, goFingerList);
+		techniqueLock[2] = lasso.ProcessFrame(frame, goHandList, goFingerList);
+		//Debug.Log(techniqueLock[(int)currentTechnique]);
 		
-		if(UpdateAnnotation())
+		if(!techniqueLock[(int)currentTechnique])
 		{
-			pointCloud.Annotate(annotationTextInput.text);
-			annotationTextInput.text = "";
+			if(UpdateAnnotation())
+			{
+				pointCloud.Annotate(annotationTextInput.text);
+				annotationTextInput.text = "";
+			}
 		}
 	}
 	

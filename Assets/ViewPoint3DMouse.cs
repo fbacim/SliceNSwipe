@@ -7,13 +7,13 @@ using System.Diagnostics;
 using System.Threading;
 
 public class ViewPoint3DMouse : MonoBehaviour {
-	const float xRotationCoef = 0.008f;
-	const float yRotationCoef = 0.008f;
-	const float zRotationCoef = 0.008f;
+	const float xRotationCoef = 0.004f;
+	const float yRotationCoef = 0.004f;
+	const float zRotationCoef = 0.004f;
 	
-	const float xTranslationCoef = 1.0f;
-	const float yTranslationCoef = 1.0f;
-	const float zTranslationCoef = 1.0f;
+	const float xTranslationCoef = 0.25f;
+	const float yTranslationCoef = 0.25f;
+	const float zTranslationCoef = 0.25f;
 	
 	//boundaries
 	const float xMax = 22; const float xMin = -22;
@@ -94,8 +94,8 @@ public class ViewPoint3DMouse : MonoBehaviour {
 	public void CenterView(float d, Vector3 cameraOffset) {
 		distance = d;
 		
-		initialPosition = camera.transform.position-cameraOffset;
-		initialCenter = camera.transform.position+camera.transform.forward*distance-cameraOffset;
+		initialPosition = camera.transform.position;
+		initialCenter = camera.transform.position+camera.transform.forward*distance;
 
 		// set distance
 		Quaternion rotation = camera.transform.rotation;

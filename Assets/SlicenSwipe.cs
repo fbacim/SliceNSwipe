@@ -86,6 +86,8 @@ public class SlicenSwipe {
 		
 		needsClear = true;
 
+		//Debug.Log(currentState);
+
 		// calculate how much time has passed since last update
 		float currentTime = Time.timeSinceLevelLoad;
 		float timeSinceLastUpdate = currentTime - timeLastUpdate;
@@ -93,11 +95,11 @@ public class SlicenSwipe {
 
 		if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
 		{
-			SetRubberBand(true);
+			useRubberBand = true;
 		}
 		else
 		{
-			SetRubberBand(false);
+			useRubberBand = false;
 		}
 		
 		// update finger trace
@@ -268,7 +270,7 @@ public class SlicenSwipe {
 		//float distance = fl[0].StabilizedTipPosition.DistanceTo(lastTipPosition);
 		//float velocity = distance/timeSinceLastUpdate;
 		//float scalarVelocity;
-		if(fl.Count > 0 && fl[0].TimeVisible > 0.1)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
+		if(fl.Count > 0 && fl[0].TimeVisible > 0.2)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
 		{
 			scalarVelocity = fl[0].TipVelocity.Magnitude;
 			filteredVelocity = 0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
@@ -277,7 +279,10 @@ public class SlicenSwipe {
 		{
 			scalarVelocity = 0;
 			filteredVelocity = 0;
-			currentState = state.NONE;
+			if(currentState != state.CUT_SLASH && currentState != state.MOVING_SELECT)
+			{
+				currentState = state.NONE;
+			}
 		}
 		//lastTipPosition = fl[0].StabilizedTipPosition;
 		lastScalarVelocity = scalarVelocity;
@@ -292,14 +297,14 @@ public class SlicenSwipe {
 			timeSinceLastStateChange = 0.0F;
 		}
 		// change state to moving finger (initial state) 
-		else */if(currentState == state.NONE && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 3) 
+		else */if(currentState == state.NONE && hl.Count >= 1 && fl.Count >= 1) 
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.MOVING_FINGER;
 			timeSinceLastStateChange = 0.0F;
 		}
 		// if velocity above threshold, record motion in moving cut state
-		else if(currentState == state.MOVING_FINGER && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 3 && (filteredVelocity > velocityThreshold || useRubberBand)) 
+		else if(currentState == state.MOVING_FINGER && hl.Count >= 1 && fl.Count >= 1 && (filteredVelocity > velocityThreshold || useRubberBand)) 
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.MOVING_CUT;
@@ -320,13 +325,19 @@ public class SlicenSwipe {
 			}
 		}
 		// if velocity goes below the threshold again, change state to cut slash, where the cut has been made
-		else if(currentState == state.MOVING_CUT && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 2 && ((!rubberBandActive && filteredVelocity < velocityThreshold) || (rubberBandActive && !useRubberBand))) 
+		else if(currentState == state.MOVING_CUT && hl.Count >= 1 && fl.Count >= 1 && ((!rubberBandActive && filteredVelocity < velocityThreshold) || (rubberBandActive && !useRubberBand))) 
 		{
 			//Debug.Log("SLICE");
 			int initialPosition = fingerPosition.Count-1-updateCountSinceMovingSlashStarted;
 			slashPlane.Set3Points(fingerPosition[initialPosition < 0 ? 0 : initialPosition],
 			                      handPosition[1],
 			                      fingerPosition[fingerPosition.Count-1]);
+			if(Mathf.Abs(Vector3.Angle(slashPlane.normal,GameObject.Find("Camera").transform.right)) > 90.0F)
+			{
+				slashPlane.Set3Points(fingerPosition[fingerPosition.Count-1],
+				                      handPosition[1],
+				                      fingerPosition[initialPosition < 0 ? 0 : initialPosition]);
+			}
 
 			//Debug.Log("normal: "+slashPlane.normal+"  d: "+slashPlane.distance);
 			// first check if slice is valid
@@ -341,9 +352,16 @@ public class SlicenSwipe {
 
 				timeSinceLastStateChange = 0.0F;
 			}
+			else
+			{
+				rubberBandActive = false;
+				pointCloud.ResetSelected();
+				currentState = state.NONE;
+				timeSinceLastStateChange = 0.0F;
+			}
 		}
 		// if a cut has been made, velocity is above threshold again and significant time has passed since cut slash was registered, we record motions again for selection of 
-		else if(currentState == state.CUT_SLASH && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 2 && filteredVelocity > velocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
+		else if(currentState == state.CUT_SLASH && hl.Count >= 1 && fl.Count >= 1 && filteredVelocity > velocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
 		{
 			pointCloud.TriggerSeparation(true,0);
 			//Debug.Log("STARTING SWIPE");
@@ -351,7 +369,7 @@ public class SlicenSwipe {
 			timeSinceLastStateChange = 0.0F;
 			updateCountSinceMovingSlashStarted = 0;
 		}
-		else if(currentState == state.MOVING_SELECT && hl.Count >= 1 && fl.Count >= 1 && fl.Count <= 2 && filteredVelocity < velocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
+		else if(currentState == state.MOVING_SELECT && hl.Count >= 1 && fl.Count >= 1 && filteredVelocity < velocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
 		{
 			//Debug.Log("SWIPE");
 			int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
@@ -359,7 +377,7 @@ public class SlicenSwipe {
 			for(int i = initialPosition; i < fingerPosition.Count; i++)
 				direction += fingerPosition[i];
 			direction /= fingerPosition.Count-initialPosition;
-			Debug.Log(direction.normalized);
+			//Debug.Log(direction.normalized);
 			//Debug.Log(Mathf.Abs(Vector3.Angle(slashPlane.normal,direction.normalized)));
 			if(pointCloud.useSeparation)
 			{
@@ -367,8 +385,8 @@ public class SlicenSwipe {
 				tmp.Set3Points(GameObject.Find("Camera").transform.position+GameObject.Find("Camera").transform.forward,
 				               GameObject.Find("Camera").transform.position,
 				               GameObject.Find("Camera").transform.position+GameObject.Find("Camera").transform.up);
-				Debug.Log(tmp.normal);
-				Debug.Log(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
+				//Debug.Log(tmp.normal);
+				//Debug.Log(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
 
 				pointCloud.SelectSide(slashPlane,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
 				pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
@@ -425,7 +443,7 @@ public class SlicenSwipe {
 			timeSinceLastClickCompleted = 0.0F;
 		}
 
-		if(currentState != state.NONE && currentState != state.MOVING_FINGER)
+		if(currentState == state.CUT_SLASH || currentState == state.MOVING_SELECT)
 			locked = true;
 
 		return locked;
@@ -446,11 +464,6 @@ public class SlicenSwipe {
 			currentState = state.NONE;
 			timeSinceLastStateChange = 0.0F;
 		}
-	}
-
-	public void SetRubberBand(bool use)
-	{
-		useRubberBand = use;
 	}
 
 	public void RenderTransparentObjects()

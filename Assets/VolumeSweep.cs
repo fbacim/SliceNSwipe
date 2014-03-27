@@ -24,7 +24,7 @@ public class VolumeSweep : MonoBehaviour {
 	float timeSinceLastClickCompleted = 0.0F;
 	float timeLastUpdate = 0.0F;
 	float resetTimer = 0.0F;
-	float velocityThreshold = 300.0F;
+	float velocityThreshold = 500.0F;
 	int updateCountSinceMovingSlashStarted = 0;
 
 	List<Vector3> handPosition;
@@ -104,7 +104,7 @@ public class VolumeSweep : MonoBehaviour {
 		
 		float scalarVelocity;
 		float filteredVelocity;
-		if(fl.Count > 0 && fl[0].TimeVisible > 0.1)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
+		if(fl.Count > 0 && fl[0].TimeVisible > 0.2)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
 		{
 			scalarVelocity = fl[0].TipVelocity.Magnitude;
 			filteredVelocity = 0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
@@ -113,8 +113,11 @@ public class VolumeSweep : MonoBehaviour {
 		{
 			scalarVelocity = 0;
 			filteredVelocity = 0;
-			currentState = state.NONE;
-			Clear();
+			if(currentState != state.SELECT_IN_OUT && !(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
+			{
+				currentState = state.NONE;
+				Clear();
+			}
 		}
 		lastScalarVelocity = scalarVelocity;
 
@@ -169,7 +172,7 @@ public class VolumeSweep : MonoBehaviour {
 					               cameraTransform.position,
 					               cameraTransform.position+cameraTransform.up);
 
-					Debug.Log(""+tmp.normal+direction.normalized+Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
+					//Debug.Log(""+tmp.normal+direction.normalized+Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
 					
 					pointCloud.SelectSphereTrail(volumeTrailSpheres,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
 					pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
@@ -223,7 +226,6 @@ public class VolumeSweep : MonoBehaviour {
 			currentState = state.SELECT_IN_OUT;
 			selectionVolume.SetActive(false);
 			select = false;
-			locked = true;
 		}
 
 		if(currentState != state.NONE)
@@ -272,9 +274,16 @@ public class VolumeSweep : MonoBehaviour {
 
 		if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // reset
 		{
-			if(canSelect)
-				SelectBubble();
-			locked = true;
+			if(pointCloud.ValidateSets())
+				select = true;
+			else
+			{
+				pointCloud.TriggerSeparation(false,0);
+				pointCloud.ResetSelected();
+				currentState = state.NONE;
+				timeSinceLastStateChange = 0.0F;
+				volumeTrailSpheres.Clear();
+			}
 		}
 		else if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) // ready to select
 		{
@@ -282,19 +291,12 @@ public class VolumeSweep : MonoBehaviour {
 			//volumeTrail[volumeTrail.Count-1].renderer.material.color = new Color(0.7F, 0.7F, 0.7F, 0.5F);
 			Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);
 			volumeTrailSpheres.Add(s);
-
-			locked = true;
 		}
 
-		if(currentState != state.NONE && currentState != state.MOVING_FINGER)
+		if(currentState == state.SELECT_IN_OUT)
 			locked = true;
 
 		return locked;
-	}
-	
-	public void SelectBubble()
-	{
-		select = true;
 	}
 	
 	public void SetEnabled(bool enable)
@@ -315,6 +317,7 @@ public class VolumeSweep : MonoBehaviour {
 			pointCloud.ResetSelected();
 			currentState = state.NONE;
 			timeSinceLastStateChange = 0.0F;
+			volumeTrailSpheres.Clear();
 		}
 	}
 

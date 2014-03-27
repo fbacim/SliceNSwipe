@@ -121,7 +121,13 @@ public class AnnotationMenu : MonoBehaviour {
 		
 		menuLocationSN = SpaceNavigator.Translation.z + SpaceNavigator.Rotation.Pitch() * 10;
 
-		if (menuLocationSN < -menuLocationThersholdSN && timeSinceLastChange > 0.3) {
+		Debug.Log(""+SpaceNavigator.Translation.y+"  "+Mathf.Abs( SpaceNavigator.Translation.z)+"  "+Mathf.Abs( SpaceNavigator.Rotation.Pitch()));
+
+		if (SpaceNavigator.Translation.y < -1.0 && timeSinceLastChange > 0.3) {
+			pointCloud.SelectAnnotation(selectedIndex-1);
+			menuOn = false;
+		}
+		else if (menuLocationSN < -menuLocationThersholdSN && timeSinceLastChange > 0.3) {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "down");
 			menuLocationSN = 0;
 			timeLastChange = currentTime;
@@ -130,11 +136,6 @@ public class AnnotationMenu : MonoBehaviour {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "up");
 			menuLocationSN = 0;
 			timeLastChange = currentTime;
-		}
-		else if ((SpaceNavigator.Translation.y < -0.2)&& 
-		         (Mathf.Abs( SpaceNavigator.Translation.z)<0.5 )&& 
-		         (Mathf.Abs( SpaceNavigator.Rotation.Pitch())<0.2 )) {
-			pointCloud.SelectAnnotation(selectedIndex-1);
 		}
 		
 		if (Input.GetKeyDown (KeyCode.DownArrow)) {
