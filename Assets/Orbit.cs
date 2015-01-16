@@ -5,8 +5,8 @@ public class Orbit : MonoBehaviour {
 	public Transform target;
 
 	public float distance = 15.0F;
-	public float xSpeed = 50.0F;
-	public float ySpeed = 50.0F;
+	public float xSpeed = 100.0F;
+	public float ySpeed = 100.0F;
 	
 	private float x = 0.0F;
 	private float y = 0.0F;

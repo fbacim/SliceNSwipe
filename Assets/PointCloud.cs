@@ -14,7 +14,9 @@ public class PointCloud : MonoBehaviour {
 	private ComputeBuffer bufferSizes;
 	private ComputeBuffer bufferColorOffset;
 	private ComputeBuffer bufferSelected;
-	
+
+	private Dictionary<Vector3,int> indexes;
+
 	private Vector4[] pos;
 	public Vector3[] verts;
 	private Vector3[] originalVerts;
@@ -77,7 +79,7 @@ public class PointCloud : MonoBehaviour {
 		//   logo
 		//   LongHornBeetle_PointCloud
 		//   QCAT_N3_Zebedee_color
-		string fileName = Application.dataPath+@"/LongHornBeetle_PointCloud.pointcloud.csv";
+		string fileName = Application.dataPath+@"/Models/dragon.csv";
 		vertexCount = CountLinesInFile(fileName)-1;// remove header
 		Debug.Log("Points: "+vertexCount);
 		

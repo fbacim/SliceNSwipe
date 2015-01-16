@@ -396,13 +396,15 @@ public class SlicenSwipe {
 			currentState = state.SELECT_SLASH;
 			timeSinceLastStateChange = 0.0F;
 		}
-		
+
+
+
 		// if two seconds have passed without a state change, reset state machine
-		if(Input.GetKeyDown(KeyCode.Escape))
+		if((Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1)) )
 		{
 			resetTimer = currentTime;
 		}
-		else if(Input.GetKey(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer > 2.0f)
+		else if( (Input.GetKey(KeyCode.Escape) || Input.GetMouseButton(1))  && resetTimer > 0.0f && currentTime-resetTimer > 2.0f)
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.NONE;
@@ -411,7 +413,7 @@ public class SlicenSwipe {
 			pointCloud.ResetAll();
 			resetTimer = 0;
 		}
-		else if(Input.GetKeyUp(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer < 2.0f)
+		else if( (Input.GetKeyUp(KeyCode.Escape) || Input.GetMouseButtonUp(1)) && resetTimer > 0.0f && currentTime-resetTimer < 2.0f)
 		{
 			pointCloud.TriggerSeparation(false,0);
 			if((currentState == state.NONE || currentState == state.MOVING_FINGER) && !rubberBandActive)//timeSinceLastStateChange > 4.0F)

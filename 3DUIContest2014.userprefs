@@ -1,12 +1,11 @@
 ﻿<Properties>
-  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="MonoDevelop.Default" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\AnnotationMenu.cs">
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\PointCloud.cs">
     <Files>
-      <File FileName="Assets\AnnotationMenu.cs" Line="152" Column="3" />
-      <File FileName="Assets\PointCloud.cs" Line="3" Column="1" />
-      <File FileName="c:\Users\admin\Documents\3DUIContest2014\Assets\SpaceNavigator\Plugins\SpaceNavigatorWindows.cs" Line="12" Column="16" />
-      <File FileName="Assets\Lasso.cs" Line="21" Column="11" />
-      <File FileName="Assets\ViewPoint3DMouse.cs" Line="115" Column="43" />
+      <File FileName="Assets\AnnotationMenu.cs" Line="103" Column="33" />
+      <File FileName="Assets\PointCloud.cs" Line="18" Column="42" />
+      <File FileName="Assets\SlicenSwipe.cs" Line="1" Column="1" />
+      <File FileName="Assets\ObjectLabel.cs" Line="1" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
