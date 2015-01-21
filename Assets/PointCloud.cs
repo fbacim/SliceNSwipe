@@ -62,6 +62,8 @@ public class PointCloud : MonoBehaviour {
 	private Vector3 originalCenter = new Vector3();
 	private Vector3 centerOffset = new Vector3();
 
+	public StartUpOptions startUpOptions;
+
 	static int CountLinesInFile(string f)
 	{
 		int count = 0; 
@@ -171,6 +173,13 @@ public class PointCloud : MonoBehaviour {
 		
 		CenterPointCloud(center);
 		centerOffset = new Vector3();
+
+		if (startUpOptions.loadAnnotations){
+			foreach(string annotationFilename in startUpOptions.annotationNameList){
+				Annotate(@"loading",annotationFilename);
+			}
+		}
+
 	}
 	
 	private void ReleaseBuffers() {
@@ -884,7 +893,7 @@ public class PointCloud : MonoBehaviour {
 		centerOffset = new Vector3();
 	}
 
-	public void Annotate(string annotation)
+	public void Annotate(string annotation, string loadAnnotationFromFilename = null)
 	{
 		if(annotation == "" || separate || animating)
 			return;
@@ -898,17 +907,37 @@ public class PointCloud : MonoBehaviour {
 			annotationsPerVertex[annotation] = new List<int>();
 		}
 
+
+		int[] selectedByIndex;
+		if (string.IsNullOrEmpty (loadAnnotationFromFilename)) {
+			selectedByIndex = selected;
+		} else {
+			selectedByIndex = new int[originalVerts.Length];
+
+			System.IO.StreamReader loadAnnotationFile = new System.IO.StreamReader(Application.dataPath+@"/Models/Annotations/"+loadAnnotationFromFilename);
+			annotation = loadAnnotationFile.ReadLine();		// Rewrite the first argument as the first line in the Annotation file will have the tag
+			string[] indexesInAnnotation = loadAnnotationFile.ReadLine().Split(',');
+			loadAnnotationFile.Close();
+
+			foreach( string index in indexesInAnnotation ){
+				int num;
+				if (int.TryParse(index, out num))
+					selectedByIndex[num] = 1;
+			}
+		}
+
 		// add annotation to all points that are selected
 		for (int i = 0; i < vertexCount; ++i)
 		{
-			if(selected[i] == 1)
+			if(selectedByIndex[i] == 1)
 			{
 				cloudAnnotations[i].Add(annotation);
 				center = center + originalVerts[i];
 				selectedCount++;
 
 				// Adding the index of the vertex in the annotation to the dictionary
-				annotationsPerVertex[annotation].Add(i);
+				if (string.IsNullOrEmpty(loadAnnotationFromFilename))
+					annotationsPerVertex[annotation].Add(i);
 			}
 		}
 		// and to the list of annotations
@@ -930,11 +959,17 @@ public class PointCloud : MonoBehaviour {
 		o.cameraToUse = GameObject.Find("Camera").GetComponent<Camera>();
 		goAnnotations.Add(tmpGo);
 
-		// Store subset of PC to annotation file
-		string annotationFileName = Application.dataPath+@"/Models/Annotations/"+modelName+@"_"+Path.GetRandomFileName().Substring(0,4)+@"_"+annotation+@".annotation.csv";
-		System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
-		foreach (int index in annotationsPerVertex[annotation]) {
-			annotationFile.Write (index + ",");
+
+		// Only do this if the annotation is being loaded from a file, otherwise we will repeat the annotation into another radonmly generated filename.
+		if (string.IsNullOrEmpty(loadAnnotationFromFilename)){
+			// Store subset of PC to annotation file
+			string annotationFileName = Application.dataPath+@"/Models/Annotations/"+modelName+@"_"+Path.GetRandomFileName().Substring(0,4)+@"_"+annotation+@".annotation.csv";
+			System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
+			annotationFile.WriteLine(annotation);
+			foreach (int index in annotationsPerVertex[annotation]) {
+				annotationFile.Write (index + ",");
+			}
+			annotationFile.Close ();
 		}
 
 		if(resetAfterAnnotation)
