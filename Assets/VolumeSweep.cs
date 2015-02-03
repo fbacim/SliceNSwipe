@@ -30,9 +30,6 @@ public class VolumeSweep : MonoBehaviour {
 	List<Vector3> handPosition;
 	List<Vector3> fingerPosition;
 	List<float> fingerPositionTime;
-	float pinchVelocity = 0.0F;
-	float lastPinchVelocity = 0.0F;
-	float lastFingerDistance = 0.0F;
 	float lastScalarVelocity = 0.0F;
 	
 	GameObject selectionVolume;
@@ -83,8 +80,9 @@ public class VolumeSweep : MonoBehaviour {
 		
 		timeSinceLastStateChange += timeSinceLastUpdate;
 
-		//Debug.Log(currentState);
+		Debug.Log(currentState);
 
+		// if there are fingers in the current frame, add them to the local structures
 		if(frame.Fingers.Count > 0)
 		{
 			fingerPosition.Add(goFingerList[0].transform.position);
@@ -120,38 +118,39 @@ public class VolumeSweep : MonoBehaviour {
 			}
 		}
 		lastScalarVelocity = scalarVelocity;
-
-		// distance between fingers
-		if(fl.Count == 2)
-		{
-			float fingerDistance = fl[0].StabilizedTipPosition.DistanceTo(fl[1].StabilizedTipPosition);
-			pinchVelocity = ((fingerDistance-lastFingerDistance)/timeSinceLastUpdate);//0.6F*lastPinchVelocity + 0.4F*((fingerDistance-lastFingerDistance)/timeSinceLastUpdate);
-			lastPinchVelocity = pinchVelocity;
-			lastFingerDistance = fingerDistance;
-		}
 		
-		// reset state machine
-		/*if(hl.Count == 0 || (hl.Count >= 1 && fl.Count < 1)) 
-		{
-			pointCloud.TriggerSeparation(false);
-			currentState = state.NONE;
-			timeSinceLastStateChange = 0.0F;
-		}
 		// change state to moving finger (initial state) if there are two fingers 
-		else */if(currentState == state.NONE && hl.Count >= 1 && fl.Count >= 2) 
+		if(currentState == state.NONE && hl.Count >= 1 && fl.Count >= 2) 
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.MOVING_FINGER;
 			timeSinceLastStateChange = 0.0F;
 			updateCountSinceMovingSlashStarted = 0;
 		}
-		// if angle between two hand-finger vectors is smaller than angle trigger threshold, change to 
-		else if(currentState == state.SELECT_IN_OUT && hl.Count >= 1 && fl.Count >= 1) 
+		// if moving fingers, update volume object position and size
+		else if(currentState == state.MOVING_FINGER && hl.Count >= 1 && fl.Count >= 2) 
 		{
+			// update selection volume position
+			selectionVolume.transform.position = (goFingerList[0].transform.position+goFingerList[1].transform.position)/2.0F;
+			// radius of the bubble is determined by the distance between the two fingers
+			float distance = Vector3.Distance(goFingerList[0].transform.position,goFingerList[1].transform.position);
+			float selectionVolumeScale = distance;
+			selectionVolume.transform.localScale = new Vector3(selectionVolumeScale,selectionVolumeScale,selectionVolumeScale);
+
+			timeSinceLastStateChange = 0.0F;
+		}
+		// if angle between two hand-finger vectors is smaller than angle trigger threshold, change to 
+		else if(currentState == state.SELECT_IN_OUT) 
+		{
+			// can't change techniques in this state
+			locked = true;
+
+			// trigger separation of two volume parts
 			pointCloud.TriggerSeparation(true,0);
-			if(pointCloud.useSeparation)
+
+			if(hl.Count >= 1 && fl.Count >= 1)
 			{
-				//Debug.Log(filteredVelocity);
+				// check finger velocity against velocity threshold for selection of side in swipe phase
 				if(filteredVelocity > velocityThreshold)
 				{
 					updateCountSinceMovingSlashStarted++;
@@ -176,93 +175,17 @@ public class VolumeSweep : MonoBehaviour {
 					
 					pointCloud.SelectSphereTrail(volumeTrailSpheres,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
 					pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
-					
-					selectionVolume.SetActive(true);
+
 					currentState = state.SELECT_BUBBLE;
 					timeSinceLastStateChange = 0.0F;
 				}
 				else
 				{
 					updateCountSinceMovingSlashStarted = 0;
-					selectionVolume.SetActive(false);
-				}
-			}
-			else
-			{
-				if(pinchVelocity > velocityThreshold)
-				{
-					pointCloud.SelectSphereTrail(volumeTrailSpheres,true);
-					selectionVolume.SetActive(true);
-					currentState = state.SELECT_BUBBLE;
-				}
-				else if(pinchVelocity < -velocityThreshold)
-				{
-					pointCloud.SelectSphereTrail(volumeTrailSpheres,false);
-					selectionVolume.SetActive(true);
-					currentState = state.SELECT_BUBBLE;
-				}
-				else
-				{
-					selectionVolume.SetActive(false);
 				}
 			}
 		}
 
-		// if angle between two hand-finger vectors is smaller than angle trigger threshold, change to 
-		if(currentState == state.MOVING_FINGER && hl.Count >= 1 && fl.Count >= 2) 
-		{
-			// update selection volume position
-			selectionVolume.transform.position = (goFingerList[0].transform.position+goFingerList[1].transform.position)/2.0F;
-			// radius of the bubble is determined by the distance between the two fingers
-			float distance = Vector3.Distance(goFingerList[0].transform.position,goFingerList[1].transform.position);
-			float selectionVolumeScale = distance;
-			selectionVolume.transform.localScale = new Vector3(selectionVolumeScale,selectionVolumeScale,selectionVolumeScale);
-			
-			timeSinceLastStateChange = 0.0F;
-		}
-		
-		if(select) 
-		{
-			currentState = state.SELECT_IN_OUT;
-			selectionVolume.SetActive(false);
-			select = false;
-		}
-
-		if(currentState != state.NONE)
-		{
-			if(volumeTrailSpheres.Count == 0 || !canSelect)
-				canSelect = pointCloud.SetSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,true);
-			else if(currentState == state.MOVING_FINGER)
-				canSelect = pointCloud.SetSphere(volumeTrailSpheres[volumeTrailSpheres.Count-1].center,volumeTrailSpheres[volumeTrailSpheres.Count-1].radius,false);//pointCloud.SetSphereTrail(volumeTrailSpheres);
-		}
-
-		//hold key for bubble sweep
-		
-		// if two seconds have passed without a state change, reset state machine
-		if(Input.GetKeyDown(KeyCode.Escape))
-		{
-			resetTimer = currentTime;
-		}
-		else if(Input.GetKey(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer > 2.0f)
-		{
-			pointCloud.TriggerSeparation(false,0);
-			currentState = state.NONE;
-			timeSinceLastStateChange = 0.0F;
-			volumeTrailSpheres.Clear();
-			pointCloud.ResetAll();
-			resetTimer = 0;
-		}
-		else if(Input.GetKeyUp(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer < 2.0f)
-		{
-			pointCloud.TriggerSeparation(false,0);
-			if(currentState == state.NONE || currentState == state.MOVING_FINGER)//timeSinceLastStateChange > 4.0F)
-				pointCloud.Undo();
-			pointCloud.ResetSelected();
-			currentState = state.NONE;
-			timeSinceLastStateChange = 0.0F;
-			volumeTrailSpheres.Clear();
-		}
-		
 		// if things have been selected, reset state machine
 		if(currentState == state.SELECT_BUBBLE)
 		{
@@ -271,30 +194,24 @@ public class VolumeSweep : MonoBehaviour {
 			volumeTrailSpheres.Clear();
 		}
 
-
-		if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // reset
+		// if in any state other than NONE, need to update pointcloud state for rendering
+		if(currentState != state.NONE)
 		{
-			if(pointCloud.ValidateSets())
-				select = true;
-			else
-			{
-				pointCloud.TriggerSeparation(false,0);
-				pointCloud.ResetSelected();
-				currentState = state.NONE;
-				timeSinceLastStateChange = 0.0F;
-				volumeTrailSpheres.Clear();
-			}
-		}
-		else if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) // ready to select
-		{
-			//volumeTrail.Add(Instantiate(selectionVolume) as GameObject);
-			//volumeTrail[volumeTrail.Count-1].renderer.material.color = new Color(0.7F, 0.7F, 0.7F, 0.5F);
-			Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);
-			volumeTrailSpheres.Add(s);
+			if(volumeTrailSpheres.Count == 0 || !canSelect)
+				canSelect = pointCloud.SetSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,true);
+			else if(currentState == state.MOVING_FINGER)
+				canSelect = pointCloud.SetSphere(volumeTrailSpheres[volumeTrailSpheres.Count-1].center,volumeTrailSpheres[volumeTrailSpheres.Count-1].radius,false);//pointCloud.SetSphereTrail(volumeTrailSpheres);
 		}
 
-		if(currentState == state.SELECT_IN_OUT)
-			locked = true;
+		ProcessKeys();
+
+		// if select key has been pressed, transition to swipe phase
+		if(select) 
+		{
+			currentState = state.SELECT_IN_OUT;
+			selectionVolume.SetActive(false);
+			select = false;
+		}
 
 		return locked;
 	}
@@ -329,6 +246,57 @@ public class VolumeSweep : MonoBehaviour {
 			Graphics.DrawMeshNow(selectionVolume.GetComponent<MeshFilter>().mesh,selectionVolume.transform.localToWorldMatrix);
 		}
 
+	}
+
+	public void ProcessKeys()
+	{
+		float currentTime = Time.timeSinceLevelLoad;
+
+		// CHECK FOR CANCEL/RESET
+		// if two seconds have passed without a state change, reset state machine
+		if(Input.GetKeyDown(KeyCode.Escape))
+		{
+			resetTimer = currentTime;
+		}
+		else if(Input.GetKey(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer > 2.0f)
+		{
+			pointCloud.TriggerSeparation(false,0);
+			currentState = state.NONE;
+			timeSinceLastStateChange = 0.0F;
+			volumeTrailSpheres.Clear();
+			pointCloud.ResetAll();
+			resetTimer = 0;
+		}
+		else if(Input.GetKeyUp(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer < 2.0f)
+		{
+			pointCloud.TriggerSeparation(false,0);
+			if(currentState == state.NONE || currentState == state.MOVING_FINGER)//timeSinceLastStateChange > 4.0F)
+				pointCloud.Undo();
+			pointCloud.ResetSelected();
+			currentState = state.NONE;
+			timeSinceLastStateChange = 0.0F;
+			volumeTrailSpheres.Clear();
+		}
+
+		//hold SHIFT key for bubble sweep
+		if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // reset
+		{
+			if(pointCloud.ValidateSets())
+				select = true;
+			else
+			{
+				pointCloud.TriggerSeparation(false,0);
+				pointCloud.ResetSelected();
+				currentState = state.NONE;
+				timeSinceLastStateChange = 0.0F;
+				volumeTrailSpheres.Clear();
+			}
+		}
+		else if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) // ready to select
+		{
+			Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);
+			volumeTrailSpheres.Add(s);
+		}
 	}
 }
 

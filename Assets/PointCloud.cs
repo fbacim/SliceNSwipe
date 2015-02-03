@@ -38,7 +38,6 @@ public class PointCloud : MonoBehaviour {
 	private bool animating = false;  // is it currently animating?
 
 	private List<GUIText> goAnnotation;
-	private bool pointsUpdated = false;
 
 	private Vector3 min, max, size, oMin, oMax, oSize;
 	public float bsRadius; // bounding sphere radius, always with center on 0,0,0
@@ -48,8 +47,6 @@ public class PointCloud : MonoBehaviour {
 	private float animationStartTime;
 	private float separationDistance;
 	private int separationMode = 0;
-
-	private Vector3 lastSelectedCenter;
 	
 	private Vector3 originalCenter = new Vector3();
 	private Vector3 centerOffset = new Vector3();
@@ -59,8 +56,7 @@ public class PointCloud : MonoBehaviour {
 		int count = 0; 
 		using (StreamReader r = new StreamReader(f))
 		{
-			string line;
-			while ((line = r.ReadLine()) != null)
+			while (r.ReadLine() != null)
 			{
 				count++;
 			}
@@ -126,7 +122,6 @@ public class PointCloud : MonoBehaviour {
 		center = center / vertexCount;
 		originalCenter = center;
 		
-		lastSelectedCenter = center;
 		Debug.Log("center: "+center.x+","+center.y+","+center.z);
 
 		for (int i = 0; i < vertexCount ; i++) 
@@ -203,20 +198,13 @@ public class PointCloud : MonoBehaviour {
 		float currentTime = Time.timeSinceLevelLoad;
 		// animation
 		// cut event, for now using slash but should be something else
-		//if((Input.GetKeyDown(KeyCode.LeftAlt) || Input.GetKeyDown(KeyCode.RightAlt)))
-		if(!useSeparation && separate && !animating)
-		{
-			animating = true;
-			animationStartTime = Time.timeSinceLevelLoad;
-		}
-
 		if(!animating)
 		{
+			// use the bounding sphere radius as separation distance
 			separationDistance = bsRadius;
 			//separationDistance = Mathf.Max(new float[] {oSize.x, oSize.y, oSize.z})/3.0f;
 		}
-		
-		if(animating)
+		else
 		{
 			// get current step/time in the animation
 			float t = (currentTime-animationStartTime)/animationTotalTime; 
@@ -265,14 +253,12 @@ public class PointCloud : MonoBehaviour {
 
 		UpdateAnnotations();
 	}
-	
-	//void OnPostRender() 
+
 	void OnRenderObject() 
 	{
 		material.SetPass(0);
 		Graphics.DrawProcedural(MeshTopology.Points, vertexCount, instanceCount);
 		GameObject.Find("Leap").GetComponent<LeapController>().slicenSwipe.RenderTransparentObjects();
-		//GameObject.Find("Leap").GetComponent<LeapController>().bubbleZoom.RenderTransparentObjects();
 		GameObject.Find("Leap").GetComponent<LeapController>().volumeSweep.RenderTransparentObjects();
 	}
 
@@ -349,8 +335,6 @@ public class PointCloud : MonoBehaviour {
 		GameObject.Find("Camera").GetComponent<ViewPoint3DMouse>().CenterView(idealDistance,selectedCenter);//distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
 		GameObject.Find("Camera").GetComponent<Orbit>().CenterView(idealDistance);//distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
 
-		lastSelectedCenter = selectedCenter;
-		
 		bufferPoints.SetData (verts);
 		bufferColors.SetData (colors);
 		bufferSizes.SetData (sizes);

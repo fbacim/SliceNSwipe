@@ -25,13 +25,13 @@ public class Orbit : MonoBehaviour {
 		camera.transform.Translate(-transform.position);
 		
 		// set distance
-		Quaternion rotation = transform.rotation;
-		Vector3 position = rotation * (new Vector3(0.0F, 0.0F, -distance)) + target.position;
+		//Quaternion rotation = transform.rotation;
+		//Vector3 position = rotation * (new Vector3(0.0F, 0.0F, -distance)) + target.position;
 	}
 	
 	// Update is called once per frame
 	void Update () {
-		print("orbit");
+		//print("orbit");
 		if (target) {
 			x += Input.GetAxis("Mouse X") * xSpeed * 0.02F;
 			y -= Input.GetAxis("Mouse Y") * ySpeed * 0.02F; 

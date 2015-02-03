@@ -48,8 +48,7 @@ public class LeapController : MonoBehaviour {
 	}
 
 	bool UpdateAnnotation() {
-		foreach (char c in Input.inputString) 
-		{
+		foreach (char c in Input.inputString) {
 			//Debug.Log((int)c);
 			// if backspace, erase text character
 			if (c == "\b"[0])
@@ -81,8 +80,7 @@ public class LeapController : MonoBehaviour {
 		FingerList fl = frame.Fingers;
 		GestureList gl = frame.Gestures(controller.Frame(1));
 
-		for(int i = 0; i < gl.Count; i++)
-		{
+		for(int i = 0; i < gl.Count; i++) {
 			//Debug.Log("["+gl[i].DurationSeconds+"] "+gl[i].Type+" -> "+gl[i].State);
 		}
 
@@ -186,11 +184,11 @@ public class LeapController : MonoBehaviour {
 			//Debug.Log(currentTechnique);
 		}
 
-		bool[] techniqueLock = new bool[3];
+		bool[] techniqueLock = new bool[4];
 		techniqueLock[0] = slicenSwipe.ProcessFrame(frame, goHandList, goFingerList);
 		techniqueLock[1] = volumeSweep.ProcessFrame(frame, goHandList, goFingerList);
 		techniqueLock[2] = lasso.ProcessFrame(frame, goHandList, goFingerList);
-		//Debug.Log(techniqueLock[(int)currentTechnique]);
+		//Debug.Log("current technique: "+currentTechnique);
 		
 		if(!techniqueLock[(int)currentTechnique])
 		{
@@ -211,8 +209,10 @@ public class LeapController : MonoBehaviour {
 				name = "Slice\'n\'Swipe";
 			else if(currentTechnique == technique.VOLUMESWEEP)
 				name = "Bubble";
-			else 
+			else if(currentTechnique == technique.LASSO)
 				name = "Lasso";
+	        else
+		        name = "Free Mode";
 			GUIStyle style = new GUIStyle(GUI.skin.box);
 			style.fontSize = 20;
 			style.fontStyle = FontStyle.Bold;

@@ -14,7 +14,6 @@ public class SlicenSwipe {
 	float timeLastUpdate = 0.0F;
 	float resetTimer = 0.0F;
 	float lastScalarVelocity = 0.0F;
-	Vector lastTipPosition = new Vector();
 	float velocityThreshold = 500.0F;
 	float stateChangeTimeThreshold = 0.2F;
 	int updateCountSinceMovingSlashStarted = 0;
@@ -267,9 +266,6 @@ public class SlicenSwipe {
 		
 		float scalarVelocity;// = fl[0].TipVelocity.Magnitude; 
 		float filteredVelocity;
-		//float distance = fl[0].StabilizedTipPosition.DistanceTo(lastTipPosition);
-		//float velocity = distance/timeSinceLastUpdate;
-		//float scalarVelocity;
 		if(fl.Count > 0 && fl[0].TimeVisible > 0.2)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
 		{
 			scalarVelocity = fl[0].TipVelocity.Magnitude;
@@ -284,20 +280,12 @@ public class SlicenSwipe {
 				currentState = state.NONE;
 			}
 		}
-		//lastTipPosition = fl[0].StabilizedTipPosition;
 		lastScalarVelocity = scalarVelocity;
 
 		//Debug.Log("Velocity: "+scalarVelocity+"    filtered: "+filteredVelocity);
 		
 		// reset state machine
-		/*if((hl.Count == 0) || (hl.Count >= 1 && (fl.Count >= 3 || fl.Count < 1))) 
-		{
-			pointCloud.ResetSelected();
-			currentState = state.NONE;
-			timeSinceLastStateChange = 0.0F;
-		}
-		// change state to moving finger (initial state) 
-		else */if(currentState == state.NONE && hl.Count >= 1 && fl.Count >= 1) 
+		if(currentState == state.NONE && hl.Count >= 1 && fl.Count >= 1) 
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.MOVING_FINGER;
@@ -379,47 +367,20 @@ public class SlicenSwipe {
 			direction /= fingerPosition.Count-initialPosition;
 			//Debug.Log(direction.normalized);
 			//Debug.Log(Mathf.Abs(Vector3.Angle(slashPlane.normal,direction.normalized)));
-			if(pointCloud.useSeparation)
-			{
-				Plane tmp = new Plane();
-				tmp.Set3Points(GameObject.Find("Camera").transform.position+GameObject.Find("Camera").transform.forward,
-				               GameObject.Find("Camera").transform.position,
-				               GameObject.Find("Camera").transform.position+GameObject.Find("Camera").transform.up);
-				//Debug.Log(tmp.normal);
-				//Debug.Log(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
+			Plane tmp = new Plane();
+			tmp.Set3Points(GameObject.Find("Camera").transform.position+GameObject.Find("Camera").transform.forward,
+			               GameObject.Find("Camera").transform.position,
+			               GameObject.Find("Camera").transform.position+GameObject.Find("Camera").transform.up);
+			//Debug.Log(tmp.normal);
+			//Debug.Log(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
 
-				pointCloud.SelectSide(slashPlane,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
-				pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
-			}
-			else
-				pointCloud.SelectSide(slashPlane,(Mathf.Abs(Vector3.Angle(slashPlane.normal,direction.normalized)) < 90.0F));
+			pointCloud.SelectSide(slashPlane,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
+			pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
 			currentState = state.SELECT_SLASH;
 			timeSinceLastStateChange = 0.0F;
 		}
-		
-		// if two seconds have passed without a state change, reset state machine
-		if(Input.GetKeyDown(KeyCode.Escape))
-		{
-			resetTimer = currentTime;
-		}
-		else if(Input.GetKey(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer > 2.0f)
-		{
-			pointCloud.TriggerSeparation(false,0);
-			currentState = state.NONE;
-			timeSinceLastStateChange = 0.0F;
-			Clear();
-			pointCloud.ResetAll();
-			resetTimer = 0;
-		}
-		else if(Input.GetKeyUp(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer < 2.0f)
-		{
-			pointCloud.TriggerSeparation(false,0);
-			if((currentState == state.NONE || currentState == state.MOVING_FINGER) && !rubberBandActive)//timeSinceLastStateChange > 4.0F)
-				pointCloud.Undo();
-			currentState = state.NONE;
-			timeSinceLastStateChange = 0.0F;
-			pointCloud.ResetSelected();
-		}
+
+		ProcessKeys ();
 
 		// if the user wants to try rubber band again
 		if(currentState != state.MOVING_FINGER && currentState != state.MOVING_CUT && useRubberBand)
@@ -429,6 +390,7 @@ public class SlicenSwipe {
 			timeSinceLastStateChange = 0.0F;
 		}
 
+		// updates rubber band rendering, if active
 		if(rubberBandActive && fingerPosition.Count > 1)
 		{
 			slashPlane.Set3Points(fingerPosition[0], 
@@ -472,6 +434,36 @@ public class SlicenSwipe {
 		{
 			fingerHandTrail.renderer.material.SetPass(0);
 			Graphics.DrawMeshNow(fingerHandTrailMesh,Matrix4x4.identity);
+		}
+	}
+
+	public void ProcessKeys()
+	{
+		float currentTime = Time.timeSinceLevelLoad;
+		
+		// CHECK FOR CANCEL/RESET
+		// if two seconds have passed without a state change, reset state machine
+		if(Input.GetKeyDown(KeyCode.Escape))
+		{
+			resetTimer = currentTime;
+		}
+		else if(Input.GetKey(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer > 2.0f)
+		{
+			pointCloud.TriggerSeparation(false,0);
+			currentState = state.NONE;
+			timeSinceLastStateChange = 0.0F;
+			Clear();
+			pointCloud.ResetAll();
+			resetTimer = 0;
+		}
+		else if(Input.GetKeyUp(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer < 2.0f)
+		{
+			pointCloud.TriggerSeparation(false,0);
+			if((currentState == state.NONE || currentState == state.MOVING_FINGER) && !rubberBandActive)//timeSinceLastStateChange > 4.0F)
+				pointCloud.Undo();
+			currentState = state.NONE;
+			timeSinceLastStateChange = 0.0F;
+			pointCloud.ResetSelected();
 		}
 	}
 }
