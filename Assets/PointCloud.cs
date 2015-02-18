@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 
 public class PointCloud : MonoBehaviour {
+	bool initialized = false;
+
 	public Material material;
 	public int vertexCount; // this should match the amount of points from file
 	private int instanceCount = 2; // no need to adjust (otherwise you have instanceCount * vertexCount amount of objects..
@@ -51,8 +53,7 @@ public class PointCloud : MonoBehaviour {
 	private Vector3 originalCenter = new Vector3();
 	private Vector3 centerOffset = new Vector3();
 
-	static int CountLinesInFile(string f)
-	{
+	static int CountLinesInFile(string f) {
 		int count = 0; 
 		using (StreamReader r = new StreamReader(f))
 		{
@@ -64,16 +65,19 @@ public class PointCloud : MonoBehaviour {
 		return count;
 	}
 
+	void Start () {
+
+	}
+
 	// Use this for initialization
-	void Start () 
-	{
+	public void init (string fileName) {
 		goAnnotation = new List<GUIText>();
 
 		// file options:
 		//   logo
 		//   LongHornBeetle_PointCloud
 		//   QCAT_N3_Zebedee_color
-		string fileName = Application.dataPath+@"/LongHornBeetle_PointCloud.pointcloud.csv";
+		//string fileName = Application.dataPath+@"/LongHornBeetle_PointCloud.pointcloud.csv";
 		vertexCount = CountLinesInFile(fileName)-1;// remove header
 		Debug.Log("Points: "+vertexCount);
 		
@@ -95,7 +99,11 @@ public class PointCloud : MonoBehaviour {
 		pos[0] = new Vector4(0.0f,0,0,0);
 		pos[1] = new Vector4(0.0f,0,0,0);
 
-		StreamReader reader = new StreamReader(File.OpenRead(fileName));
+		FileStream fileStream = File.OpenRead(fileName);
+		if (fileStream == null)
+			return;
+
+		StreamReader reader = new StreamReader(fileStream);
 
         reader.ReadLine(); // ignore first line
         Vector3 center = new Vector3(0,0,0); // calculate center of the object
@@ -159,6 +167,8 @@ public class PointCloud : MonoBehaviour {
 		
 		CenterPointCloud(center);
 		centerOffset = new Vector3();
+
+		initialized = true;
 	}
 	
 	private void ReleaseBuffers() {
@@ -195,6 +205,9 @@ public class PointCloud : MonoBehaviour {
 	// Update is called once per frame
 	void Update () 
 	{
+		if (!initialized)
+			return;
+
 		float currentTime = Time.timeSinceLevelLoad;
 		// animation
 		// cut event, for now using slash but should be something else
@@ -256,10 +269,14 @@ public class PointCloud : MonoBehaviour {
 
 	void OnRenderObject() 
 	{
+		if (!initialized)
+			return;
+
 		material.SetPass(0);
 		Graphics.DrawProcedural(MeshTopology.Points, vertexCount, instanceCount);
-		GameObject.Find("Leap").GetComponent<LeapController>().slicenSwipe.RenderTransparentObjects();
-		GameObject.Find("Leap").GetComponent<LeapController>().volumeSweep.RenderTransparentObjects();
+		GameObject.Find("Leap").GetComponent<LeapController>().RenderTransparentObjects();
+		//GameObject.Find("Leap").GetComponent<LeapController>().slicenSwipe.RenderTransparentObjects();
+		//GameObject.Find("Leap").GetComponent<LeapController>().volumeSweep.RenderTransparentObjects();
 	}
 
 	void UpdateAnnotations()

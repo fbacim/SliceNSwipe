@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using Leap;
 
 public class LeapController : MonoBehaviour {
+	bool initialized = false;
 
-	public SlicenSwipe slicenSwipe;
-	public VolumeSweep volumeSweep;
-	public Lasso lasso;
+	SlicenSwipe slicenSwipe;
+	VolumeSweep volumeSweep;
+	Lasso lasso;
 	
 	enum technique { SLICENSWIPE=0, VOLUMESWEEP=1, LASSO=2, NONE=3, SIZE=4 };
 	technique currentTechnique = technique.VOLUMESWEEP;  
@@ -34,10 +35,6 @@ public class LeapController : MonoBehaviour {
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 
-		slicenSwipe = new SlicenSwipe();
-		volumeSweep = new VolumeSweep();
-		lasso = new Lasso();
-
 		goFingerList = new List<GameObject>();
 		for(int i = 0; i < 10; i++)
 			goFingerList.Add(GameObject.CreatePrimitive(PrimitiveType.Sphere));
@@ -45,6 +42,29 @@ public class LeapController : MonoBehaviour {
 		goHandList = new List<GameObject>();
 		for(int i = 0; i < 2; i++)
 			goHandList.Add(GameObject.CreatePrimitive(PrimitiveType.Cube));
+	}
+
+	public void init(int selectedTechnique, int selectedStrategy) {
+		if (selectedTechnique == (int)technique.SLICENSWIPE) {
+			slicenSwipe = new SlicenSwipe (selectedStrategy);
+			currentTechnique = technique.SLICENSWIPE;
+			techniqueQuadrant = technique.SLICENSWIPE;
+		}
+		else if (selectedTechnique == (int)technique.VOLUMESWEEP) {
+			volumeSweep = new VolumeSweep(selectedStrategy);
+			currentTechnique = technique.VOLUMESWEEP;
+			techniqueQuadrant = technique.VOLUMESWEEP;
+		}
+		else if (selectedTechnique == (int)technique.LASSO) {
+			lasso = new Lasso(selectedStrategy);
+			currentTechnique = technique.LASSO;
+			techniqueQuadrant = technique.LASSO;
+		}
+		else {
+			return;
+		}
+
+		initialized = true;
 	}
 
 	bool UpdateAnnotation() {
@@ -75,6 +95,9 @@ public class LeapController : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		if(!initialized)
+			return;
+
 		Frame frame = controller.Frame();
 		HandList hl = frame.Hands;
 		FingerList fl = frame.Fingers;
@@ -100,7 +123,8 @@ public class LeapController : MonoBehaviour {
 			position.y =   ((hl[0].PalmPosition.y - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
 			position.z = -(((hl[0].PalmPosition.z - frame.InteractionBox.Center.z) / frame.InteractionBox.Depth ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Depth/maxd)));
 			// rotate position to match camera
-			position = cameraTransform.rotation * position;
+			Quaternion cameraRotation = cameraTransform.rotation;
+			position = cameraRotation * position;
 			//Debug.Log("["+Time.time+"] hand["+i+"]: "+position);
 			goHandList[i].SetActive(true);
 			goHandList[i].transform.position = position;
@@ -120,7 +144,8 @@ public class LeapController : MonoBehaviour {
 			position.y =   ((fl[i].TipPosition.y - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
 			position.z = -(((fl[i].TipPosition.z - frame.InteractionBox.Center.z) / frame.InteractionBox.Depth ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Depth/maxd)));
 			// rotate position to match camera
-			position = cameraTransform.rotation * position;
+			Quaternion cameraRotation = cameraTransform.rotation;
+			position = cameraRotation * position;
 			//Debug.Log("["+Time.time+"] finger["+i+"]: "+position);
 			goFingerList[i].SetActive(true);
 			goFingerList[i].transform.position = position;
@@ -129,65 +154,22 @@ public class LeapController : MonoBehaviour {
 
 		fingerAvg = fingerAvg * 0.9F + fl.Count * 0.1F;
 		//Debug.Log(fingerAvg);
-
-		slicenSwipe.SetEnabled(false);
-		volumeSweep.SetEnabled(false);
-		lasso.SetEnabled(false);
 		
-		if(Input.GetKeyDown(KeyCode.PageUp))
-		{
-			currentTechnique++;
-			if(currentTechnique == technique.SIZE)
-				currentTechnique = 0;
-		}
-		else if(Input.GetKeyDown(KeyCode.PageDown))
-		{
-			currentTechnique--;
-			if(currentTechnique < 0)
-				currentTechnique = technique.SIZE-1;
-		}
-
 		// TRANSFORMING HAND POSITION TO MATCH POINT CLOUD SIZE
 		Vector3 p = new Vector3();
 		p.x =   ((hl[0].PalmPosition.x - frame.InteractionBox.Center.x) / frame.InteractionBox.Width ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Width/maxd));
 		p.y =   ((hl[0].PalmPosition.y - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
-
-		if(fingerAvg > 4 || techniqueMenuActive)
-		{
-			techniqueMenuActive = true;
-
-			if(p.x < 0 && p.y > 0)
-				techniqueQuadrant = technique.SLICENSWIPE;
-			else if(p.x > 0 && p.y > 0)
-				techniqueQuadrant = technique.VOLUMESWEEP;
-			else if(p.x < 0 && p.y < 0)
-				techniqueQuadrant = technique.LASSO;
-			else if(p.x > 0 && p.y < 0)
-				techniqueQuadrant = technique.NONE;
-
-			if(Input.GetKeyUp(KeyCode.Escape) || fingerAvg == 0)
-				techniqueMenuActive = false;
-			if(fingerAvg < 3)
-			{
-				currentTechnique = techniqueQuadrant;
-				techniqueMenuActive = false;
-			}
+		
+		bool[] techniqueLock = new bool[4]; // 3 techniques + none
+		if(slicenSwipe != null) {
+			techniqueLock[0] = slicenSwipe.ProcessFrame(frame, goHandList, goFingerList);
 		}
-		else if(!annotationMenu.menuOn)
-		{
-			if(currentTechnique == technique.SLICENSWIPE)
-				slicenSwipe.SetEnabled(true);
-			else if(currentTechnique == technique.VOLUMESWEEP)
-				volumeSweep.SetEnabled(true);
-			else if(currentTechnique == technique.LASSO)
-				lasso.SetEnabled(true);
-			//Debug.Log(currentTechnique);
+		else if(volumeSweep != null) {
+			techniqueLock[1] = volumeSweep.ProcessFrame(frame, goHandList, goFingerList);
 		}
-
-		bool[] techniqueLock = new bool[4];
-		techniqueLock[0] = slicenSwipe.ProcessFrame(frame, goHandList, goFingerList);
-		techniqueLock[1] = volumeSweep.ProcessFrame(frame, goHandList, goFingerList);
-		techniqueLock[2] = lasso.ProcessFrame(frame, goHandList, goFingerList);
+		else if(lasso != null) {
+			techniqueLock[2] = lasso.ProcessFrame(frame, goHandList, goFingerList);
+		}
 		//Debug.Log("current technique: "+currentTechnique);
 		
 		if(!techniqueLock[(int)currentTechnique])
@@ -247,5 +229,14 @@ public class LeapController : MonoBehaviour {
 			GUI.Label (new Rect (UnityEngine.Screen.width/2, UnityEngine.Screen.height/2, UnityEngine.Screen.width/2, UnityEngine.Screen.height/2), "Free Mode", techniqueQuadrant == technique.NONE ? selectedStyle : style);
 			//GUI.backgroundColor = c;
 		}
+	}
+
+	public void RenderTransparentObjects() {
+		if(currentTechnique == technique.SLICENSWIPE && slicenSwipe != null)
+			slicenSwipe.RenderTransparentObjects();
+		//else if(currentTechnique == technique.VOLUMESWEEP && volumeSweep != null)
+		//	volumeSweep.RenderTransparentObjects();
+		//else if(currentTechnique == technique.LASSO && lasso != null)
+		//	lasso.RenderTransparentObjects();
 	}
 }

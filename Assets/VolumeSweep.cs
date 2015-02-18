@@ -14,7 +14,7 @@ public struct Sphere {
 	}
 }
 
-public class VolumeSweep : MonoBehaviour {
+public class VolumeSweep {//}: MonoBehaviour {
 	Transform cameraTransform;
 	PointCloud pointCloud;
 	
@@ -42,7 +42,12 @@ public class VolumeSweep : MonoBehaviour {
 	bool needsClear = true;
 	bool canSelect = false;
 	
-	public VolumeSweep() {
+	enum Strategy { FAST, PRECISE, BOTH };
+	Strategy strategy = Strategy.BOTH;
+	
+	public VolumeSweep(int selectedStrategy) {
+		strategy = (Strategy)selectedStrategy;
+
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();
 		
@@ -79,8 +84,6 @@ public class VolumeSweep : MonoBehaviour {
 		if(timeSinceLastClickCompleted < 0.5F) return false; // avoid detecting two clicks in one
 		
 		timeSinceLastStateChange += timeSinceLastUpdate;
-
-		Debug.Log(currentState);
 
 		// if there are fingers in the current frame, add them to the local structures
 		if(frame.Fingers.Count > 0)
@@ -162,7 +165,6 @@ public class VolumeSweep : MonoBehaviour {
 					for(int i = initialPosition; i < fingerPosition.Count; i++)
 					{
 						direction += fingerPosition[i];
-						print(direction);
 					}
 					direction /= fingerPosition.Count-initialPosition;
 					
@@ -245,7 +247,6 @@ public class VolumeSweep : MonoBehaviour {
 			selectionVolume.renderer.material.SetPass(0);
 			Graphics.DrawMeshNow(selectionVolume.GetComponent<MeshFilter>().mesh,selectionVolume.transform.localToWorldMatrix);
 		}
-
 	}
 
 	public void ProcessKeys()
@@ -279,23 +280,48 @@ public class VolumeSweep : MonoBehaviour {
 		}
 
 		//hold SHIFT key for bubble sweep
-		if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // reset
+		if(strategy == Strategy.BOTH || strategy == Strategy.PRECISE) // how to force precise ?
 		{
-			if(pointCloud.ValidateSets())
-				select = true;
-			else
+			if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // reset
 			{
-				pointCloud.TriggerSeparation(false,0);
-				pointCloud.ResetSelected();
-				currentState = state.NONE;
-				timeSinceLastStateChange = 0.0F;
-				volumeTrailSpheres.Clear();
+				if(pointCloud.ValidateSets())
+				{
+					select = true;
+				}
+				else
+				{
+					pointCloud.TriggerSeparation(false,0);
+					pointCloud.ResetSelected();
+					currentState = state.NONE;
+					timeSinceLastStateChange = 0.0F;
+					volumeTrailSpheres.Clear();
+				}
+			}
+			else if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) // ready to select
+			{
+				Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);
+				volumeTrailSpheres.Add(s);
 			}
 		}
-		else if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) // ready to select
+		else if(strategy == Strategy.FAST) 
 		{
-			Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);
-			volumeTrailSpheres.Add(s);
+			if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) // reset
+			{
+				Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);
+				volumeTrailSpheres.Add(s);
+				if(pointCloud.ValidateSets())
+				{
+					select = true;
+				}
+				else
+				{
+					pointCloud.TriggerSeparation(false,0);
+					pointCloud.ResetSelected();
+					currentState = state.NONE;
+					timeSinceLastStateChange = 0.0F;
+					volumeTrailSpheres.Clear();
+				}
+			}
 		}
 	}
 }

@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Leap;
 
-public class Lasso : MonoBehaviour {
+public class Lasso {//}: MonoBehaviour {
 	Transform cameraTransform;
 	PointCloud pointCloud;
 	
@@ -25,10 +25,14 @@ public class Lasso : MonoBehaviour {
 	
 	bool isEnabled = true;
 	bool needsClear = true;
-
 	bool canSelect = false;
 
-	public Lasso() {
+	enum Strategy { FAST, PRECISE, BOTH };
+	Strategy strategy = Strategy.BOTH;
+
+	public Lasso(int selectedStrategy) {
+		strategy = (Strategy)selectedStrategy;
+
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();
 		
@@ -153,7 +157,6 @@ public class Lasso : MonoBehaviour {
 				for(int i = initialPosition; i < fingerPosition.Count; i++)
 				{
 					direction += fingerPosition[i];
-					print(direction);
 				}
 				direction /= fingerPosition.Count-initialPosition;
 				
