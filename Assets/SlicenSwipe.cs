@@ -68,6 +68,7 @@ public class SlicenSwipe {
 		fingerHandTrail = new GameObject("Finger-Hand Trail"); //create a new gameobject. This gameobject will hold the mesh we’re creating.
 		fingerHandTrail.AddComponent<MeshFilter>(); //this is what makes the mesh available to the other mesh components
 		fingerHandTrail.AddComponent<MeshRenderer>(); //this is what makes the mesh visible
+		fingerHandTrail.SetActive(false);
 	}
 
 	public void SetEnabled(bool enable)
@@ -437,8 +438,10 @@ public class SlicenSwipe {
 	{
 		if(fingerHandTrailMesh != null && isEnabled && fingerHandTrail.activeSelf)
 		{
+			fingerHandTrail.SetActive(true);
 			fingerHandTrail.renderer.material.SetPass(0);
 			Graphics.DrawMeshNow(fingerHandTrailMesh,Matrix4x4.identity);
+			fingerHandTrail.SetActive(false);
 		}
 	}
 

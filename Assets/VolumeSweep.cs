@@ -19,7 +19,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 	PointCloud pointCloud;
 	
 	enum state { MOVING_FINGER, SELECT_IN_OUT, SELECT_BUBBLE, NONE };
-	state currentState = state.NONE;
+	state currentState = state.MOVING_FINGER;
 	float timeSinceLastStateChange = 0.0F;
 	float timeSinceLastClickCompleted = 0.0F;
 	float timeLastUpdate = 0.0F;
@@ -59,6 +59,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 		selectionVolume.name = "Bubble";
 		selectionVolume.renderer.material = Resources.Load("DiffuseZ", typeof(Material)) as Material;
 		selectionVolume.renderer.material.color = new Color(0.3F, 0.3F, 0.3F, 0.5F);
+		selectionVolume.SetActive(false);
 
 		volumeTrailSpheres = new List<Sphere>();
 	}
@@ -200,9 +201,13 @@ public class VolumeSweep {//}: MonoBehaviour {
 		if(currentState != state.NONE)
 		{
 			if(volumeTrailSpheres.Count == 0 || !canSelect)
+			{
 				canSelect = pointCloud.SetSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,true);
+			}
 			else if(currentState == state.MOVING_FINGER)
+			{
 				canSelect = pointCloud.SetSphere(volumeTrailSpheres[volumeTrailSpheres.Count-1].center,volumeTrailSpheres[volumeTrailSpheres.Count-1].radius,false);//pointCloud.SetSphereTrail(volumeTrailSpheres);
+			}
 		}
 
 		ProcessKeys();
@@ -211,7 +216,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 		if(select) 
 		{
 			currentState = state.SELECT_IN_OUT;
-			selectionVolume.SetActive(false);
+			//selectionVolume.SetActive(false);
 			select = false;
 		}
 
@@ -221,7 +226,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 	public void SetEnabled(bool enable)
 	{
 		isEnabled = enable;
-		selectionVolume.SetActive(false);
+		//selectionVolume.SetActive(false);
 	}
 
 	public void Clear()
@@ -244,8 +249,10 @@ public class VolumeSweep {//}: MonoBehaviour {
 	{
 		if(selectionVolume != null && isEnabled)
 		{
+			selectionVolume.SetActive(true);
 			selectionVolume.renderer.material.SetPass(0);
 			Graphics.DrawMeshNow(selectionVolume.GetComponent<MeshFilter>().mesh,selectionVolume.transform.localToWorldMatrix);
+			selectionVolume.SetActive(false);
 		}
 	}
 

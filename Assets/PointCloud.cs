@@ -116,10 +116,10 @@ public class PointCloud : MonoBehaviour {
 			// populate arrays
 			verts[lineCount] = new Vector3(float.Parse(values[0]),float.Parse(values[1]),float.Parse(values[2]));
 			colors[lineCount] = new Vector4(float.Parse(values[3]),float.Parse(values[4]),float.Parse(values[5]),selectedAlpha);
+			colorsOffset[lineCount] = new Vector3(0.0F,0.0F,0.0F);
 			originalColors[lineCount] = new Vector4(float.Parse(values[3]),float.Parse(values[4]),float.Parse(values[5]),selectedAlpha);
 			sizes[lineCount] = selectedSize;
 			selected[lineCount] = 1;
-			colorsOffset[lineCount] = new Vector3(0.0F,0.0F,0.0F);
 			cloudAnnotations.Add(new List<string>());
 
 			// accumulate center
@@ -149,6 +149,10 @@ public class PointCloud : MonoBehaviour {
 		bufferColors.SetData (colors);
 		material.SetBuffer ("buf_Colors", bufferColors);
 		
+		bufferColorOffset = new ComputeBuffer (vertexCount, 12);
+		bufferColorOffset.SetData (colorsOffset);
+		material.SetBuffer ("buf_ColorsOffset", bufferColorOffset);
+		
 		bufferPos = new ComputeBuffer (instanceCount, 16);
 		bufferPos.SetData (pos);
 		material.SetBuffer ("buf_Positions", bufferPos);
@@ -156,10 +160,6 @@ public class PointCloud : MonoBehaviour {
 		bufferSizes = new ComputeBuffer (vertexCount, 4);
 		bufferSizes.SetData (sizes);
 		material.SetBuffer ("buf_Sizes", bufferSizes);
-		
-		bufferColorOffset = new ComputeBuffer (vertexCount, 12);
-		bufferColorOffset.SetData (colorsOffset);
-		material.SetBuffer ("buf_ColorsOffset", bufferColorOffset);
 		
 		bufferSelected = new ComputeBuffer (vertexCount, 4);
 		bufferSelected.SetData (selected);
@@ -203,8 +203,7 @@ public class PointCloud : MonoBehaviour {
 	}
 
 	// Update is called once per frame
-	void Update () 
-	{
+	void Update () {
 		if (!initialized)
 			return;
 

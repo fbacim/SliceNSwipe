@@ -129,6 +129,7 @@ public class LeapController : MonoBehaviour {
 			goHandList[i].SetActive(true);
 			goHandList[i].transform.position = position;
 			goHandList[i].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
+			//goHandList[i].renderer.enabled = false;
 		}
 
 		// update finger renderer
@@ -150,6 +151,7 @@ public class LeapController : MonoBehaviour {
 			goFingerList[i].SetActive(true);
 			goFingerList[i].transform.position = position;
 			goFingerList[i].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
+			//goFingerList[i].renderer.enabled = false;
 		}
 
 		fingerAvg = fingerAvg * 0.9F + fl.Count * 0.1F;
@@ -161,13 +163,16 @@ public class LeapController : MonoBehaviour {
 		p.y =   ((hl[0].PalmPosition.y - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
 		
 		bool[] techniqueLock = new bool[4]; // 3 techniques + none
-		if(slicenSwipe != null) {
+		if(slicenSwipe != null) 
+		{
 			techniqueLock[0] = slicenSwipe.ProcessFrame(frame, goHandList, goFingerList);
 		}
-		else if(volumeSweep != null) {
+		else if(volumeSweep != null) 
+		{
 			techniqueLock[1] = volumeSweep.ProcessFrame(frame, goHandList, goFingerList);
 		}
-		else if(lasso != null) {
+		else if(lasso != null) 
+		{
 			techniqueLock[2] = lasso.ProcessFrame(frame, goHandList, goFingerList);
 		}
 		//Debug.Log("current technique: "+currentTechnique);
@@ -234,8 +239,8 @@ public class LeapController : MonoBehaviour {
 	public void RenderTransparentObjects() {
 		if(currentTechnique == technique.SLICENSWIPE && slicenSwipe != null)
 			slicenSwipe.RenderTransparentObjects();
-		//else if(currentTechnique == technique.VOLUMESWEEP && volumeSweep != null)
-		//	volumeSweep.RenderTransparentObjects();
+		else if(currentTechnique == technique.VOLUMESWEEP && volumeSweep != null)
+			volumeSweep.RenderTransparentObjects();
 		//else if(currentTechnique == technique.LASSO && lasso != null)
 		//	lasso.RenderTransparentObjects();
 	}
