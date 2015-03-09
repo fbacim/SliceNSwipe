@@ -99,6 +99,10 @@ public class PointCloud : MonoBehaviour {
 		pos[0] = new Vector4(0.0f,0,0,0);
 		pos[1] = new Vector4(0.0f,0,0,0);
 
+		// initialize min/max
+		min = new Vector3(float.MaxValue,float.MaxValue,float.MaxValue);
+		max = new Vector3(float.MinValue,float.MinValue,float.MinValue);
+
 		FileStream fileStream = File.OpenRead(fileName);
 		if (fileStream == null)
 			return;
@@ -122,15 +126,32 @@ public class PointCloud : MonoBehaviour {
 			selected[lineCount] = 1;
 			cloudAnnotations.Add(new List<string>());
 
-			// accumulate center
-			center = center + new Vector3(float.Parse(values[0]),float.Parse(values[1]),float.Parse(values[2]));
+			// calculate min/max of all vertices
+			if(verts[lineCount].x < min.x)
+				min.x = verts[lineCount].x;
+			if(verts[lineCount].y < min.y)
+				min.y = verts[lineCount].y;
+			if(verts[lineCount].z < min.z)
+				min.z = verts[lineCount].z;
+			
+			if(verts[lineCount].x > max.x)
+				max.x = verts[lineCount].x;
+			if(verts[lineCount].y > max.y)
+				max.y = verts[lineCount].y;
+			if(verts[lineCount].z > max.z)
+				max.z = verts[lineCount].z;
 
 			lineCount++;
         }
-		center = center / vertexCount;
+		center = min+(max-min)/2.0F;
 		originalCenter = center;
 		
-		Debug.Log("center: "+center.x+","+center.y+","+center.z);
+		size = new Vector3(max.x-min.x,max.y-min.y,max.z-min.z);
+		
+		Debug.Log("center: "+center);
+		Debug.Log("old min: "+min);
+		Debug.Log("old max: "+max);
+		Debug.Log("old size: "+size);
 
 		for (int i = 0; i < vertexCount ; i++) 
 			originalVerts[i] = new Vector3(verts[i].x,verts[i].y,verts[i].z);
@@ -166,6 +187,9 @@ public class PointCloud : MonoBehaviour {
 		material.SetBuffer ("buf_Selected", bufferSelected);
 		
 		CenterPointCloud(center);
+		Debug.Log("new min: "+min);
+		Debug.Log("new max: "+max);
+		Debug.Log("new size: "+size);
 		centerOffset = new Vector3();
 
 		initialized = true;
