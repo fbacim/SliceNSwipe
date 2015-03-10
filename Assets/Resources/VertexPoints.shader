@@ -44,7 +44,6 @@ Shader "DX11/VertexColorPoints"
 				float4 vertex : POSITION;
                 float3 normal : NORMAL;
                 float3 tangent : TANGENT;
-                float3 viewDir : NORMAL;
 				uint id   : SV_VertexID;
 				uint inst : SV_InstanceID;
 			};
@@ -92,7 +91,7 @@ Shader "DX11/VertexColorPoints"
 			{
 			    // Ambient material is 0.2/0/0
 			    // Ambient light is 0.2/0.2/0.2
-			    return float3( 0.75f, 0.75f, 0.75f );
+			    return float3( 0.5f, 0.5f, 0.5f );
 			}
  
 			float3 GetDiffuseColor(float3 vVertexNormal, float3 vLightPosition)
@@ -175,9 +174,13 @@ Shader "DX11/VertexColorPoints"
 				// if normals are available, use phong shading
 				if(length(buf_Normals[input.id]) > 0.0)
 				{
+					float3 viewDir = mul(UNITY_MATRIX_T_MV,float4(0,0,-1,1));
+					float angle = acos(clamp(dot(normalize(buf_Normals[input.id]), normalize(viewDir)),-1.0f,1.0f));
+					float3 twoSidedNormal = abs(angle) > 1.57f ? buf_Normals[input.id] : -buf_Normals[input.id];
+				
 					float3 ambientColor = (buf_Colors[input.id]+colorOffset) * GetAmbientColor();
-					float3 diffuseColor = (buf_Colors[input.id]+colorOffset) * GetDiffuseColor(buf_Normals[input.id],_WorldSpaceCameraPos);
-					float3 specularColor = GetSpecularColor(buf_Normals[input.id], buf_Points[input.id],_WorldSpaceCameraPos);
+					float3 diffuseColor = (buf_Colors[input.id]+colorOffset) * GetDiffuseColor(twoSidedNormal,_WorldSpaceCameraPos);
+					float3 specularColor = GetSpecularColor(twoSidedNormal, buf_Points[input.id],_WorldSpaceCameraPos);
 
 					// Compute the color per vertex				
 					output.color = float4(ambientColor + diffuseColor + specularColor, alpha);
