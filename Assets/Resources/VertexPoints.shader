@@ -63,7 +63,7 @@ Shader "DX11/VertexColorPoints"
 			};
 			
 
-			float3 GetSpecularColor(float3 vVertexNormal, float3 vVertexPosition)
+			float3 GetSpecularColor(float3 vVertexNormal, float3 vVertexPosition, float3 vLightPosition)
 			{
 			    // Transform the Vertex and corresponding Normal into Model space
 			    float3 vTransformedNormal = mul(_Object2World, float4( vVertexNormal, 1 ));
@@ -71,7 +71,7 @@ Shader "DX11/VertexColorPoints"
 			 
 			    // Get the directional vector to the light and to the camera
 			    // originating from the vertex position
-			    float3 vLightDirection = normalize( _WorldSpaceCameraPos - vTransformedVertex );
+			    float3 vLightDirection = normalize( vLightPosition - vTransformedVertex );
 			    float3 vCameraDirection = normalize( _WorldSpaceCameraPos - vTransformedVertex );
 			 
 			    // Calculate the reflection vector between the incoming light and the
@@ -95,14 +95,14 @@ Shader "DX11/VertexColorPoints"
 			    return float3( 0.75f, 0.75f, 0.75f );
 			}
  
-			float3 GetDiffuseColor(float3 vVertexNormal)
+			float3 GetDiffuseColor(float3 vVertexNormal, float3 vLightPosition)
 			{
 			    // Transform the normal from Object to Model space
 			    // we also normalize the vector just to be sure ...
 			    float3 vTransformedNormal = normalize( mul( _Object2World, float4( vVertexNormal, 1 )));
 			 
 			    // Get direction of light in Model space
-			    float3 vLightDirection = normalize( _WorldSpaceCameraPos - vTransformedNormal );
+			    float3 vLightDirection = normalize( vLightPosition - vTransformedNormal );
 			 
 			    // Calculate Diffuse intensity
 			    float fDiffuseIntensity = max( 0.0, dot( vTransformedNormal, vLightDirection ));
@@ -172,12 +172,20 @@ Shader "DX11/VertexColorPoints"
 					}
 				}
 				
-				float3 ambientColor = (buf_Colors[input.id]+colorOffset) * GetAmbientColor();
-				float3 diffuseColor = (buf_Colors[input.id]+colorOffset) * GetDiffuseColor(buf_Normals[input.id]);
-				float3 specularColor = GetSpecularColor(buf_Normals[input.id], buf_Points[input.id]);
+				// if normals are available, use phong shading
+				if(length(buf_Normals[input.id]) > 0.0)
+				{
+					float3 ambientColor = (buf_Colors[input.id]+colorOffset) * GetAmbientColor();
+					float3 diffuseColor = (buf_Colors[input.id]+colorOffset) * GetDiffuseColor(buf_Normals[input.id],_WorldSpaceCameraPos);
+					float3 specularColor = GetSpecularColor(buf_Normals[input.id], buf_Points[input.id],_WorldSpaceCameraPos);
 
-				// Compute the color per vertex				
-				output.color = float4(ambientColor + diffuseColor + specularColor, alpha);//float4(buf_Colors[input.id].x+colorOffset.x, intensity+buf_Colors[input.id].y+colorOffset.y, intensity+buf_Colors[input.id].z+colorOffset.z, alpha);
+					// Compute the color per vertex				
+					output.color = float4(ambientColor + diffuseColor + specularColor, alpha);
+				}
+				else 
+				{
+					output.color = float4(buf_Colors[input.id].x+colorOffset.x, buf_Colors[input.id].y+colorOffset.y, buf_Colors[input.id].z+colorOffset.z, alpha);
+				}
 				output.psize = buf_Sizes[input.id] + pointOffset; // need to be sending selected/deselected as values
 				
 				return output;
