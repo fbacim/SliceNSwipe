@@ -25,7 +25,7 @@ public class ExperimentMenu : MonoBehaviour {
 			"Both"};
 		
 		pointCloudStrings = new string[] {"logo", 
-			"LongHornBeetle_PointCloud", 
+			"LongHornBeetle", 
 			"QCAT_N3_Zebedee_color", 
 			"CSite1_80k", 
 			"CSite2_80k", 
