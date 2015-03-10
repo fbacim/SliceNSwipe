@@ -31,6 +31,7 @@ Shader "DX11/VertexColorPoints"
 			StructuredBuffer<float3> buf_Points;
 			StructuredBuffer<float4> buf_Colors;
 			StructuredBuffer<float3> buf_ColorsOffset;
+			StructuredBuffer<float3> buf_Normals;
 			StructuredBuffer<float4> buf_Positions;
 			StructuredBuffer<float>  buf_Sizes;
 			StructuredBuffer<int>    buf_Selected;
@@ -118,7 +119,20 @@ Shader "DX11/VertexColorPoints"
 						alpha = clamp(alpha-0.4*2.0*buf_ColorsOffset[id].z*buf_Positions[1].w,0,alpha);
 					}
 				}
-				output.color = float4(buf_Colors[id].x+colorOffset.x, buf_Colors[id].y+colorOffset.y, buf_Colors[id].z+colorOffset.z, alpha);
+				
+				// transform normal to camera space and normalize it
+				float3 normalDir = normalize(mul(UNITY_MATRIX_T_MV,float4(buf_Normals[id].x,buf_Normals[id].y,buf_Normals[id].z,1.0f)));
+				float3 lightDir = normalize(mul(UNITY_MATRIX_MVP,float4(0.0f,0.0f,-1.0f,1.0f)));
+
+				// compute the intensity as the dot product
+				//s the max prevents negative intensity values
+				float intensity = 1.0f;
+				
+				if(length(buf_Normals[id]) > 0.0)
+				    intensity = max(dot(normalDir, lightDir), 0.0);
+
+				// Compute the color per vertex				
+				output.color = float4(intensity + buf_Colors[id].x+colorOffset.x, intensity + buf_Colors[id].y+colorOffset.y, intensity + buf_Colors[id].z+colorOffset.z, alpha);
 				output.psize = buf_Sizes[id] + pointOffset; // need to be sending selected/deselected as values
 				
 				return output;

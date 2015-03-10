@@ -24,19 +24,32 @@ public class ExperimentMenu : MonoBehaviour {
 			"Precise",  
 			"Both"};
 		
-		pointCloudStrings = new string[] {"logo", 
-			"LongHornBeetle", 
-			"QCAT_N3_Zebedee_color", 
-			"CSite1_80k", 
-			"CSite2_80k", 
-			"CSite3_80k", 
-			"CSite4_80k", 
-			"FSite5_80k", 
-			"FSite6_80k", 
-			"FSite7_80k", 
-			"FSite8_80k", 
-			"GB_80k", 
-			"Lobby_80k"};
+		pointCloudStrings = new string[] {"NoNormals/LongHornBeetle", 
+			"NoNormals/QCAT_N3_Zebedee_color", 
+			"NoNormals/logo", 
+			"NoNormals/210King_80k", 
+			"NoNormals/CSite1_80k", 
+			"NoNormals/CSite2_80k", 
+			"NoNormals/CSite3_80k", 
+			"NoNormals/CSite4_80k", 
+			"NoNormals/FSite5_80k", 
+			"NoNormals/FSite6_80k", 
+			"NoNormals/FSite7_80k", 
+			"NoNormals/FSite8_80k", 
+			"NoNormals/GB_80k", 
+			"NoNormals/Lobby_80k", 
+			"WithNormals/LongHornBeetle", 
+			"WithNormals/210King_80k", 
+			"WithNormals/CSite1_80k", 
+			"WithNormals/CSite2_80k", 
+			"WithNormals/CSite3_80k", 
+			"WithNormals/CSite4_80k", 
+			"WithNormals/FSite5_80k", 
+			"WithNormals/FSite6_80k", 
+			"WithNormals/FSite7_80k", 
+			"WithNormals/FSite8_80k", 
+			"WithNormals/GB_80k", 
+			"WithNormals/Lobby_80k"};
 	}
 	
 	// Update is called once per frame
@@ -58,7 +71,7 @@ public class ExperimentMenu : MonoBehaviour {
 				leapObject.init(selectedTechnique, selectedStrategy);
 
 				PointCloud pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
-				pointCloud.init(Application.dataPath+"/PointClouds/NoNormals/"+pointCloudStrings[selectedPointCloud]+".ply.withoutnormals.csv");
+				pointCloud.init(Application.dataPath+"/PointClouds/"+pointCloudStrings[selectedPointCloud]+".csv");
 			}
 		}
 	}

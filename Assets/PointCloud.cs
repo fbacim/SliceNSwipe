@@ -13,8 +13,9 @@ public class PointCloud : MonoBehaviour {
 	private ComputeBuffer bufferPoints;
 	private ComputeBuffer bufferPos;
 	private ComputeBuffer bufferColors;
-	private ComputeBuffer bufferSizes;
 	private ComputeBuffer bufferColorOffset;
+	private ComputeBuffer bufferNormals;
+	private ComputeBuffer bufferSizes;
 	private ComputeBuffer bufferSelected;
 	
 	private Vector4[] pos;
@@ -23,6 +24,7 @@ public class PointCloud : MonoBehaviour {
 	private Vector4[] colors;
 	private Vector4[] originalColors;
 	private Vector3[] colorsOffset;
+	private Vector3[] normals;
 	private float[] sizes;
 	private int[] selected;
 	private List< List<int> > selectedHistory;
@@ -53,6 +55,9 @@ public class PointCloud : MonoBehaviour {
 	private Vector3 originalCenter = new Vector3();
 	private Vector3 currentCenterOffset = new Vector3();
 
+	private bool hasNormals = false;
+	private bool rgbUnitTransform = false;
+
 	private void preProcessFile(string fileName, ref Vector3 centerOffset, ref float scale) {
 		int count = 0; 
 		
@@ -62,13 +67,14 @@ public class PointCloud : MonoBehaviour {
 
 		using (StreamReader reader = new StreamReader(fileName))
 		{
-			reader.ReadLine(); // read header first
+			string line = reader.ReadLine(); // read header first
+			hasNormals = line.Split(',').Length == 9 ? true : false;
 			while (!reader.EndOfStream)
 			{
-				string line = reader.ReadLine();
+				line = reader.ReadLine();
 				string[] values = line.Split(',');
-
 				Vector3 tmp = new Vector3(float.Parse(values[0]),float.Parse(values[1]),float.Parse(values[2]));
+
 				// calculate min/max of all vertices
 				if(tmp.x < min.x)
 					min.x = tmp.x;
@@ -83,6 +89,9 @@ public class PointCloud : MonoBehaviour {
 					max.y = tmp.y;
 				if(tmp.z > max.z)
 					max.z = tmp.z;
+
+				if(float.Parse(values[3]) > 1.0 || float.Parse(values[4]) > 1.0 || float.Parse(values[5]) > 1.0)
+					rgbUnitTransform = true;
 
 				count++;
 			}
@@ -118,6 +127,7 @@ public class PointCloud : MonoBehaviour {
 		originalVerts = new Vector3[vertexCount];
 		colors = new Vector4[vertexCount];
 		originalColors = new Vector4[vertexCount];
+		normals = new Vector3[vertexCount];
 		sizes = new float[vertexCount];
 		selected = new int[vertexCount];
 		selectedHistory = new List< List<int> >();
@@ -146,20 +156,36 @@ public class PointCloud : MonoBehaviour {
             string[] values = line.Split(',');
 
 			// populate arrays
+			//points first
 			verts[lineCount] = new Vector3((float.Parse(values[0])-centerOffset.x)*scale,
 			                               (float.Parse(values[1])-centerOffset.y)*scale,
 			                               (float.Parse(values[2])-centerOffset.z)*scale);
 			originalVerts[lineCount] = new Vector3(verts[lineCount].x,
 			                                       verts[lineCount].y,
 			                                       verts[lineCount].z);
-			colors[lineCount] = new Vector4(float.Parse(values[3]),
-			                                float.Parse(values[4]),
-			                                float.Parse(values[5]),
+
+			//then colors
+			colors[lineCount] = new Vector4(float.Parse(values[3]) * (rgbUnitTransform ? 0.003921568627451F : 1F),
+			                                float.Parse(values[4]) * (rgbUnitTransform ? 0.003921568627451F : 1F),
+			                                float.Parse(values[5]) * (rgbUnitTransform ? 0.003921568627451F : 1F),
 			                                selectedAlpha);
 			originalColors[lineCount] = new Vector4(colors[lineCount].x,
 			                                        colors[lineCount].y,
 			                                        colors[lineCount].z,
 			                                        colors[lineCount].w);
+
+			//normals
+			if(hasNormals)
+			{
+				normals[lineCount] = new Vector3(float.Parse(values[6]),
+				                                 float.Parse(values[7]),
+				                                 float.Parse(values[8]));
+			}
+			else
+			{
+				normals[lineCount] = new Vector3(0,0,0);
+			}
+
 			colorsOffset[lineCount] = new Vector3(0.0F,0.0F,0.0F);
 			sizes[lineCount] = selectedSize;
 			selected[lineCount] = 1;
@@ -185,6 +211,10 @@ public class PointCloud : MonoBehaviour {
 		bufferColorOffset = new ComputeBuffer (vertexCount, 12);
 		bufferColorOffset.SetData (colorsOffset);
 		material.SetBuffer ("buf_ColorsOffset", bufferColorOffset);
+		
+		bufferNormals = new ComputeBuffer (vertexCount, 12);
+		bufferNormals.SetData (normals);
+		material.SetBuffer ("buf_Normals", bufferNormals);
 		
 		bufferPos = new ComputeBuffer (instanceCount, 16);
 		bufferPos.SetData (pos);
@@ -221,10 +251,12 @@ public class PointCloud : MonoBehaviour {
 		bufferPos = null;
 		if (bufferColors != null) bufferColors.Release();
 		bufferColors = null;
-		if (bufferSizes != null) bufferSizes.Release();
-		bufferSizes = null;
 		if (bufferColorOffset != null) bufferColorOffset.Release();
 		bufferColorOffset = null;
+		if (bufferColorOffset != null) bufferColorOffset.Release();
+		bufferColorOffset = null;
+		if (bufferSizes != null) bufferSizes.Release();
+		bufferSizes = null;
 		if (bufferSelected != null) bufferSelected.Release();
 		bufferSelected = null;
 	}
