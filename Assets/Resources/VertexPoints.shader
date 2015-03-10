@@ -39,6 +39,16 @@ Shader "DX11/VertexColorPoints"
 			fixed4 _OffsetColorMask1;
 			fixed4 _OffsetColorMask2;
 			
+			struct VS_INPUT
+			{
+				float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float3 tangent : TANGENT;
+                float3 viewDir : NORMAL;
+				uint id   : SV_VertexID;
+				uint inst : SV_InstanceID;
+			};
+			
 			struct GS_INPUT
 			{
 				float4	pos   : POSITION;
@@ -51,89 +61,124 @@ Shader "DX11/VertexColorPoints"
 				float4	pos:POSITION;
 				float4  color:COLOR;
 			};
+			
 
-			GS_INPUT vert (uint id : SV_VertexID, uint inst : SV_InstanceID)
+			float3 GetSpecularColor(float3 vVertexNormal, float3 vVertexPosition)
+			{
+			    // Transform the Vertex and corresponding Normal into Model space
+			    float3 vTransformedNormal = mul(_Object2World, float4( vVertexNormal, 1 ));
+			    float3 vTransformedVertex = mul(_Object2World, float4( vVertexPosition, 1 ));
+			 
+			    // Get the directional vector to the light and to the camera
+			    // originating from the vertex position
+			    float3 vLightDirection = normalize( _WorldSpaceCameraPos - vTransformedVertex );
+			    float3 vCameraDirection = normalize( _WorldSpaceCameraPos - vTransformedVertex );
+			 
+			    // Calculate the reflection vector between the incoming light and the
+			    // normal (incoming angle = outgoing angle)
+			    // We have to use the invert of the light direction because "reflect"
+			    // expects the incident vector as its first parameter
+			    float3 vReflection = reflect( -vLightDirection, vTransformedNormal );
+			 
+			    // Calculate specular component
+			    // Based on the dot product between the reflection vector and the camera
+			    // direction
+			    float spec = pow( max( 0.0, dot( vCameraDirection, vReflection )), 32 );
+			 
+			    return float3( spec, spec, spec );
+			}
+ 
+			float3 GetAmbientColor()
+			{
+			    // Ambient material is 0.2/0/0
+			    // Ambient light is 0.2/0.2/0.2
+			    return float3( 0.75f, 0.75f, 0.75f );
+			}
+ 
+			float3 GetDiffuseColor(float3 vVertexNormal)
+			{
+			    // Transform the normal from Object to Model space
+			    // we also normalize the vector just to be sure ...
+			    float3 vTransformedNormal = normalize( mul( _Object2World, float4( vVertexNormal, 1 )));
+			 
+			    // Get direction of light in Model space
+			    float3 vLightDirection = normalize( _WorldSpaceCameraPos - vTransformedNormal );
+			 
+			    // Calculate Diffuse intensity
+			    float fDiffuseIntensity = max( 0.0, dot( vTransformedNormal, vLightDirection ));
+			 
+			    // Calculate resulting Color
+			    float3 vDiffuseColor = float3( 1.0, 1.0, 1.0 ) * fDiffuseIntensity;
+			 
+			    return vDiffuseColor;
+			} 
+
+			GS_INPUT vert(VS_INPUT input)
 			{
 				GS_INPUT output;
 
 				// calculate the position, make the offset in screen coordinates
-				float3 worldPos = buf_Points[id] + mul(UNITY_MATRIX_T_MV,float4(buf_Positions[inst].x,buf_Positions[inst].y,buf_Positions[inst].z,1.0f));
+				float3 worldPos = buf_Points[input.id] + mul(UNITY_MATRIX_T_MV,float4(buf_Positions[input.inst].x,buf_Positions[input.inst].y,buf_Positions[input.inst].z,1.0f));
 				output.pos =  float4(worldPos,1.0f);
 				
 				// redetermine alpha based on screen position
-				float alpha = buf_Colors[id].w;
+				float alpha = buf_Colors[input.id].w;
 				float4 screenCoord = mul(mul(UNITY_MATRIX_MVP, _World2Object),float4(worldPos,1.0f));
 				screenCoord /= screenCoord.w; // perspective divide
 				screenCoord.x = (screenCoord.x+1.0f)*_ScreenParams.x/2.0f;// + fViewport[0]; // viewport transformation
 				screenCoord.y = (screenCoord.y+1.0f)*_ScreenParams.y/2.0f;// + fViewport[1]; // viewport transformation
 				//if(buf_Positions[0].w == 1)
 				{
-					if(inst == 0)
+					if(input.inst == 0)
 					{
 						
 						alpha -= abs(buf_Positions[0].w-buf_Positions[1].w)/2.0f*clamp(((screenCoord.x-_ScreenParams.x*0.4f)/(_ScreenParams.x*0.1f))*alpha,0.0f,alpha);
 					}
-					else if(inst == 1)
+					else if(input.inst == 1)
 					{
 						alpha -= abs(buf_Positions[0].w-buf_Positions[1].w)/2.0f*clamp(((_ScreenParams.x-screenCoord.x-_ScreenParams.x*0.4f)/(_ScreenParams.x*0.1f))*alpha,0.0f,alpha);
 					}
 				}
 				float3 colorOffset = float3(0,0,0);
-				if(buf_Selected[id] == 1)
+				if(buf_Selected[input.id] == 1)
 				{					
-					if(inst == 0)
-						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-buf_Positions[1].w),//_OffsetColorMask1.x*buf_Positions[1].w),
-											 buf_ColorsOffset[id].y*(1.0-buf_Positions[1].w),//_OffsetColorMask1.y*buf_Positions[1].w),
-											 buf_ColorsOffset[id].z*(1.0-buf_Positions[1].w));//_OffsetColorMask1.z*buf_Positions[1].w));
+					if(input.inst == 0)
+						colorOffset = float3(buf_ColorsOffset[input.id].x*(1.0-buf_Positions[1].w),
+											 buf_ColorsOffset[input.id].y*(1.0-buf_Positions[1].w),
+											 buf_ColorsOffset[input.id].z*(1.0-buf_Positions[1].w));
 					else
-						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-buf_Positions[1].w),//_OffsetColorMask2.x*buf_Positions[1].w),
-											 buf_ColorsOffset[id].y*(1.0-buf_Positions[1].w),//_OffsetColorMask2.y*buf_Positions[1].w),
-											 buf_ColorsOffset[id].z*(1.0-buf_Positions[1].w));//_OffsetColorMask2.z*buf_Positions[1].w));
-
-//					if(inst == 0)
-//						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-_OffsetColorMask1.x*buf_Positions[1].w),
-//											 buf_ColorsOffset[id].y*(1.0-_OffsetColorMask1.y*buf_Positions[1].w),
-//											 buf_ColorsOffset[id].z*(1.0-_OffsetColorMask1.z*buf_Positions[1].w));
-//					else
-//						colorOffset = float3(buf_ColorsOffset[id].x*(1.0-_OffsetColorMask2.x*buf_Positions[1].w),
-//											 buf_ColorsOffset[id].y*(1.0-_OffsetColorMask2.y*buf_Positions[1].w),
-//											 buf_ColorsOffset[id].z*(1.0-_OffsetColorMask2.z*buf_Positions[1].w));
+						colorOffset = float3(buf_ColorsOffset[input.id].x*(1.0-buf_Positions[1].w),
+											 buf_ColorsOffset[input.id].y*(1.0-buf_Positions[1].w),
+											 buf_ColorsOffset[input.id].z*(1.0-buf_Positions[1].w));
 				}
 				else
 				{
-					colorOffset = float3(0.4-buf_Colors[id].x,0.4-buf_Colors[id].y,0.4-buf_Colors[id].z);//_OffsetColorMask1.z*buf_Positions[1].w));
+					colorOffset = float3(0.4-buf_Colors[input.id].x,0.4-buf_Colors[input.id].y,0.4-buf_Colors[input.id].z);
 				}
 				// from 0 to 1, 0 should be both colors, 1 just the one from my instance, interpolate in between
 				
 				float pointOffset = 0.0;
-				if(buf_Selected[id] == 1)
+				if(buf_Selected[input.id] == 1)
 				{
-					if(inst == 0)
+					if(input.inst == 0)
 					{
-						pointOffset = -3.0*2.0*buf_ColorsOffset[id].x*buf_Positions[1].w;
-						alpha = clamp(alpha-0.4*2.0*buf_ColorsOffset[id].x*buf_Positions[1].w,0,alpha);
+						pointOffset = -3.0*2.0*buf_ColorsOffset[input.id].x*buf_Positions[1].w;
+						alpha = clamp(alpha-0.4*2.0*buf_ColorsOffset[input.id].x*buf_Positions[1].w,0,alpha);
 					}
 					else
 					{
-						pointOffset = -3.0*2.0*buf_ColorsOffset[id].z*buf_Positions[1].w;
-						alpha = clamp(alpha-0.4*2.0*buf_ColorsOffset[id].z*buf_Positions[1].w,0,alpha);
+						pointOffset = -3.0*2.0*buf_ColorsOffset[input.id].z*buf_Positions[1].w;
+						alpha = clamp(alpha-0.4*2.0*buf_ColorsOffset[input.id].z*buf_Positions[1].w,0,alpha);
 					}
 				}
 				
-				// transform normal to camera space and normalize it
-				float3 normalDir = normalize(mul(UNITY_MATRIX_T_MV,float4(buf_Normals[id].x,buf_Normals[id].y,buf_Normals[id].z,1.0f)));
-				float3 lightDir = normalize(mul(UNITY_MATRIX_MVP,float4(0.0f,0.0f,-1.0f,1.0f)));
-
-				// compute the intensity as the dot product
-				//s the max prevents negative intensity values
-				float intensity = 1.0f;
-				
-				if(length(buf_Normals[id]) > 0.0)
-				    intensity = max(dot(normalDir, lightDir), 0.0);
+				float3 ambientColor = (buf_Colors[input.id]+colorOffset) * GetAmbientColor();
+				float3 diffuseColor = (buf_Colors[input.id]+colorOffset) * GetDiffuseColor(buf_Normals[input.id]);
+				float3 specularColor = GetSpecularColor(buf_Normals[input.id], buf_Points[input.id]);
 
 				// Compute the color per vertex				
-				output.color = float4(intensity + buf_Colors[id].x+colorOffset.x, intensity + buf_Colors[id].y+colorOffset.y, intensity + buf_Colors[id].z+colorOffset.z, alpha);
-				output.psize = buf_Sizes[id] + pointOffset; // need to be sending selected/deselected as values
+				output.color = float4(ambientColor + diffuseColor + specularColor, alpha);//float4(buf_Colors[input.id].x+colorOffset.x, intensity+buf_Colors[input.id].y+colorOffset.y, intensity+buf_Colors[input.id].z+colorOffset.z, alpha);
+				output.psize = buf_Sizes[input.id] + pointOffset; // need to be sending selected/deselected as values
 				
 				return output;
 			}
@@ -187,7 +232,7 @@ Shader "DX11/VertexColorPoints"
 				triStream.Append(pIn);
 			}
 
-			float4 frag (FS_INPUT i) : COLOR
+			float4 frag(FS_INPUT i) : COLOR
 			{
 				return i.color;
 			}

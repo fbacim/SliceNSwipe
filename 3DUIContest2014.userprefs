@@ -1,11 +1,11 @@
 ﻿<Properties>
-  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="MonoDevelop.Default" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\ExperimentMenu.cs">
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\Resources\VertexPoints.shader">
     <Files>
-      <File FileName="Assets\PointCloud.cs" Line="249" Column="22" />
-      <File FileName="Assets\ExperimentMenu.cs" Line="35" Column="28" />
+      <File FileName="Assets\PointCloud.cs" Line="89" Column="20" />
+      <File FileName="Assets\ExperimentMenu.cs" Line="45" Column="30" />
       <File FileName="Assets\VolumeSweep.cs" Line="1" Column="1" />
-      <File FileName="Assets\Resources\VertexPoints.shader" Line="130" Column="5" />
+      <File FileName="Assets\Resources\VertexPoints.shader" Line="135" Column="67" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
