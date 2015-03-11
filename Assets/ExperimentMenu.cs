@@ -36,6 +36,7 @@ public class ExperimentMenu : MonoBehaviour {
 			"NoNormals/FSite6_80k", 
 			"NoNormals/FSite7_80k", 
 			"NoNormals/FSite8_80k", 
+			"NoNormals/Site20_80k", 
 			"NoNormals/GB_80k", 
 			"NoNormals/Lobby_80k", 
 			"WithNormals/LongHornBeetle", 
@@ -48,6 +49,7 @@ public class ExperimentMenu : MonoBehaviour {
 			"WithNormals/FSite6_80k", 
 			"WithNormals/FSite7_80k", 
 			"WithNormals/FSite8_80k", 
+			"WithNormals/Site20_80k", 
 			"WithNormals/GB_80k", 
 			"WithNormals/Lobby_80k"};
 	}
