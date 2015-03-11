@@ -10,7 +10,7 @@
       <File FileName="Assets\Resources\VertexPoints.shader" Line="141" Column="40" />
       <File FileName="Assets\LeapController.cs" Line="281" Column="1" />
       <File FileName="Assets\Lasso.cs" Line="126" Column="43" />
-    </Files>
+   </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
     <BreakpointStore />

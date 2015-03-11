@@ -1,7 +1,9 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+
 
 public class PointCloud : MonoBehaviour {
 	bool initialized = false;
@@ -17,7 +19,7 @@ public class PointCloud : MonoBehaviour {
 	private ComputeBuffer bufferNormals;
 	private ComputeBuffer bufferSizes;
 	private ComputeBuffer bufferSelected;
-	
+
 	private Vector4[] pos;
 	public Vector3[] verts;
 	private Vector3[] originalVerts;
@@ -37,6 +39,9 @@ public class PointCloud : MonoBehaviour {
 	public float deselectedSize = 1.0F;
 	public bool useSeparation = true;
 	public bool resetAfterAnnotation = true;
+
+	// store the subset of the PC that corresponds to an annotation, given the index of the point in the file
+	private Dictionary<string, List<int>> annotationsPerVertex;
 
 	private bool separate  = false;  // are the point cloud instances separate?
 	private bool animating = false;  // is it currently animating?
@@ -59,6 +64,7 @@ public class PointCloud : MonoBehaviour {
 	private bool rgbUnitTransform = false;
 
 	private void preProcessFile(string fileName, ref Vector3 centerOffset, ref float scale) {
+
 		int count = 0; 
 		
 		// initialize min/max
@@ -110,6 +116,7 @@ public class PointCloud : MonoBehaviour {
 	public void init (string fileName) {
 		goAnnotation = new List<GUIText>();
 
+
 		// calculate center offset (to make sure it's at 0,0,0) and scale to make sure it's possible to interact with it
 		Vector3 centerOffset = new Vector3();
 		float scale = 1.0F;
@@ -121,7 +128,7 @@ public class PointCloud : MonoBehaviour {
 		Debug.Log("min: "+min);
 		Debug.Log("max: "+max);
 		Debug.Log("size: "+size);
-		
+
 		// vertex, color, selected, annotations arrays
 		verts = new Vector3[vertexCount];
 		originalVerts = new Vector3[vertexCount];
@@ -135,6 +142,9 @@ public class PointCloud : MonoBehaviour {
 		cloudAnnotations = new List< List<string> >();
 		annotations = new List<string>();
 		goAnnotations = new List<GameObject>();
+
+		// List of indexes of the vertices in a subset of the PC that correspond to an annotation given its string identifier
+		annotationsPerVertex = new Dictionary<string, List<int>> ();
 
 		// normalized offset of each instance of the point cloud
 		pos = new Vector4[instanceCount];
@@ -229,6 +239,7 @@ public class PointCloud : MonoBehaviour {
 		material.SetBuffer ("buf_Selected", bufferSelected);
 		
 		CenterPointCloud(center);
+
 		currentCenterOffset = new Vector3();
 
 		// save original min/max values
@@ -242,6 +253,7 @@ public class PointCloud : MonoBehaviour {
 
 
 		initialized = true;
+
 	}
 	
 	private void ReleaseBuffers() {
@@ -954,7 +966,7 @@ public class PointCloud : MonoBehaviour {
 		currentCenterOffset = new Vector3();
 	}
 
-	public void Annotate(string annotation)
+	public void Annotate(string annotation, string loadAnnotationFromFilename = null)
 	{
 		if(annotation == "" || separate || animating)
 			return;
@@ -962,14 +974,43 @@ public class PointCloud : MonoBehaviour {
 		Vector3 center = new Vector3();
 		int selectedCount = 0;
 
+		if ( annotationsPerVertex.ContainsKey (annotation) ) {
+			annotationsPerVertex[annotation].Clear();
+		} else {
+			annotationsPerVertex[annotation] = new List<int>();
+		}
+
+
+		int[] selectedByIndex;
+		if (string.IsNullOrEmpty (loadAnnotationFromFilename)) {
+			selectedByIndex = selected;
+		} else {
+			selectedByIndex = new int[originalVerts.Length];
+
+			System.IO.StreamReader loadAnnotationFile = new System.IO.StreamReader(Application.dataPath+@"/Models/Annotations/"+loadAnnotationFromFilename);
+			annotation = loadAnnotationFile.ReadLine();		// Rewrite the first argument as the first line in the Annotation file will have the tag
+			string[] indexesInAnnotation = loadAnnotationFile.ReadLine().Split(',');
+			loadAnnotationFile.Close();
+
+			foreach( string index in indexesInAnnotation ){
+				int num;
+				if (int.TryParse(index, out num))
+					selectedByIndex[num] = 1;
+			}
+		}
+
 		// add annotation to all points that are selected
 		for (int i = 0; i < vertexCount; ++i)
 		{
-			if(selected[i] == 1)
+			if(selectedByIndex[i] == 1)
 			{
 				cloudAnnotations[i].Add(annotation);
 				center = center + originalVerts[i];
 				selectedCount++;
+
+				// Adding the index of the vertex in the annotation to the dictionary
+				if (string.IsNullOrEmpty(loadAnnotationFromFilename))
+					annotationsPerVertex[annotation].Add(i);
 			}
 		}
 		// and to the list of annotations
@@ -990,6 +1031,19 @@ public class PointCloud : MonoBehaviour {
 		o.useMainCamera = false;
 		o.cameraToUse = GameObject.Find("Camera").GetComponent<Camera>();
 		goAnnotations.Add(tmpGo);
+
+
+		// Only do this if the annotation is being loaded from a file, otherwise we will repeat the annotation into another radonmly generated filename.
+		if (string.IsNullOrEmpty(loadAnnotationFromFilename)){
+			// Store subset of PC to annotation file
+			string annotationFileName = Application.dataPath+@"/Models/Annotations/"+modelName+@"_"+Path.GetRandomFileName().Substring(0,4)+@"_"+annotation+@".annotation.csv";
+			System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
+			annotationFile.WriteLine(annotation);
+			foreach (int index in annotationsPerVertex[annotation]) {
+				annotationFile.Write (index + ",");
+			}
+			annotationFile.Close ();
+		}
 
 		if(resetAfterAnnotation)
 			ResetAll();
