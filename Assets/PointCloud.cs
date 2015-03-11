@@ -42,6 +42,8 @@ public class PointCloud : MonoBehaviour {
 
 	// store the subset of the PC that corresponds to an annotation, given the index of the point in the file
 	private Dictionary<string, List<int>> annotationsPerVertex;
+	private string modelName;		// Taken as the filename on the init method
+
 
 	private bool separate  = false;  // are the point cloud instances separate?
 	private bool animating = false;  // is it currently animating?
@@ -115,7 +117,8 @@ public class PointCloud : MonoBehaviour {
 	// Use this for initialization
 	public void init (string fileName) {
 		goAnnotation = new List<GUIText>();
-
+		 
+		modelName = fileName;	// Needed to create the annotation files
 
 		// calculate center offset (to make sure it's at 0,0,0) and scale to make sure it's possible to interact with it
 		Vector3 centerOffset = new Vector3();
@@ -966,6 +969,79 @@ public class PointCloud : MonoBehaviour {
 		currentCenterOffset = new Vector3();
 	}
 
+
+	// The parameter is the name of the annotation that the user writes on screen
+	public void Annotate(string annotation)
+	{
+
+		string loadAnnotationFromFilename = "test";
+
+		if(separate || animating)
+			return;
+		
+		Vector3 center = new Vector3();
+		int selectedCount = 0;
+		
+		if ( annotationsPerVertex.ContainsKey (annotation) ) {
+			annotationsPerVertex[annotation].Clear();
+		} else {
+			annotationsPerVertex[annotation] = new List<int>();
+		}
+		
+		int[] selectedByIndex;
+		selectedByIndex = selected;
+
+		// add annotation to all points that are selected
+		for (int i = 0; i < vertexCount; ++i)
+		{
+			if(selectedByIndex[i] == 1)
+			{
+				cloudAnnotations[i].Add(annotation);
+				center = center + originalVerts[i];
+				selectedCount++;
+				
+				// Adding the index of the vertex in the annotation to the dictionary
+				if (string.IsNullOrEmpty(loadAnnotationFromFilename))
+					annotationsPerVertex[annotation].Add(i);
+			}
+		}
+		// and to the list of annotations
+		if(!annotations.Contains(annotation))
+			annotations.Add(annotation);
+		
+		center = center / selectedCount;
+		
+		GameObject tmpGo = new GameObject("Annotation");
+		GUIText t = tmpGo.AddComponent<GUIText>();
+		t.text = annotation;
+		t.fontSize = (int)(15.0F+(selectedCount/vertexCount)*15.0F);
+		t.anchor = TextAnchor.MiddleCenter;
+		t.alignment = TextAlignment.Center;
+		goAnnotation.Add(t);
+		ObjectLabel o = tmpGo.AddComponent<ObjectLabel>();
+		o.target = center-originalCenter;
+		o.useMainCamera = false;
+		o.cameraToUse = GameObject.Find("Camera").GetComponent<Camera>();
+		goAnnotations.Add(tmpGo);
+		
+		
+			string annotationFileName = modelName+@"_"+Path.GetRandomFileName().Substring(0,4)+@"_"+annotation+@".annotation.csv";
+			System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
+			annotationFile.WriteLine(annotation);
+			foreach (int index in annotationsPerVertex[annotation]) {
+				annotationFile.Write (index + ",");
+			}
+			annotationFile.Close ();
+
+		
+		if(resetAfterAnnotation)
+			ResetAll();
+	}
+
+
+	/*
+	 * 
+	 * Kept it because this code can also load the annotations from file
 	public void Annotate(string annotation, string loadAnnotationFromFilename = null)
 	{
 		if(annotation == "" || separate || animating)
@@ -1048,6 +1124,7 @@ public class PointCloud : MonoBehaviour {
 		if(resetAfterAnnotation)
 			ResetAll();
 	}
+	*/
 
 	public Vector3 Size()
 	{
