@@ -974,8 +974,6 @@ public class PointCloud : MonoBehaviour {
 	public void Annotate(string annotation)
 	{
 
-		string loadAnnotationFromFilename = "test";
-
 		if(separate || animating)
 			return;
 		
@@ -1000,9 +998,7 @@ public class PointCloud : MonoBehaviour {
 				center = center + originalVerts[i];
 				selectedCount++;
 				
-				// Adding the index of the vertex in the annotation to the dictionary
-				if (string.IsNullOrEmpty(loadAnnotationFromFilename))
-					annotationsPerVertex[annotation].Add(i);
+				annotationsPerVertex[annotation].Add(i);
 			}
 		}
 		// and to the list of annotations
@@ -1026,7 +1022,9 @@ public class PointCloud : MonoBehaviour {
 		
 		
 			string annotationFileName = modelName+@"_"+Path.GetRandomFileName().Substring(0,4)+@"_"+annotation+@".annotation.csv";
-			System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
+		Debug.Log (annotationFileName);
+
+		System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
 			annotationFile.WriteLine(annotation);
 			foreach (int index in annotationsPerVertex[annotation]) {
 				annotationFile.Write (index + ",");
