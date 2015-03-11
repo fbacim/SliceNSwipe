@@ -37,11 +37,19 @@ public class LeapController : MonoBehaviour {
 
 		goFingerList = new List<GameObject>();
 		for(int i = 0; i < 10; i++)
+		{
 			goFingerList.Add(GameObject.CreatePrimitive(PrimitiveType.Sphere));
+			goFingerList[i].renderer.material = Resources.Load("PhongUserLight", typeof(Material)) as Material;
+			goFingerList[i].renderer.material.color = new Color(0.7F, 0.7F, 0.7F, 1.0F);
+		}
 
 		goHandList = new List<GameObject>();
 		for(int i = 0; i < 2; i++)
+		{
 			goHandList.Add(GameObject.CreatePrimitive(PrimitiveType.Cube));
+			goHandList[i].renderer.material = Resources.Load("PhongUserLight", typeof(Material)) as Material;
+			goHandList[i].renderer.material.color = new Color(0.7F, 0.7F, 0.7F, 1.0F);
+		}
 	}
 
 	public void init(int selectedTechnique, int selectedStrategy) {
@@ -129,7 +137,7 @@ public class LeapController : MonoBehaviour {
 			goHandList[i].SetActive(true);
 			goHandList[i].transform.position = position;
 			goHandList[i].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
-			//goHandList[i].renderer.enabled = false;
+			goHandList[i].renderer.enabled = false;
 		}
 
 		// update finger renderer
@@ -151,7 +159,7 @@ public class LeapController : MonoBehaviour {
 			goFingerList[i].SetActive(true);
 			goFingerList[i].transform.position = position;
 			goFingerList[i].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
-			//goFingerList[i].renderer.enabled = false;
+			goFingerList[i].renderer.enabled = false;
 		}
 
 		fingerAvg = fingerAvg * 0.9F + fl.Count * 0.1F;
@@ -237,6 +245,38 @@ public class LeapController : MonoBehaviour {
 	}
 
 	public void RenderTransparentObjects() {
+		Debug.Log(cameraTransform.position);
+		for(int i = 0; i < goHandList.Count; i++)
+		{
+			if(goHandList[i].activeSelf)
+			{
+				goHandList[i].renderer.enabled = true;
+				goHandList[i].renderer.material.SetVector("_LightPosition",new Vector4(cameraTransform.position.x,cameraTransform.position.y,cameraTransform.position.z,1.0F));
+				for (int pass = 0; pass < goHandList[i].renderer.material.passCount; pass++)
+				{
+					if(goHandList[i].renderer.material.SetPass(pass))
+						Graphics.DrawMeshNow(goHandList[i].GetComponent<MeshFilter>().mesh,goHandList[i].transform.localToWorldMatrix);
+				}
+				goHandList[i].renderer.enabled = false;
+			}
+		}
+		
+		// update finger renderer
+		for(int i = 0; i < goFingerList.Count; i++)
+		{
+			if(goFingerList[i].activeSelf)
+			{
+				goFingerList[i].renderer.enabled = true;
+				goFingerList[i].renderer.material.SetVector("_LightPosition",new Vector4(cameraTransform.position.x,cameraTransform.position.y,cameraTransform.position.z,1.0F));
+				for (int pass = 0; pass < goFingerList[i].renderer.material.passCount; pass++)
+				{
+					if(goFingerList[i].renderer.material.SetPass(pass))
+						Graphics.DrawMeshNow(goFingerList[i].GetComponent<MeshFilter>().mesh,goFingerList[i].transform.localToWorldMatrix);
+				}
+				goFingerList[i].renderer.enabled = false;
+			}
+		}
+
 		if(currentTechnique == technique.SLICENSWIPE && slicenSwipe != null)
 			slicenSwipe.RenderTransparentObjects();
 		else if(currentTechnique == technique.VOLUMESWEEP && volumeSweep != null)

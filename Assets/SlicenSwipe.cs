@@ -98,13 +98,16 @@ public class SlicenSwipe {
 		float timeSinceLastUpdate = currentTime - timeLastUpdate;
 		timeLastUpdate = currentTime;
 
-		if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+		if(strategy != Strategy.FAST)
 		{
-			useRubberBand = true;
-		}
-		else
-		{
-			useRubberBand = false;
+			if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+			{
+				useRubberBand = true;
+			}
+			else
+			{
+				useRubberBand = false;
+			}
 		}
 		
 		// update finger trace
@@ -298,7 +301,7 @@ public class SlicenSwipe {
 			timeSinceLastStateChange = 0.0F;
 		}
 		// if velocity above threshold, record motion in moving cut state
-		else if(currentState == state.MOVING_FINGER && hl.Count >= 1 && fl.Count >= 1 && (filteredVelocity > velocityThreshold || useRubberBand)) 
+		else if(currentState == state.MOVING_FINGER && hl.Count >= 1 && fl.Count >= 1 && ((filteredVelocity > velocityThreshold && strategy != Strategy.PRECISE) || useRubberBand)) 
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.MOVING_CUT;
@@ -319,7 +322,7 @@ public class SlicenSwipe {
 			}
 		}
 		// if velocity goes below the threshold again, change state to cut slash, where the cut has been made
-		else if(currentState == state.MOVING_CUT && hl.Count >= 1 && fl.Count >= 1 && ((!rubberBandActive && filteredVelocity < velocityThreshold) || (rubberBandActive && !useRubberBand))) 
+		else if(currentState == state.MOVING_CUT && hl.Count >= 1 && fl.Count >= 1 && ((!rubberBandActive && filteredVelocity < velocityThreshold && strategy != Strategy.PRECISE) || (rubberBandActive && !useRubberBand))) 
 		{
 			//Debug.Log("SLICE");
 			int initialPosition = fingerPosition.Count-1-updateCountSinceMovingSlashStarted;
@@ -439,8 +442,9 @@ public class SlicenSwipe {
 		if(fingerHandTrailMesh != null && isEnabled && fingerHandTrail.activeSelf)
 		{
 			fingerHandTrail.SetActive(true);
-			fingerHandTrail.renderer.material.SetPass(0);
-			Graphics.DrawMeshNow(fingerHandTrailMesh,Matrix4x4.identity);
+			for (int pass = 0; pass < fingerHandTrail.renderer.material.passCount; pass++)
+				if(fingerHandTrail.renderer.material.SetPass(pass))
+					Graphics.DrawMeshNow(fingerHandTrailMesh,Matrix4x4.identity);
 			fingerHandTrail.SetActive(false);
 		}
 	}

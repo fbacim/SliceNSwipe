@@ -41,6 +41,8 @@ public class VolumeSweep {//}: MonoBehaviour {
 	bool isEnabled = true;
 	bool needsClear = true;
 	bool canSelect = false;
+
+	bool shiftToggle = false;
 	
 	enum Strategy { FAST, PRECISE, BOTH };
 	Strategy strategy = Strategy.BOTH;
@@ -216,7 +218,6 @@ public class VolumeSweep {//}: MonoBehaviour {
 		if(select) 
 		{
 			currentState = state.SELECT_IN_OUT;
-			//selectionVolume.SetActive(false);
 			select = false;
 		}
 
@@ -226,7 +227,6 @@ public class VolumeSweep {//}: MonoBehaviour {
 	public void SetEnabled(bool enable)
 	{
 		isEnabled = enable;
-		//selectionVolume.SetActive(false);
 	}
 
 	public void Clear()
@@ -250,8 +250,9 @@ public class VolumeSweep {//}: MonoBehaviour {
 		if(selectionVolume != null && isEnabled)
 		{
 			selectionVolume.SetActive(true);
-			selectionVolume.renderer.material.SetPass(0);
-			Graphics.DrawMeshNow(selectionVolume.GetComponent<MeshFilter>().mesh,selectionVolume.transform.localToWorldMatrix);
+			for (int pass = 0; pass < selectionVolume.renderer.material.passCount; pass++)
+				if(selectionVolume.renderer.material.SetPass(pass))
+					Graphics.DrawMeshNow(selectionVolume.GetComponent<MeshFilter>().mesh,selectionVolume.transform.localToWorldMatrix);
 			selectionVolume.SetActive(false);
 		}
 	}
@@ -287,7 +288,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 		}
 
 		//hold SHIFT key for bubble sweep
-		if(strategy == Strategy.BOTH || strategy == Strategy.PRECISE) // how to force precise ?
+		if(strategy == Strategy.BOTH)
 		{
 			if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // reset
 			{
@@ -327,6 +328,34 @@ public class VolumeSweep {//}: MonoBehaviour {
 					currentState = state.NONE;
 					timeSinceLastStateChange = 0.0F;
 					volumeTrailSpheres.Clear();
+				}
+			}
+		}
+		else if(strategy == Strategy.PRECISE) 
+		{
+			if(shiftToggle) // if selection started
+			{
+				Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);
+				volumeTrailSpheres.Add(s);
+			}
+
+			if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) 
+			{
+				shiftToggle = !shiftToggle;
+				if(!shiftToggle)
+				{
+					if(pointCloud.ValidateSets())
+					{
+						select = true;
+					}
+					else
+					{
+						pointCloud.TriggerSeparation(false,0);
+						pointCloud.ResetSelected();
+						currentState = state.NONE;
+						timeSinceLastStateChange = 0.0F;
+						volumeTrailSpheres.Clear();
+					}
 				}
 			}
 		}

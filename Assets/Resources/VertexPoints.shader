@@ -176,7 +176,7 @@ Shader "DX11/VertexColorPoints"
 				{
 					float3 viewDir = mul(UNITY_MATRIX_T_MV,float4(0,0,-1,1));
 					float angle = acos(clamp(dot(normalize(buf_Normals[input.id]), normalize(viewDir)),-1.0f,1.0f));
-					float3 twoSidedNormal = abs(angle) > 1.57f ? buf_Normals[input.id] : -buf_Normals[input.id];
+					float3 twoSidedNormal = normalize(abs(angle) > 1.57f ? buf_Normals[input.id] : -buf_Normals[input.id]);
 				
 					float3 ambientColor = (buf_Colors[input.id]+colorOffset) * GetAmbientColor();
 					float3 diffuseColor = (buf_Colors[input.id]+colorOffset) * GetDiffuseColor(twoSidedNormal,_WorldSpaceCameraPos);

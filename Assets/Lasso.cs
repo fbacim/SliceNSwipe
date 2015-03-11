@@ -13,7 +13,8 @@ public class Lasso {//}: MonoBehaviour {
 	float timeSinceLastClickCompleted = 0.0F;
 	float timeLastUpdate = 0.0F;
 	float resetTimer = 0.0F;
-	float velocityThreshold = 500.0F;
+	float highVelocityThreshold = 500.0F;
+	float lowVelocityThreshold = 100.0F;
 	float lastScalarVelocity = 0.0F;
 	int updateCountSinceMovingSlashStarted = 0;
 
@@ -92,7 +93,7 @@ public class Lasso {//}: MonoBehaviour {
 		lastScalarVelocity = scalarVelocity;
 
 		// s
-		if(currentState == state.NONE && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
+		if(currentState == state.NONE && ((Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) || (filteredVelocity > highVelocityThreshold && strategy != Strategy.PRECISE)))
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.DRAW;
@@ -102,6 +103,11 @@ public class Lasso {//}: MonoBehaviour {
 			fingerPositionTime.Clear();
 			fingerLineRenderer.SetVertexCount(0);
 		}
+		else if(currentState == state.DRAW && strategy != Strategy.PRECISE && !(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && filteredVelocity < lowVelocityThreshold)
+		{
+			currentState = state.SELECT_IN_OUT;
+		}
+
 		if(currentState == state.DRAW)
 		{
 			pointCloud.TriggerSeparation(false,0);
@@ -146,11 +152,11 @@ public class Lasso {//}: MonoBehaviour {
 			pointCloud.TriggerSeparation(true,0);
 
 			//Debug.Log(filteredVelocity);
-			if(filteredVelocity > velocityThreshold)
+			if(filteredVelocity > highVelocityThreshold)
 			{
 				updateCountSinceMovingSlashStarted++;
 			}
-			else if(filteredVelocity < velocityThreshold && updateCountSinceMovingSlashStarted > 0)
+			else if(filteredVelocity < highVelocityThreshold && updateCountSinceMovingSlashStarted > 0)
 			{
 				int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
 				Vector3 direction = new Vector3();
