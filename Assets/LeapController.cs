@@ -189,7 +189,7 @@ public class LeapController : MonoBehaviour {
 		{
 			if(UpdateAnnotation())
 			{
-				pointCloud.Annotate(annotationTextInput.text);
+				pointCloud.Annotate(annotationTextInput.text,null);
 				annotationTextInput.text = "";
 			}
 		}

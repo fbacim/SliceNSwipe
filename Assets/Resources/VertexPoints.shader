@@ -35,6 +35,7 @@ Shader "DX11/VertexColorPoints"
 			StructuredBuffer<float4> buf_Positions;
 			StructuredBuffer<float>  buf_Sizes;
 			StructuredBuffer<int>    buf_Selected;
+			StructuredBuffer<int>    buf_Highlighted;
 			
 			fixed4 _OffsetColorMask1;
 			fixed4 _OffsetColorMask2;
@@ -126,29 +127,22 @@ Shader "DX11/VertexColorPoints"
 				screenCoord /= screenCoord.w; // perspective divide
 				screenCoord.x = (screenCoord.x+1.0f)*_ScreenParams.x/2.0f;// + fViewport[0]; // viewport transformation
 				screenCoord.y = (screenCoord.y+1.0f)*_ScreenParams.y/2.0f;// + fViewport[1]; // viewport transformation
-				//if(buf_Positions[0].w == 1)
+				if(input.inst == 0)
 				{
-					if(input.inst == 0)
-					{
-						
-						alpha -= abs(buf_Positions[0].w-buf_Positions[1].w)/2.0f*clamp(((screenCoord.x-_ScreenParams.x*0.4f)/(_ScreenParams.x*0.1f))*alpha,0.0f,alpha);
-					}
-					else if(input.inst == 1)
-					{
-						alpha -= abs(buf_Positions[0].w-buf_Positions[1].w)/2.0f*clamp(((_ScreenParams.x-screenCoord.x-_ScreenParams.x*0.4f)/(_ScreenParams.x*0.1f))*alpha,0.0f,alpha);
-					}
+					
+					alpha -= abs(buf_Positions[0].w-buf_Positions[1].w)/2.0f*clamp(((screenCoord.x-_ScreenParams.x*0.4f)/(_ScreenParams.x*0.1f))*alpha,0.0f,alpha);
 				}
+				else if(input.inst == 1)
+				{
+					alpha -= abs(buf_Positions[0].w-buf_Positions[1].w)/2.0f*clamp(((_ScreenParams.x-screenCoord.x-_ScreenParams.x*0.4f)/(_ScreenParams.x*0.1f))*alpha,0.0f,alpha);
+				}
+				
 				float3 colorOffset = float3(0,0,0);
 				if(buf_Selected[input.id] == 1)
 				{					
-					if(input.inst == 0)
-						colorOffset = float3(buf_ColorsOffset[input.id].x*(1.0-buf_Positions[1].w),
-											 buf_ColorsOffset[input.id].y*(1.0-buf_Positions[1].w),
-											 buf_ColorsOffset[input.id].z*(1.0-buf_Positions[1].w));
-					else
-						colorOffset = float3(buf_ColorsOffset[input.id].x*(1.0-buf_Positions[1].w),
-											 buf_ColorsOffset[input.id].y*(1.0-buf_Positions[1].w),
-											 buf_ColorsOffset[input.id].z*(1.0-buf_Positions[1].w));
+					colorOffset = float3(buf_ColorsOffset[input.id].x*(1.0-buf_Positions[1].w),
+										 buf_ColorsOffset[input.id].y*(1.0-buf_Positions[1].w),
+										 buf_ColorsOffset[input.id].z*(1.0-buf_Positions[1].w));
 				}
 				else
 				{
@@ -171,6 +165,22 @@ Shader "DX11/VertexColorPoints"
 					}
 				}
 				
+				float3 outputColor = (buf_Colors[input.id]+colorOffset);
+								
+				// make it yellow if highlighted
+				if(buf_Highlighted[input.id] == 1)
+				{
+					outputColor.x = 0.9;
+					outputColor.y = 0.9;
+					outputColor.z = 0.0;
+				}
+				else if(buf_Highlighted[input.id] == 2)
+				{
+					outputColor.x -= 0.3;
+					outputColor.y -= 0.3;
+					outputColor.z -= 0.3;
+				}
+				
 				// if normals are available, use phong shading
 				if(length(buf_Normals[input.id]) > 0.0)
 				{
@@ -178,8 +188,8 @@ Shader "DX11/VertexColorPoints"
 					float angle = acos(clamp(dot(normalize(buf_Normals[input.id]), normalize(viewDir)),-1.0f,1.0f));
 					float3 twoSidedNormal = normalize(abs(angle) > 1.57f ? buf_Normals[input.id] : -buf_Normals[input.id]);
 				
-					float3 ambientColor = (buf_Colors[input.id]+colorOffset) * GetAmbientColor();
-					float3 diffuseColor = (buf_Colors[input.id]+colorOffset) * GetDiffuseColor(twoSidedNormal,_WorldSpaceCameraPos);
+					float3 ambientColor = outputColor * GetAmbientColor();
+					float3 diffuseColor = outputColor * GetDiffuseColor(twoSidedNormal,_WorldSpaceCameraPos);
 					float3 specularColor = GetSpecularColor(twoSidedNormal, buf_Points[input.id],_WorldSpaceCameraPos);
 
 					// Compute the color per vertex				
@@ -187,7 +197,7 @@ Shader "DX11/VertexColorPoints"
 				}
 				else 
 				{
-					output.color = float4(buf_Colors[input.id].x+colorOffset.x, buf_Colors[input.id].y+colorOffset.y, buf_Colors[input.id].z+colorOffset.z, alpha);
+					output.color = float4(outputColor, alpha);
 				}
 				output.psize = buf_Sizes[input.id] + pointOffset; // need to be sending selected/deselected as values
 				

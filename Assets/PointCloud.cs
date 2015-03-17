@@ -4,7 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
-
 public class PointCloud : MonoBehaviour {
 	bool initialized = false;
 
@@ -19,6 +18,7 @@ public class PointCloud : MonoBehaviour {
 	private ComputeBuffer bufferNormals;
 	private ComputeBuffer bufferSizes;
 	private ComputeBuffer bufferSelected;
+	private ComputeBuffer bufferHighlighted;
 
 	private Vector4[] pos;
 	public Vector3[] verts;
@@ -30,6 +30,8 @@ public class PointCloud : MonoBehaviour {
 	private float[] sizes;
 	private int[] selected;
 	private List< List<int> > selectedHistory;
+	private int[] highlighted;
+	private int[] notHighlighted;
 	private List< List<string> > cloudAnnotations;
 	public List<string> annotations;
 	private List<GameObject> goAnnotations;
@@ -60,11 +62,11 @@ public class PointCloud : MonoBehaviour {
 	private Vector3 originalCenter = new Vector3();
 	private Vector3 currentCenterOffset = new Vector3();
 
-
-	public StartUpOptions startUpOptions;
 	private bool hasNormals = false;
 	private bool rgbUnitTransform = false;
 	private bool colored = false;
+
+	private string pointCloudFile;
 
 	private void preProcessFile(string fileName, ref Vector3 centerOffset, ref float scale) {
 		int count = 0; 
@@ -118,13 +120,14 @@ public class PointCloud : MonoBehaviour {
 
 	// Use this for initialization
 	public void init (string fileName) {
+		pointCloudFile = Application.dataPath+"/PointClouds/"+fileName+".csv";
+
 		goAnnotation = new List<GUIText>();
-
-
+		
 		// calculate center offset (to make sure it's at 0,0,0) and scale to make sure it's possible to interact with it
 		Vector3 centerOffset = new Vector3();
 		float scale = 1.0F;
-		preProcessFile(fileName, ref centerOffset, ref scale);
+		preProcessFile(pointCloudFile, ref centerOffset, ref scale);
 
 		Debug.Log("vertexCount: "+vertexCount);
 		Debug.Log("centerOffset: "+centerOffset);
@@ -142,6 +145,8 @@ public class PointCloud : MonoBehaviour {
 		sizes = new float[vertexCount];
 		selected = new int[vertexCount];
 		selectedHistory = new List< List<int> >();
+		highlighted = new int[vertexCount];
+		notHighlighted = new int[vertexCount];
 		colorsOffset = new Vector3[vertexCount];
 		cloudAnnotations = new List< List<string> >();
 		annotations = new List<string>();
@@ -155,7 +160,7 @@ public class PointCloud : MonoBehaviour {
 		pos[0] = new Vector4(0.0f,0,0,0);
 		pos[1] = new Vector4(0.0f,0,0,0);
 
-		FileStream fileStream = File.OpenRead(fileName);
+		FileStream fileStream = File.OpenRead(pointCloudFile);
 		if (fileStream == null)
 			return;
 
@@ -218,6 +223,8 @@ public class PointCloud : MonoBehaviour {
 			colorsOffset[lineCount] = new Vector3(0.0F,0.0F,0.0F);
 			sizes[lineCount] = selectedSize;
 			selected[lineCount] = 1;
+			notHighlighted[lineCount] = 0;
+			highlighted[lineCount] = 2;
 			cloudAnnotations.Add(new List<string>());
 
 			center = center + verts[lineCount];
@@ -226,6 +233,29 @@ public class PointCloud : MonoBehaviour {
         }
 		center = center / vertexCount;
 		originalCenter = center;
+
+		if (GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().loadAnnotations)
+		{
+			foreach(string annotationFilename in GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().annotationNameList)
+			{
+				string annotationFullPath = Application.dataPath+@"/PointClouds/WithNormals/"+annotationFilename;
+				if(annotationFullPath.Contains(fileName))
+				{
+					System.IO.StreamReader loadAnnotationFile = new System.IO.StreamReader(annotationFullPath);
+					string annotation = loadAnnotationFile.ReadLine();		// Rewrite the first argument as the first line in the Annotation file will have the tag
+					string[] indexesInAnnotation = loadAnnotationFile.ReadLine().Split(',');
+					loadAnnotationFile.Close();
+					
+					foreach( string index in indexesInAnnotation ){
+						int num;
+						if (int.TryParse(index, out num))
+							highlighted[num] = 1;
+					}
+
+					break;
+				}
+			}
+		}
 		
 		ReleaseBuffers ();
 		
@@ -252,11 +282,14 @@ public class PointCloud : MonoBehaviour {
 		bufferSizes = new ComputeBuffer (vertexCount, 4);
 		bufferSizes.SetData (sizes);
 		material.SetBuffer ("buf_Sizes", bufferSizes);
-		
 
 		bufferSelected = new ComputeBuffer (vertexCount, 4);
 		bufferSelected.SetData (selected);
 		material.SetBuffer ("buf_Selected", bufferSelected);
+		
+		bufferHighlighted = new ComputeBuffer (vertexCount, 4);
+		bufferHighlighted.SetData (notHighlighted);
+		material.SetBuffer ("buf_Highlighted", bufferHighlighted);
 		
 		CenterPointCloud(center);
 
@@ -271,15 +304,15 @@ public class PointCloud : MonoBehaviour {
 		Debug.Log("max: "+max);
 		Debug.Log("size: "+size);
 
-
 		initialized = true;
 
-		if (startUpOptions.loadAnnotations){
-			foreach(string annotationFilename in startUpOptions.annotationNameList){
-				Annotate(@"loading",annotationFilename);
+		/*if (GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().loadAnnotations){
+			foreach(string annotationFilename in GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().annotationNameList){
+				string annotationFullPath = Application.dataPath+@"/PointClouds/WithNormals/"+annotationFilename;
+				if(annotationFullPath.Contains(fileName))
+					Annotate(annotationFilename,annotationFullPath);
 			}
-		}
-
+		}*/
 	}
 	
 	private void ReleaseBuffers() {
@@ -293,9 +326,10 @@ public class PointCloud : MonoBehaviour {
 		bufferColorOffset = null;
 		if (bufferSizes != null) bufferSizes.Release();
 		bufferSizes = null;
-
 		if (bufferSelected != null) bufferSelected.Release();
 		bufferSelected = null;
+		if (bufferHighlighted != null) bufferHighlighted.Release();
+		bufferHighlighted = null;
 	}
 	
 	void OnDisable() {
@@ -375,6 +409,15 @@ public class PointCloud : MonoBehaviour {
 		}
 		
 		bufferPos.SetData(pos);
+
+		if (Input.GetKeyDown (KeyCode.Tab)) 
+		{
+			bufferHighlighted.SetData (highlighted);
+		}
+		else if (Input.GetKeyUp (KeyCode.Tab)) 
+		{
+			bufferHighlighted.SetData (notHighlighted);
+		}
 
 		UpdateAnnotations();
 	}
@@ -472,6 +515,7 @@ public class PointCloud : MonoBehaviour {
 		bufferSizes.SetData (sizes);
 		bufferColorOffset.SetData (colorsOffset);
 		bufferSelected.SetData (selected);
+		bufferHighlighted.SetData (notHighlighted);
 	}
 
 	public void Undo()
@@ -617,6 +661,7 @@ public class PointCloud : MonoBehaviour {
 		bufferSizes.SetData (sizes);
 		bufferColorOffset.SetData (colorsOffset);
 		bufferSelected.SetData (selected);
+		bufferHighlighted.SetData (notHighlighted);
 		
 		return true;
 	}
@@ -662,6 +707,7 @@ public class PointCloud : MonoBehaviour {
 		bufferSizes.SetData (sizes);
 		bufferColorOffset.SetData (colorsOffset);
 		bufferSelected.SetData (selected);
+		bufferHighlighted.SetData (notHighlighted);
 		
 		return true;
 	}
@@ -708,6 +754,7 @@ public class PointCloud : MonoBehaviour {
 		bufferSizes.SetData (sizes);
 		bufferColorOffset.SetData (colorsOffset);
 		bufferSelected.SetData (selected);
+		bufferHighlighted.SetData (notHighlighted);
 		
 		return true;
 	}
@@ -748,7 +795,8 @@ public class PointCloud : MonoBehaviour {
 		bufferSizes.SetData (sizes);
 		bufferColorOffset.SetData (colorsOffset);
 		bufferSelected.SetData (selected);
-
+		bufferHighlighted.SetData (notHighlighted);
+		
 		return true;
 	}
 
@@ -961,6 +1009,7 @@ public class PointCloud : MonoBehaviour {
 		bufferSizes.SetData (sizes);
 		bufferColorOffset.SetData (colorsOffset);
 		bufferSelected.SetData (selected);
+		bufferHighlighted.SetData (notHighlighted);
 	}
 	
 	public void ResetAll()
@@ -993,7 +1042,7 @@ public class PointCloud : MonoBehaviour {
 		currentCenterOffset = new Vector3();
 	}
 
-	public void Annotate(string annotation, string loadAnnotationFromFilename = null)
+	public void Annotate(string annotation, string loadAnnotationFromFilename)
 	{
 		if(annotation == "" || separate || animating)
 			return;
@@ -1014,7 +1063,7 @@ public class PointCloud : MonoBehaviour {
 		} else {
 			selectedByIndex = new int[originalVerts.Length];
 
-			System.IO.StreamReader loadAnnotationFile = new System.IO.StreamReader(Application.dataPath+@"/Models/Annotations/"+loadAnnotationFromFilename);
+			System.IO.StreamReader loadAnnotationFile = new System.IO.StreamReader(loadAnnotationFromFilename);
 			annotation = loadAnnotationFile.ReadLine();		// Rewrite the first argument as the first line in the Annotation file will have the tag
 			string[] indexesInAnnotation = loadAnnotationFile.ReadLine().Split(',');
 			loadAnnotationFile.Close();
@@ -1061,7 +1110,7 @@ public class PointCloud : MonoBehaviour {
 
 
 		// Only do this if the annotation is being loaded from a file, otherwise we will repeat the annotation into another radonmly generated filename.
-		if (string.IsNullOrEmpty(loadAnnotationFromFilename)){
+		/*if (string.IsNullOrEmpty(loadAnnotationFromFilename)){
 			// Store subset of PC to annotation file
 			string annotationFileName = Application.dataPath+@"/Models/Annotations/"+modelName+@"_"+Path.GetRandomFileName().Substring(0,4)+@"_"+annotation+@".annotation.csv";
 			System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
@@ -1070,7 +1119,7 @@ public class PointCloud : MonoBehaviour {
 				annotationFile.Write (index + ",");
 			}
 			annotationFile.Close ();
-		}
+		}*/
 
 		if(resetAfterAnnotation)
 			ResetAll();

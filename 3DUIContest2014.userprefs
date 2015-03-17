@@ -1,16 +1,12 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\PointCloud.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\Resources\VertexPoints.shader">
     <Files>
-      <File FileName="Assets\ExperimentMenu.cs" Line="44" Column="30" />
-      <File FileName="Assets\VolumeSweep.cs" Line="253" Column="6" />
-      <File FileName="Assets\SlicenSwipe.cs" Line="431" Column="11" />
-      <File FileName="Assets\HSBColor.cs" Line="201" Column="36" />
-      <File FileName="Assets\Resources\VertexPoints.shader" Line="13" Column="65" />
-      <File FileName="Assets\LeapController.cs" Line="253" Column="61" />
-      <File FileName="Assets\Lasso.cs" Line="93" Column="39" />
-      <File FileName="Assets\Resources\PhongUserLight.shader" Line="208" Column="1" />
-      <File FileName="Assets\PointCloud.cs" Line="130" Column="1" />
+      <File FileName="Assets\StartUpOptions.cs" Line="1" Column="1" />
+      <File FileName="Assets\ExperimentMenu.cs" Line="75" Column="58" />
+      <File FileName="Assets\PointCloud.cs" Line="227" Column="30" />
+      <File FileName="Assets\AnnotationMenu.cs" Line="69" Column="4" />
+      <File FileName="Assets\Resources\VertexPoints.shader" Line="174" Column="25" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>

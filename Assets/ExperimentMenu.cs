@@ -72,7 +72,7 @@ public class ExperimentMenu : MonoBehaviour {
 				leapObject.init(selectedTechnique, selectedStrategy);
 
 				PointCloud pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
-				pointCloud.init(Application.dataPath+"/PointClouds/"+pointCloudStrings[selectedPointCloud]+".csv");
+				pointCloud.init(pointCloudStrings[selectedPointCloud]);
 			}
 		}
 	}

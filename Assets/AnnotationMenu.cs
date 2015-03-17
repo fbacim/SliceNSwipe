@@ -16,7 +16,6 @@ public class AnnotationMenu : MonoBehaviour {
 	int selectedIndex;
 	
 	int firstVisibleIndex = 0;
-
 	float timeLastChange = 0.0F;
 	
 	// Function to scroll through possible menu items array, looping back to start/end depending on direction of movement.
@@ -74,7 +73,7 @@ public class AnnotationMenu : MonoBehaviour {
 		
 		menuLocationSN = SpaceNavigator.Translation.z + SpaceNavigator.Rotation.Pitch() * 10;
 
-		Debug.Log(""+SpaceNavigator.Translation.y+"  "+Mathf.Abs( SpaceNavigator.Translation.z)+"  "+Mathf.Abs( SpaceNavigator.Rotation.Pitch()));
+		//Debug.Log(""+SpaceNavigator.Translation.y+"  "+Mathf.Abs( SpaceNavigator.Translation.z)+"  "+Mathf.Abs( SpaceNavigator.Rotation.Pitch()));
 
 		if (SpaceNavigator.Translation.y < -1.0 && timeSinceLastChange > 0.3) {
 			pointCloud.SelectAnnotation(selectedIndex-1);
@@ -93,10 +92,12 @@ public class AnnotationMenu : MonoBehaviour {
 		
 		if (Input.GetKeyDown (KeyCode.DownArrow)) {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "down");
+			timeLastChange = currentTime;
 		}
 		
 		if (Input.GetKeyDown (KeyCode.UpArrow)) {
 			selectedIndex = menuSelection(menuOptions, selectedIndex, "up");
+			timeLastChange = currentTime;
 		}	
 	}
 	
