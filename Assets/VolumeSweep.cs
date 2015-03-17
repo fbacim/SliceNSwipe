@@ -247,9 +247,10 @@ public class VolumeSweep {//}: MonoBehaviour {
 
 	public void RenderTransparentObjects()
 	{
-		if(selectionVolume != null && isEnabled)
+		if(selectionVolume != null && isEnabled && currentState != state.SELECT_IN_OUT)
 		{
 			selectionVolume.SetActive(true);
+			//selectionVolume.renderer.material.SetVector("_LightPosition",new Vector4(cameraTransform.position.x,cameraTransform.position.y,cameraTransform.position.z,1.0F));
 			for (int pass = 0; pass < selectionVolume.renderer.material.passCount; pass++)
 				if(selectionVolume.renderer.material.SetPass(pass))
 					Graphics.DrawMeshNow(selectionVolume.GetComponent<MeshFilter>().mesh,selectionVolume.transform.localToWorldMatrix);

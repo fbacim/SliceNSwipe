@@ -105,7 +105,18 @@ public class Lasso {//}: MonoBehaviour {
 		}
 		else if(currentState == state.DRAW && strategy != Strategy.PRECISE && !(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && filteredVelocity < lowVelocityThreshold)
 		{
-			currentState = state.SELECT_IN_OUT;
+			if(canSelect)
+			{
+				currentState = state.SELECT_IN_OUT;
+			}
+			else
+			{
+				pointCloud.TriggerSeparation(false,0);
+				currentState = state.NONE;
+				timeSinceLastStateChange = 0.0F;
+				Clear();
+				pointCloud.ResetSelected();
+			}
 		}
 
 		if(currentState == state.DRAW)

@@ -57,6 +57,7 @@ public class PointCloud : MonoBehaviour {
 
 	private bool hasNormals = false;
 	private bool rgbUnitTransform = false;
+	private bool colored = false;
 
 	private void preProcessFile(string fileName, ref Vector3 centerOffset, ref float scale) {
 		int count = 0; 
@@ -92,6 +93,8 @@ public class PointCloud : MonoBehaviour {
 
 				if(float.Parse(values[3]) > 1.0 || float.Parse(values[4]) > 1.0 || float.Parse(values[5]) > 1.0)
 					rgbUnitTransform = true;
+				if(float.Parse(values[3]) != float.Parse(values[4]) || float.Parse(values[3]) != float.Parse(values[5]) || float.Parse(values[4]) != float.Parse(values[5]))
+					colored = true;
 
 				count++;
 			}
@@ -165,10 +168,23 @@ public class PointCloud : MonoBehaviour {
 			                                       verts[lineCount].z);
 
 			//then colors
-			colors[lineCount] = new Vector4(float.Parse(values[3]) * (rgbUnitTransform ? 0.003921568627451F : 1F),
-			                                float.Parse(values[4]) * (rgbUnitTransform ? 0.003921568627451F : 1F),
-			                                float.Parse(values[5]) * (rgbUnitTransform ? 0.003921568627451F : 1F),
-			                                selectedAlpha);
+			if(colored)
+			{
+				colors[lineCount] = new Vector4(float.Parse(values[3]) * (rgbUnitTransform ? 0.003921568627451F : 1F),
+				                                float.Parse(values[4]) * (rgbUnitTransform ? 0.003921568627451F : 1F),
+				                                float.Parse(values[5]) * (rgbUnitTransform ? 0.003921568627451F : 1F),
+				                                selectedAlpha);
+			}
+			else
+			{
+				float t = (float.Parse(values[2])-min.z)/size.z;
+				HSBColor rainbowInterpolation = HSBColor.Lerp(new HSBColor(new Color(0.0f, 1.0f, 0.0f, 1.0f)), new HSBColor(new Color(1.0f, 0.0f, 1.0f, 1.0f)), t);
+				Color rainbowColor = rainbowInterpolation.ToColor();
+				colors[lineCount] = new Vector4(rainbowColor.r,
+				                                rainbowColor.b,
+				                                rainbowColor.g,
+				                                selectedAlpha);
+			}
 			originalColors[lineCount] = new Vector4(colors[lineCount].x,
 			                                        colors[lineCount].y,
 			                                        colors[lineCount].z,

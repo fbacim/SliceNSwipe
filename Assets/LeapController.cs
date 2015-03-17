@@ -245,7 +245,6 @@ public class LeapController : MonoBehaviour {
 	}
 
 	public void RenderTransparentObjects() {
-		Debug.Log(cameraTransform.position);
 		for(int i = 0; i < goHandList.Count; i++)
 		{
 			if(goHandList[i].activeSelf)
