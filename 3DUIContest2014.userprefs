@@ -4,13 +4,13 @@
     <Files>
       <File FileName="Assets\ExperimentMenu.cs" Line="44" Column="30" />
       <File FileName="Assets\VolumeSweep.cs" Line="253" Column="6" />
-      <File FileName="Assets\SlicenSwipe.cs" Line="442" Column="76" />
-      <File FileName="Assets\HSBColor.cs" Line="1" Column="1" />
+      <File FileName="Assets\SlicenSwipe.cs" Line="431" Column="11" />
+      <File FileName="Assets\HSBColor.cs" Line="201" Column="36" />
       <File FileName="Assets\Resources\VertexPoints.shader" Line="13" Column="65" />
       <File FileName="Assets\LeapController.cs" Line="253" Column="61" />
       <File FileName="Assets\Lasso.cs" Line="93" Column="39" />
-      <File FileName="Assets\Resources\PhongUserLight.shader" Line="93" Column="39" />
-      <File FileName="Assets\PointCloud.cs" Line="181" Column="18" />
+      <File FileName="Assets\Resources\PhongUserLight.shader" Line="208" Column="1" />
+      <File FileName="Assets\PointCloud.cs" Line="130" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>

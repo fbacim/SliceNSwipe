@@ -376,6 +376,7 @@ public class SlicenSwipe {
 			direction /= fingerPosition.Count-initialPosition;
 			//Debug.Log(direction.normalized);
 			//Debug.Log(Mathf.Abs(Vector3.Angle(slashPlane.normal,direction.normalized)));
+
 			Plane tmp = new Plane();
 			tmp.Set3Points(GameObject.Find("Camera").transform.position+GameObject.Find("Camera").transform.forward,
 			               GameObject.Find("Camera").transform.position,
@@ -383,11 +384,13 @@ public class SlicenSwipe {
 			//Debug.Log(tmp.normal);
 			//Debug.Log(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
 
+
 			pointCloud.SelectSide(slashPlane,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
 			pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
 			currentState = state.SELECT_SLASH;
 			timeSinceLastStateChange = 0.0F;
 		}
+
 
 		ProcessKeys ();
 
@@ -441,6 +444,7 @@ public class SlicenSwipe {
 	{
 		if(fingerHandTrailMesh != null && isEnabled && fingerHandTrail.activeSelf)
 		{
+
 			fingerHandTrail.SetActive(true);
 			for (int pass = 0; pass < fingerHandTrail.renderer.material.passCount; pass++)
 				if(fingerHandTrail.renderer.material.SetPass(pass))
