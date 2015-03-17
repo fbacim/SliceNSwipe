@@ -236,10 +236,11 @@ public class PointCloud : MonoBehaviour {
 
 		if (GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().loadAnnotations)
 		{
+			int annotationCount = 0;
 			foreach(string annotationFilename in GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().annotationNameList)
 			{
 				string annotationFullPath = Application.dataPath+@"/PointClouds/WithNormals/"+annotationFilename;
-				if(annotationFullPath.Contains(fileName))
+				if(annotationFullPath.Contains(fileName) && annotationCount++ == GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().selectedAnnotation)
 				{
 					System.IO.StreamReader loadAnnotationFile = new System.IO.StreamReader(annotationFullPath);
 					string annotation = loadAnnotationFile.ReadLine();		// Rewrite the first argument as the first line in the Annotation file will have the tag
