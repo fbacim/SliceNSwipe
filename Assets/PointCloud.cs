@@ -194,7 +194,7 @@ public class PointCloud : MonoBehaviour {
 			else
 			{
 				float t = (float.Parse(values[2])-min.z)/size.z;
-				HSBColor rainbowInterpolation = t <= 0.5 ? 
+				HSBColor rainbowInterpolation = t <= 0.5 ? //HSBColor.Lerp(new HSBColor(new Color(1.0f, 1.0f, 1.0f, 1.0f)), new HSBColor(new Color(0.0f, 0.0f, 1.0f, 1.0f)), t);//
 						HSBColor.Lerp(new HSBColor(new Color(1.0f, 0.0f, 0.0f, 1.0f)), new HSBColor(new Color(0.0f, 1.0f, 0.0f, 1.0f)), t * 2.0f) : 
 						HSBColor.Lerp(new HSBColor(new Color(0.0f, 1.0f, 0.0f, 1.0f)), new HSBColor(new Color(0.0f, 0.0f, 1.0f, 1.0f)), (t-0.5f) * 2.0f);
 				Color rainbowColor = rainbowInterpolation.ToColor();
