@@ -391,7 +391,6 @@ public class SlicenSwipe {
 			timeSinceLastStateChange = 0.0F;
 		}
 
-
 		ProcessKeys ();
 
 		// if the user wants to try rubber band again

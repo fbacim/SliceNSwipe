@@ -129,7 +129,9 @@ public class PointCloud : MonoBehaviour
 	// Use this for initialization
 	public void init (string fileName) 
 	{
-		pointCloudFile = Application.dataPath+"/PointClouds/"+fileName+".csv";
+		pointCloudFile = Application.dataPath+"/PointClouds/WithNormals/"+fileName+".csv";
+
+		Debug.Log (pointCloudFile);
 
 		goAnnotation = new List<GUIText>();
 		
@@ -144,7 +146,7 @@ public class PointCloud : MonoBehaviour
 		Debug.Log("min: "+min);
 		Debug.Log("max: "+max);
 		Debug.Log("size: "+size);
-		
+	
 		// vertex, color, selected, annotations arrays
 		verts = new Vector3[vertexCount];
 		originalVerts = new Vector3[vertexCount];
@@ -1061,38 +1063,24 @@ public class PointCloud : MonoBehaviour
 		currentCenterOffset = new Vector3();
 	}
 
-	public void Annotate(string annotation, string loadAnnotationFromFilename)
+	// The parameter is the name of the annotation that the user writes on screen
+	public void Annotate(string annotation)
 	{
-		if(annotation == "" || separate || animating)
-			return;
 
+		if(separate || animating)
+			return;
+		
 		Vector3 center = new Vector3();
 		int selectedCount = 0;
-
+		
 		if ( annotationsPerVertex.ContainsKey (annotation) ) {
 			annotationsPerVertex[annotation].Clear();
 		} else {
 			annotationsPerVertex[annotation] = new List<int>();
 		}
-
-
+		
 		int[] selectedByIndex;
-		if (string.IsNullOrEmpty (loadAnnotationFromFilename)) {
-			selectedByIndex = selected;
-		} else {
-			selectedByIndex = new int[originalVerts.Length];
-
-			System.IO.StreamReader loadAnnotationFile = new System.IO.StreamReader(loadAnnotationFromFilename);
-			annotation = loadAnnotationFile.ReadLine();		// Rewrite the first argument as the first line in the Annotation file will have the tag
-			string[] indexesInAnnotation = loadAnnotationFile.ReadLine().Split(',');
-			loadAnnotationFile.Close();
-
-			foreach( string index in indexesInAnnotation ){
-				int num;
-				if (int.TryParse(index, out num))
-					selectedByIndex[num] = 1;
-			}
-		}
+		selectedByIndex = selected;
 
 		// add annotation to all points that are selected
 		for (int i = 0; i < vertexCount; ++i)
@@ -1102,18 +1090,16 @@ public class PointCloud : MonoBehaviour
 				cloudAnnotations[i].Add(annotation);
 				center = center + originalVerts[i];
 				selectedCount++;
-
-				// Adding the index of the vertex in the annotation to the dictionary
-				if (string.IsNullOrEmpty(loadAnnotationFromFilename))
-					annotationsPerVertex[annotation].Add(i);
+				
+				annotationsPerVertex[annotation].Add(i);
 			}
 		}
 		// and to the list of annotations
 		if(!annotations.Contains(annotation))
 			annotations.Add(annotation);
-
+		
 		center = center / selectedCount;
-
+		
 		GameObject tmpGo = new GameObject("Annotation");
 		GUIText t = tmpGo.AddComponent<GUIText>();
 		t.text = annotation;
@@ -1126,23 +1112,23 @@ public class PointCloud : MonoBehaviour
 		o.useMainCamera = false;
 		o.cameraToUse = GameObject.Find("Camera").GetComponent<Camera>();
 		goAnnotations.Add(tmpGo);
+		
+		
+		string annotationFileName = pointCloudFile+@"_"+Path.GetRandomFileName().Substring(0,4)+@"_"+annotation+@".annotation.csv";
+		Debug.Log (annotationFileName);
 
-
-		// Only do this if the annotation is being loaded from a file, otherwise we will repeat the annotation into another radonmly generated filename.
-		/*if (string.IsNullOrEmpty(loadAnnotationFromFilename)){
-			// Store subset of PC to annotation file
-			string annotationFileName = Application.dataPath+@"/Models/Annotations/"+modelName+@"_"+Path.GetRandomFileName().Substring(0,4)+@"_"+annotation+@".annotation.csv";
-			System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
+		System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
 			annotationFile.WriteLine(annotation);
 			foreach (int index in annotationsPerVertex[annotation]) {
 				annotationFile.Write (index + ",");
 			}
 			annotationFile.Close ();
-		}*/
 
+		
 		if(resetAfterAnnotation)
 			ResetAll();
 	}
+
 
 	private void checkTaskCompletion()
 	{

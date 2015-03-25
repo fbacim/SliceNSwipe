@@ -24,9 +24,10 @@ public class ExperimentMenu : MonoBehaviour {
 			"Precise",  
 			"Both"};
 		
-		pointCloudStrings = new string[] {"NoNormals/LongHornBeetle", 
-			"NoNormals/QCAT_N3_Zebedee_color", 
-			"NoNormals/logo", 
+		pointCloudStrings = new string[] {
+//			"../NoNormals/LongHornBeetle", 
+//			"NoNormals/QCAT_N3_Zebedee_color", 
+//			"NoNormals/logo", 
 //			"NoNormals/210King_80k", 
 //			"NoNormals/CSite1_80k", 
 //			"NoNormals/CSite2_80k", 
@@ -36,21 +37,23 @@ public class ExperimentMenu : MonoBehaviour {
 //			"NoNormals/FSite6_80k", 
 //			"NoNormals/FSite7_80k", 
 //			"NoNormals/FSite8_80k", 
-			"NoNormals/Site20_80k", 
+//			"NoNormals/Site20_80k", 
 //			"NoNormals/GB_80k", 
-			"NoNormals/Lobby_80k", 
-			"WithNormals/LongHornBeetle", 
-			"WithNormals/210King_80k", 
-			"WithNormals/CSite1_80k", 
-			"WithNormals/CSite2_80k", 
-			"WithNormals/CSite3_80k", 
-			"WithNormals/CSite4_80k", 
-			"WithNormals/FSite5_80k", 
-			"WithNormals/FSite6_80k", 
-			"WithNormals/FSite7_80k", 
-			"WithNormals/FSite8_80k", 
-			"WithNormals/Site20_80k", 
-			"WithNormals/Lobby_80k"};
+//			"NoNormals/Lobby_80k", 
+			"LongHornBeetle", 
+//			"210King", 
+//			"CSite1", 
+//			"CSite2", 
+//			"CSite3", 
+			"CSite4", 
+//			"FSite5", 
+			"FSite6", 
+//			"FSite7", 
+			"FSite8", 
+			"Site20", 
+			"Lobby",
+			"Office2"
+		};
 	}
 	
 	// Update is called once per frame
