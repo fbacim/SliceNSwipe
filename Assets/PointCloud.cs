@@ -4,7 +4,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
-public class PointCloud : MonoBehaviour {
+public class PointCloud : MonoBehaviour 
+{
 	bool initialized = false;
 
 	public Material material;
@@ -32,6 +33,11 @@ public class PointCloud : MonoBehaviour {
 	private List< List<int> > selectedHistory;
 	private int[] highlighted;
 	private int[] notHighlighted;
+	private int highlightedCount;
+	public float hitPercent;
+	public float falseHitPercent;
+	public float minHitPercent = 0.95F;
+	public float maxFalseHitPercent = 0.05F;
 	private List< List<string> > cloudAnnotations;
 	public List<string> annotations;
 	private List<GameObject> goAnnotations;
@@ -68,7 +74,8 @@ public class PointCloud : MonoBehaviour {
 
 	private string pointCloudFile;
 
-	private void preProcessFile(string fileName, ref Vector3 centerOffset, ref float scale) {
+	private void preProcessFile(string fileName, ref Vector3 centerOffset, ref float scale) 
+	{
 		int count = 0; 
 		
 		// initialize min/max
@@ -114,12 +121,14 @@ public class PointCloud : MonoBehaviour {
 		vertexCount = count;
 	}
 
-	void Start () {
+	void Start () 
+	{
 
 	}
 
 	// Use this for initialization
-	public void init (string fileName) {
+	public void init (string fileName) 
+	{
 		pointCloudFile = Application.dataPath+"/PointClouds/"+fileName+".csv";
 
 		goAnnotation = new List<GUIText>();
@@ -250,7 +259,10 @@ public class PointCloud : MonoBehaviour {
 					foreach( string index in indexesInAnnotation ){
 						int num;
 						if (int.TryParse(index, out num))
+						{
 							highlighted[num] = 1;
+							highlightedCount++;
+						}
 					}
 
 					break;
@@ -316,7 +328,8 @@ public class PointCloud : MonoBehaviour {
 		}*/
 	}
 	
-	private void ReleaseBuffers() {
+	private void ReleaseBuffers() 
+	{
 		if (bufferPoints != null) bufferPoints.Release();
 		bufferPoints = null;
 		if (bufferPos != null) bufferPos.Release();
@@ -333,12 +346,14 @@ public class PointCloud : MonoBehaviour {
 		bufferHighlighted = null;
 	}
 	
-	void OnDisable() {
+	void OnDisable() 
+	{
 		ReleaseBuffers();
 	}
 
 	// mode 0 cancel 1 left 2 right
-	public void TriggerSeparation(bool s, int mode) {
+	public void TriggerSeparation(bool s, int mode) 
+	{
 		// animation
 		// cut event, for now using slash but should be something else
 		if(useSeparation && s != separate && !animating)
@@ -350,7 +365,8 @@ public class PointCloud : MonoBehaviour {
 	}
 
 	// Update is called once per frame
-	void Update () {
+	void Update () 
+	{
 		if (!initialized)
 			return;
 
@@ -421,6 +437,8 @@ public class PointCloud : MonoBehaviour {
 		}
 
 		UpdateAnnotations();
+
+		checkTaskCompletion();
 	}
 
 
@@ -1124,6 +1142,25 @@ public class PointCloud : MonoBehaviour {
 
 		if(resetAfterAnnotation)
 			ResetAll();
+	}
+
+	private void checkTaskCompletion()
+	{
+		int hits = 0;
+		int falseHits = 0;
+		for (int i = 0; i < vertexCount; ++i)
+		{
+			if(selected[i] == 1 && highlighted[i] == 1)
+			{
+				hits++;
+			}
+			else if(selected[i] == 1)
+			{
+				falseHits++;
+			}
+		}
+		hitPercent = hits / (float)highlightedCount;
+		falseHitPercent = falseHits / (float)highlightedCount;
 	}
 
 	public Vector3 Size()

@@ -111,10 +111,6 @@ public class LeapController : MonoBehaviour {
 		FingerList fl = frame.Fingers;
 		GestureList gl = frame.Gestures(controller.Frame(1));
 
-		for(int i = 0; i < gl.Count; i++) {
-			//Debug.Log("["+gl[i].DurationSeconds+"] "+gl[i].Type+" -> "+gl[i].State);
-		}
-
 		//Debug.Log("<"+frame.InteractionBox.Width+", "+frame.InteractionBox.Height+", "+frame.InteractionBox.Depth+">  "+frame.InteractionBox.Center); // +"   "+pointCloud.Size()
 		float maxd = Mathf.Max(new float[]{frame.InteractionBox.Width, frame.InteractionBox.Height, frame.InteractionBox.Depth});
 
@@ -197,7 +193,29 @@ public class LeapController : MonoBehaviour {
 	
 	void OnGUI ()
 	{
-		if(!techniqueMenuActive)
+		GUIStyle style = new GUIStyle(GUI.skin.box);
+		style.fontSize = 20;
+		style.fontStyle = FontStyle.Bold;
+		if(pointCloud.hitPercent >= 1.0F)
+			style.normal.textColor = Color.green;
+		else if(pointCloud.hitPercent >= pointCloud.minHitPercent)
+			style.normal.textColor = Color.yellow;
+		else
+			style.normal.textColor = Color.red;
+		GUI.Label (new Rect (UnityEngine.Screen.width-205, 5, 200, 30), "Selection hits", style);
+
+		style = new GUIStyle(GUI.skin.box);
+		style.fontSize = 20;
+		style.fontStyle = FontStyle.Bold;
+		if(pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent/2.0F)
+			style.normal.textColor = Color.green;
+		else if(pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent)
+			style.normal.textColor = Color.yellow;
+		else
+			style.normal.textColor = Color.red;
+		GUI.Label (new Rect (UnityEngine.Screen.width-205, 35, 200, 30), "Extra points", style);
+
+		/*if(!techniqueMenuActive)
 		{
 			string name;
 			if(currentTechnique == technique.SLICENSWIPE)
@@ -241,7 +259,7 @@ public class LeapController : MonoBehaviour {
 			GUI.backgroundColor = techniqueQuadrant == technique.NONE ? Color.yellow : c;
 			GUI.Label (new Rect (UnityEngine.Screen.width/2, UnityEngine.Screen.height/2, UnityEngine.Screen.width/2, UnityEngine.Screen.height/2), "Free Mode", techniqueQuadrant == technique.NONE ? selectedStyle : style);
 			//GUI.backgroundColor = c;
-		}
+		}*/
 	}
 
 	public void RenderTransparentObjects() {
