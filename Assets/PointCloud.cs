@@ -1113,8 +1113,7 @@ public class PointCloud : MonoBehaviour
 		o.cameraToUse = GameObject.Find("Camera").GetComponent<Camera>();
 		goAnnotations.Add(tmpGo);
 		
-		
-		string annotationFileName = pointCloudFile+@"_"+Path.GetRandomFileName().Substring(0,4)+@"_"+annotation+@".annotation.csv";
+		string annotationFileName = pointCloudFile.Remove(pointCloudFile.Length-4)+@"_"+annotation+@"_"+Path.GetRandomFileName().Substring(0,2)+@".annotation.csv";
 		Debug.Log (annotationFileName);
 
 		System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
