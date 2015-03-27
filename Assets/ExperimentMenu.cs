@@ -1,9 +1,15 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 
 public class ExperimentMenu : MonoBehaviour {
+	public bool showMenu;
+
 	bool init = false;
+
+	enum technique { SLICENSWIPE=0, VOLUMESWEEP=1, LASSO=2, NONE=3, SIZE=4 };
+	enum Strategy { FAST, PRECISE, BOTH };
 
 	int selectedTechnique = 0;
 	int selectedStrategy = 0;
@@ -15,7 +21,7 @@ public class ExperimentMenu : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-		
+
 		techniqueStrings  = new string[] {"Slice'n'Swipe", 
 			"Volume Sweeper", 
 			"Lasso"};
@@ -54,6 +60,31 @@ public class ExperimentMenu : MonoBehaviour {
 			"Lobby",
 			"Office2"
 		};
+
+		if (!showMenu) {
+			using (StreamReader reader = new StreamReader("task.csv")) {
+				string line = reader.ReadLine ();
+				string[] values = line.Split (',');
+
+				if (values[0].Equals("Slice'n'Swipe")) selectedTechnique = (int) technique.SLICENSWIPE;
+				else if(values[0].Equals("Volume Sweeper")) selectedTechnique = (int) technique.VOLUMESWEEP;
+				else if(values[0].Equals("Lasso")) selectedTechnique = (int) technique.LASSO;
+				else selectedTechnique = (int) technique.SLICENSWIPE;
+
+				if (values[1].Equals("Fast")) selectedStrategy = (int) Strategy.FAST;
+				else if(values[1].Equals("Precise")) selectedStrategy = (int) Strategy.PRECISE;
+				else if(values[1].Equals("Both")) selectedStrategy = (int) Strategy.BOTH;
+				else selectedStrategy = (int) Strategy.FAST;
+
+				LeapController leapObject = GameObject.Find ("Leap").GetComponent<LeapController> ();
+				leapObject.init (selectedTechnique, selectedStrategy);
+
+				PointCloud pointCloud = GameObject.Find ("Camera").GetComponent<PointCloud> ();
+				pointCloud.init (values[2],values[3]);
+
+				init = true;
+			}
+		}
 	}
 	
 	// Update is called once per frame
@@ -62,7 +93,8 @@ public class ExperimentMenu : MonoBehaviour {
 	}
 
 	void OnGUI () {
-		if(!init)
+
+		if(!init && showMenu)
 		{
 			selectedTechnique  = GUI.SelectionGrid(new Rect (1.0F*Screen.width/4.0F-100.0F, Screen.height/2.0F-35*techniqueStrings.Length/2, 200, 35*techniqueStrings.Length),selectedTechnique, techniqueStrings, 1);
 			selectedStrategy   = GUI.SelectionGrid(new Rect (2.0F*Screen.width/4.0F-100.0F, Screen.height/2.0F-35*strategyStrings.Length/2, 200, 35*strategyStrings.Length), selectedStrategy, strategyStrings, 1);
@@ -78,5 +110,6 @@ public class ExperimentMenu : MonoBehaviour {
 				pointCloud.init(pointCloudStrings[selectedPointCloud]);
 			}
 		}
+
 	}
 }

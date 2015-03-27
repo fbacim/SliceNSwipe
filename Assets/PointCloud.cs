@@ -4,6 +4,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
+
+
+
 public class PointCloud : MonoBehaviour 
 {
 	bool initialized = false;
@@ -131,7 +134,7 @@ public class PointCloud : MonoBehaviour
 	}
 
 	// Use this for initialization
-	public void init (string fileName) 
+	public void init (string fileName, string annotationFileName=null) 
 	{
 		pointCloudFile = Application.dataPath+"/PointClouds/WithNormals/"+fileName+".csv";
 
@@ -249,7 +252,22 @@ public class PointCloud : MonoBehaviour
 		center = center / vertexCount;
 		originalCenter = center;
 
-		if (GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().loadAnnotations)
+		if (annotationFileName!=null) {
+			System.IO.StreamReader loadAnnotationFile = new System.IO.StreamReader(annotationFileName);
+			string annotation = loadAnnotationFile.ReadLine();		// Rewrite the first argument as the first line in the Annotation file will have the tag
+			string[] indexesInAnnotation = loadAnnotationFile.ReadLine().Split(',');
+			loadAnnotationFile.Close();
+			
+			foreach( string index in indexesInAnnotation ){
+				int num;
+				if (int.TryParse(index, out num))
+				{
+					highlighted[num] = 1;
+					highlightedCount++;
+				}
+			}
+		}
+		else if (GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().loadAnnotations)
 		{
 			int annotationCount = 0;
 			foreach(string annotationFilename in GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().annotationNameList)
