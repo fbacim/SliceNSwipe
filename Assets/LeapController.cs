@@ -21,11 +21,6 @@ public class LeapController : MonoBehaviour {
 	PointCloud pointCloud;
 	GUIText annotationTextInput;
 
-	float fingerAvg = 0.0F;
-
-	bool techniqueMenuActive = false;
-	technique techniqueQuadrant = technique.VOLUMESWEEP;
-
 	// Use this for initialization
 	void Start () {
 		controller = new Leap.Controller();
@@ -56,17 +51,14 @@ public class LeapController : MonoBehaviour {
 		if (selectedTechnique == (int)technique.SLICENSWIPE) {
 			slicenSwipe = new SlicenSwipe (selectedStrategy);
 			currentTechnique = technique.SLICENSWIPE;
-			techniqueQuadrant = technique.SLICENSWIPE;
 		}
 		else if (selectedTechnique == (int)technique.VOLUMESWEEP) {
 			volumeSweep = new VolumeSweep(selectedStrategy);
 			currentTechnique = technique.VOLUMESWEEP;
-			techniqueQuadrant = technique.VOLUMESWEEP;
 		}
 		else if (selectedTechnique == (int)technique.LASSO) {
 			lasso = new Lasso(selectedStrategy);
 			currentTechnique = technique.LASSO;
-			techniqueQuadrant = technique.LASSO;
 		}
 		else {
 			return;
@@ -120,20 +112,21 @@ public class LeapController : MonoBehaviour {
 
 		for(int i = 0; (i < hl.Count && i < goHandList.Count); i++)
 		{
+			//if(hl[i].is)
 			Vector3 position = new Vector3();
 			// TRANSFORMING FINGER POSITION TO MATCH POINT CLOUD SIZE
 			// normalize position of fingers, then multiply by magnitude of point cloud size vector adjusted by ratio of interaction box sizes
-			position.x =   ((hl[0].PalmPosition.x - frame.InteractionBox.Center.x) / frame.InteractionBox.Width ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Width/maxd));
-			position.y =   ((hl[0].PalmPosition.y - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
-			position.z = -(((hl[0].PalmPosition.z - frame.InteractionBox.Center.z) / frame.InteractionBox.Depth ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Depth/maxd)));
+			position.x =   ((hl[i].PalmPosition.x - frame.InteractionBox.Center.x) / frame.InteractionBox.Width ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Width/maxd));
+			position.y =   ((hl[i].PalmPosition.y - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
+			position.z = -(((hl[i].PalmPosition.z - frame.InteractionBox.Center.z) / frame.InteractionBox.Depth ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Depth/maxd)));
 			// rotate position to match camera
 			Quaternion cameraRotation = cameraTransform.rotation;
 			position = cameraRotation * position;
 			//Debug.Log("["+Time.time+"] hand["+i+"]: "+position);
-			goHandList[i].SetActive(true);
-			goHandList[i].transform.position = position;
-			goHandList[i].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
-			goHandList[i].renderer.enabled = false;
+			goHandList[System.Convert.ToInt32(hl[i].IsRight)].SetActive(true);
+			goHandList[System.Convert.ToInt32(hl[i].IsRight)].transform.position = position;
+			goHandList[System.Convert.ToInt32(hl[i].IsRight)].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
+			goHandList[System.Convert.ToInt32(hl[i].IsRight)].renderer.enabled = false;
 		}
 
 		// update finger renderer
@@ -142,29 +135,25 @@ public class LeapController : MonoBehaviour {
 
 		for(int i = 0; (i < fl.Count && i < goFingerList.Count); i++)
 		{
+			Finger f = fl[i];
+
 			Vector3 position = new Vector3();
 			// TRANSFORMING FINGER POSITION TO MATCH POINT CLOUD SIZE
 			// normalize position of fingers, then multiply by magnitude of point cloud size vector adjusted by ratio of interaction box sizes
-			position.x =   ((fl[i].TipPosition.x - frame.InteractionBox.Center.x) / frame.InteractionBox.Width ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Width/maxd));
-			position.y =   ((fl[i].TipPosition.y - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
-			position.z = -(((fl[i].TipPosition.z - frame.InteractionBox.Center.z) / frame.InteractionBox.Depth ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Depth/maxd)));
+			position.x =   ((f.TipPosition.x - frame.InteractionBox.Center.x) / frame.InteractionBox.Width ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Width/maxd));
+			position.y =   ((f.TipPosition.y - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
+			position.z = -(((f.TipPosition.z - frame.InteractionBox.Center.z) / frame.InteractionBox.Depth ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Depth/maxd)));
 			// rotate position to match camera
 			Quaternion cameraRotation = cameraTransform.rotation;
 			position = cameraRotation * position;
 			//Debug.Log("["+Time.time+"] finger["+i+"]: "+position);
-			goFingerList[i].SetActive(true);
-			goFingerList[i].transform.position = position;
-			goFingerList[i].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
-			goFingerList[i].renderer.enabled = false;
-		}
+			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].SetActive(true);
+			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].transform.position = position;
+			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
+			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].renderer.enabled = false;
 
-		fingerAvg = fingerAvg * 0.9F + fl.Count * 0.1F;
-		//Debug.Log(fingerAvg);
-		
-		// TRANSFORMING HAND POSITION TO MATCH POINT CLOUD SIZE
-		Vector3 p = new Vector3();
-		p.x =   ((hl[0].PalmPosition.x - frame.InteractionBox.Center.x) / frame.InteractionBox.Width ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Width/maxd));
-		p.y =   ((hl[0].PalmPosition.y - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
+			Debug.Log("finger["+i+";"+((int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight))+"]: "+f.Type()+"  -> "+f.IsValid+"  -> "+f.IsExtended+"  -> "+f.IsFinger+"  -> "+f.IsTool+"  -> "+f.TimeVisible);
+		}
 		
 		bool[] techniqueLock = new bool[4]; // 3 techniques + none
 		if(slicenSwipe != null) 
@@ -214,52 +203,6 @@ public class LeapController : MonoBehaviour {
 		else
 			style.normal.textColor = Color.red;
 		GUI.Label (new Rect (UnityEngine.Screen.width-205, 35, 200, 30), "Extra points", style);
-
-		/*if(!techniqueMenuActive)
-		{
-			string name;
-			if(currentTechnique == technique.SLICENSWIPE)
-				name = "Slice\'n\'Swipe";
-			else if(currentTechnique == technique.VOLUMESWEEP)
-				name = "Bubble";
-			else if(currentTechnique == technique.LASSO)
-				name = "Lasso";
-	        else
-		        name = "Free Mode";
-			GUIStyle style = new GUIStyle(GUI.skin.box);
-			style.fontSize = 20;
-			style.fontStyle = FontStyle.Bold;
-
-			GUI.Label (new Rect (UnityEngine.Screen.width-205, 5, 200, 30), name, style);
-		}
-		else
-		{
-			GUIStyle style = new GUIStyle(GUI.skin.box);
-			style.fontSize = 40;
-			style.fontStyle = FontStyle.Bold;
-			style.alignment = TextAnchor.MiddleCenter;
-
-			GUIStyle selectedStyle = new GUIStyle(GUI.skin.box);
-			selectedStyle.fontSize = 40;
-			selectedStyle.fontStyle = FontStyle.Bold;
-			selectedStyle.alignment = TextAnchor.MiddleCenter;
-			selectedStyle.normal.textColor = Color.black;
-			selectedStyle.normal.background = new Texture2D(1, 1);
-			selectedStyle.normal.background.SetPixel(1,1,Color.yellow);
-			selectedStyle.normal.background.Apply();
-
-			Color c = GUI.backgroundColor;
-
-			GUI.backgroundColor = techniqueQuadrant == technique.SLICENSWIPE ? Color.yellow : c;
-			GUI.Label (new Rect (0, 0, UnityEngine.Screen.width/2, UnityEngine.Screen.height/2), "Slice'n'Swipe", techniqueQuadrant == technique.SLICENSWIPE ? selectedStyle : style);
-			GUI.backgroundColor = techniqueQuadrant == technique.VOLUMESWEEP ? Color.yellow : c;
-			GUI.Label (new Rect (UnityEngine.Screen.width/2, 0, UnityEngine.Screen.width/2, UnityEngine.Screen.height/2), "Bubble", techniqueQuadrant == technique.VOLUMESWEEP ? selectedStyle : style);
-			GUI.backgroundColor = techniqueQuadrant == technique.LASSO ? Color.yellow : c;
-			GUI.Label (new Rect (0, UnityEngine.Screen.height/2, UnityEngine.Screen.width/2, UnityEngine.Screen.height/2), "Lasso", techniqueQuadrant == technique.LASSO ? selectedStyle : style);
-			GUI.backgroundColor = techniqueQuadrant == technique.NONE ? Color.yellow : c;
-			GUI.Label (new Rect (UnityEngine.Screen.width/2, UnityEngine.Screen.height/2, UnityEngine.Screen.width/2, UnityEngine.Screen.height/2), "Free Mode", techniqueQuadrant == technique.NONE ? selectedStyle : style);
-			//GUI.backgroundColor = c;
-		}*/
 	}
 
 	public void RenderTransparentObjects() {
