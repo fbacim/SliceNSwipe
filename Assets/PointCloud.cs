@@ -74,6 +74,10 @@ public class PointCloud : MonoBehaviour
 
 	private string pointCloudFile;
 
+	public int steps = 0;
+	public int mistakes = 0;
+	public DateTime startTime;
+
 	private void preProcessFile(string fileName, ref Vector3 centerOffset, ref float scale) 
 	{
 		int count = 0; 
@@ -251,6 +255,7 @@ public class PointCloud : MonoBehaviour
 			foreach(string annotationFilename in GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().annotationNameList)
 			{
 				string annotationFullPath = Application.dataPath+@"/PointClouds/WithNormals/"+annotationFilename;
+
 				if(annotationFullPath.Contains(fileName) && annotationCount++ == GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().selectedAnnotation)
 				{
 					System.IO.StreamReader loadAnnotationFile = new System.IO.StreamReader(annotationFullPath);
@@ -320,7 +325,7 @@ public class PointCloud : MonoBehaviour
 		Debug.Log("size: "+size);
 
 		initialized = true;
-
+		startTime = DateTime.Now ;
 		/*if (GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().loadAnnotations){
 			foreach(string annotationFilename in GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().annotationNameList){
 				string annotationFullPath = Application.dataPath+@"/PointClouds/WithNormals/"+annotationFilename;
@@ -363,6 +368,9 @@ public class PointCloud : MonoBehaviour
 			animating = true;
 			animationStartTime = Time.timeSinceLevelLoad;
 			separationMode = mode;
+
+			steps++;
+
 		}
 	}
 
@@ -582,6 +590,8 @@ public class PointCloud : MonoBehaviour
 		selectedCenter = selectedCenter / selectedCount;
 		
 		CenterPointCloud(selectedCenter);
+
+		mistakes++;
 
 	}
 
@@ -1114,18 +1124,23 @@ public class PointCloud : MonoBehaviour
 		goAnnotations.Add(tmpGo);
 		
 		string annotationFileName = pointCloudFile.Remove(pointCloudFile.Length-4)+@"_"+annotation+@"_"+Path.GetRandomFileName().Substring(0,2)+@".annotation.csv";
-		Debug.Log (annotationFileName);
+
+		DateTime endTime = DateTime.Now;
+		TimeSpan ts = endTime - startTime;
 
 		System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
-			annotationFile.WriteLine(annotation);
-			foreach (int index in annotationsPerVertex[annotation]) {
-				annotationFile.Write (index + ",");
-			}
-			annotationFile.Close ();
+		annotationFile.WriteLine(annotation+@","+steps+@","+mistakes+@","+ts.TotalSeconds);
+		foreach (int index in annotationsPerVertex[annotation]) {
+			annotationFile.Write (index + ",");
+		}
+		annotationFile.Close ();
 
 		
-		if(resetAfterAnnotation)
-			ResetAll();
+		if (resetAfterAnnotation) {
+			ResetAll ();
+			steps = 0;
+			mistakes = 0;
+		}
 	}
 
 
