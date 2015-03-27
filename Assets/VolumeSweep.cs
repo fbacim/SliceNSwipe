@@ -82,17 +82,30 @@ public class VolumeSweep {//}: MonoBehaviour {
 		float currentTime = Time.timeSinceLevelLoad;
 		float timeSinceLastUpdate = currentTime - timeLastUpdate;
 		timeLastUpdate = currentTime;
-		
 		timeSinceLastClickCompleted += timeSinceLastUpdate;
-		if(timeSinceLastClickCompleted < 0.5F) return false; // avoid detecting two clicks in one
-		
+		if(timeSinceLastClickCompleted < 0.5F) 
+			return false; // avoid detecting two clicks in one
 		timeSinceLastStateChange += timeSinceLastUpdate;
+
+		// get reference to the index and thumb fingers
+		FingerList indexFingers = frame.Fingers.FingerType(Finger.FingerType.TYPE_INDEX);
+		Finger indexFinger = null;
+		if(indexFingers.Count > 0)
+		{
+			indexFinger = (indexFingers[0].Hand.IsRight || indexFingers.Count == 1) ? indexFingers[0] : indexFingers[1]; // right hand is preferred, but left is used if right hand is not detected.
+		}
+		FingerList thumbFingers = frame.Fingers.FingerType(Finger.FingerType.TYPE_THUMB);
+		Finger thumbFinger = null;
+		if(thumbFingers.Count > 0)
+		{
+			thumbFinger = (thumbFingers[0].Hand == indexFinger.Hand) ? thumbFingers[0] : thumbFingers[1];
+		}
 
 		// if there are fingers in the current frame, add them to the local structures
 		if(frame.Fingers.Count > 0)
 		{
-			fingerPosition.Add(goFingerList[0].transform.position);
-			handPosition.Add(goHandList[0].transform.position);
+			fingerPosition.Add(goFingerList[1+5*System.Convert.ToInt32(indexFinger.Hand.IsRight)].transform.position);
+			handPosition.Add(goHandList[System.Convert.ToInt32(indexFinger.Hand.IsRight)].transform.position);
 			fingerPositionTime.Add(currentTime);
 
 			while(fingerPosition.Count > 60)
@@ -103,15 +116,13 @@ public class VolumeSweep {//}: MonoBehaviour {
 			}
 		}
 		
-		HandList hl = frame.Hands;
-		FingerList fl = frame.Fingers;
-		
-		float scalarVelocity;
+		// calculate velocity
+		float scalarVelocity;// = fl[0].TipVelocity.Magnitude; 
 		float filteredVelocity;
-		if(fl.Count > 0 && fl[0].TimeVisible > 0.2)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
+		if(indexFinger != null && indexFinger.TimeVisible > 0.2)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
 		{
-			scalarVelocity = fl[0].TipVelocity.Magnitude;
-			filteredVelocity = 0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
+			scalarVelocity = indexFinger.TipVelocity.Magnitude;
+			filteredVelocity = scalarVelocity;//0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
 		}
 		else
 		{
@@ -120,13 +131,12 @@ public class VolumeSweep {//}: MonoBehaviour {
 			if(currentState != state.SELECT_IN_OUT && !(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
 			{
 				currentState = state.NONE;
-				Clear();
 			}
 		}
 		lastScalarVelocity = scalarVelocity;
 		
 		// change state to moving finger (initial state) if there are two fingers 
-		if(currentState == state.NONE && hl.Count >= 1 && fl.Count >= 2) 
+		if(currentState == state.NONE && thumbFinger != null && indexFinger != null) 
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.MOVING_FINGER;
@@ -134,12 +144,12 @@ public class VolumeSweep {//}: MonoBehaviour {
 			updateCountSinceMovingSlashStarted = 0;
 		}
 		// if moving fingers, update volume object position and size
-		else if(currentState == state.MOVING_FINGER && hl.Count >= 1 && fl.Count >= 2) 
+		else if(currentState == state.MOVING_FINGER && thumbFinger != null && indexFinger != null) 
 		{
 			// update selection volume position
-			selectionVolume.transform.position = (goFingerList[0].transform.position+goFingerList[1].transform.position)/2.0F;
+			selectionVolume.transform.position = (goFingerList[5*System.Convert.ToInt32(thumbFinger.Hand.IsRight)].transform.position+goFingerList[1+5*System.Convert.ToInt32(indexFinger.Hand.IsRight)].transform.position)/2.0F;
 			// radius of the bubble is determined by the distance between the two fingers
-			float distance = Vector3.Distance(goFingerList[0].transform.position,goFingerList[1].transform.position);
+			float distance = Vector3.Distance(goFingerList[5*System.Convert.ToInt32(thumbFinger.Hand.IsRight)].transform.position,goFingerList[1+5*System.Convert.ToInt32(indexFinger.Hand.IsRight)].transform.position);
 			float selectionVolumeScale = distance;
 			selectionVolume.transform.localScale = new Vector3(selectionVolumeScale,selectionVolumeScale,selectionVolumeScale);
 
@@ -154,7 +164,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 			// trigger separation of two volume parts
 			pointCloud.TriggerSeparation(true,0);
 
-			if(hl.Count >= 1 && fl.Count >= 1)
+			if(indexFinger != null)
 			{
 				// check finger velocity against velocity threshold for selection of side in swipe phase
 				if(filteredVelocity > velocityThreshold)

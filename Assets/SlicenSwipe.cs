@@ -94,39 +94,39 @@ public class SlicenSwipe {
 		
 		needsClear = true;
 
-		// calculate how much time has passed since last update
+		// calculate how much time has passed since last updates
 		float currentTime = Time.timeSinceLevelLoad;
 		float timeSinceLastUpdate = currentTime - timeLastUpdate;
 		timeLastUpdate = currentTime;
-
-		timeSinceLastClickCompleted += timeSinceLastUpdate;
-		if(timeSinceLastClickCompleted < 0.5F) return locked; // avoid detecting two clicks in one
-
 		timeSinceLastStateChange += timeSinceLastUpdate;
-		
 		if(currentState == state.MOVING_CUT || currentState == state.MOVING_SELECT)
 			updateCountSinceMovingSlashStarted++;
+		timeSinceLastClickCompleted += timeSinceLastUpdate;
+		if(timeSinceLastClickCompleted < 0.5F) 
+			return locked; // avoid detecting two clicks in one
 
 		// get reference to the index finger
 		FingerList indexFingers = frame.Fingers.FingerType(Finger.FingerType.TYPE_INDEX);
 		Finger indexFinger = null;
-		GameObject handObject = null;
-		GameObject fingerObject = null;
+		GameObject originObject = null;
+		GameObject tipObject = null;
 		if(indexFingers.Count > 0)
 		{
 			indexFinger = (indexFingers[0].Hand.IsRight || indexFingers.Count == 1) ? indexFingers[0] : indexFingers[1]; // right hand is preferred, but left is used if right hand is not detected.
-			handObject = goHandList[System.Convert.ToInt32(indexFinger.Hand.IsRight)];
-			fingerObject = goFingerList[1+5*System.Convert.ToInt32(indexFinger.Hand.IsRight)];
+			originObject = goHandList[System.Convert.ToInt32(indexFinger.Hand.IsRight)];
+			tipObject = goFingerList[1+5*System.Convert.ToInt32(indexFinger.Hand.IsRight)];
 		}
 
-		UpdateFeedbackObjects(indexFinger, handObject, fingerObject);
+		// update all the trail objects
+		UpdateFeedbackObjects(indexFinger, originObject, tipObject);
 
+		// calculate velocity
 		float scalarVelocity;// = fl[0].TipVelocity.Magnitude; 
 		float filteredVelocity;
 		if(indexFinger != null && indexFinger.TimeVisible > 0.2)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
 		{
 			scalarVelocity = indexFinger.TipVelocity.Magnitude;
-			filteredVelocity = 0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
+			filteredVelocity = scalarVelocity;//0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
 		}
 		else
 		{
@@ -138,7 +138,8 @@ public class SlicenSwipe {
 			}
 		}
 		lastScalarVelocity = scalarVelocity;
-		
+
+		// strategy specific code
 		if(strategy != Strategy.FAST)
 		{
 			if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
@@ -282,7 +283,7 @@ public class SlicenSwipe {
 		return locked;
 	}
 	
-	public void UpdateFeedbackObjects(Finger indexFinger, GameObject handObject, GameObject fingerObject)
+	public void UpdateFeedbackObjects(Finger indexFinger, GameObject originObject, GameObject tipObject)
 	{
 		if(indexFinger == null)
 		{
@@ -301,8 +302,8 @@ public class SlicenSwipe {
 
 		float currentTime = Time.timeSinceLevelLoad;
 		// update finger trace
-		fingerPosition.Add(fingerObject.transform.position);
-		handPosition.Add(handObject.transform.position);
+		fingerPosition.Add(tipObject.transform.position);
+		handPosition.Add(originObject.transform.position);
 		fingerPositionTime.Add(currentTime);
 		
 		if(!rubberBandActive)
