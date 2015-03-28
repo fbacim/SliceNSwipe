@@ -101,7 +101,6 @@ public class LeapController : MonoBehaviour {
 		Frame frame = controller.Frame();
 		HandList hl = frame.Hands;
 		FingerList fl = frame.Fingers;
-		GestureList gl = frame.Gestures(controller.Frame(1));
 
 		//Debug.Log("<"+frame.InteractionBox.Width+", "+frame.InteractionBox.Height+", "+frame.InteractionBox.Depth+">  "+frame.InteractionBox.Center); // +"   "+pointCloud.Size()
 		float maxd = Mathf.Max(new float[]{frame.InteractionBox.Width, frame.InteractionBox.Height, frame.InteractionBox.Depth});
@@ -152,7 +151,7 @@ public class LeapController : MonoBehaviour {
 			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
 			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].GetComponent<Renderer>().enabled = false;
 
-			Debug.Log("finger["+i+";"+((int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight))+"]: "+f.Type()+"  -> "+f.IsValid+"  -> "+f.IsExtended+"  -> "+f.IsFinger+"  -> "+f.IsTool+"  -> "+f.TimeVisible);
+			//Debug.Log("finger["+i+";"+((int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight))+"]: "+f.Type()+"  -> "+f.IsValid+"  -> "+f.IsExtended+"  -> "+f.IsFinger+"  -> "+f.IsTool+"  -> "+f.TimeVisible);
 		}
 		
 		bool[] techniqueLock = new bool[4]; // 3 techniques + none

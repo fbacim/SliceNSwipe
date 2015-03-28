@@ -1,16 +1,17 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="MonoDevelop.Default" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\LeapMotion\Scripts\Utils\DisconnectionNotice.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\Resources\VertexPoints.shader">
     <Files>
-      <File FileName="Assets\LeapMotion\Scripts\HandController.cs" Line="62" Column="29" />
+      <File FileName="Assets\LeapController.cs" Line="103" Column="33" />
+      <File FileName="Assets\LeapMotion\Scripts\HandController.cs" Line="1" Column="1" />
       <File FileName="Assets\Orbit.cs" Line="1" Column="1" />
       <File FileName="Assets\PointCloud.cs" Line="1" Column="1" />
       <File FileName="Assets\AnnotationMenu.cs" Line="1" Column="1" />
       <File FileName="Assets\ExperimentMenu.cs" Line="1" Column="1" />
       <File FileName="Assets\StartUpOptions.cs" Line="1" Column="1" />
-      <File FileName="Assets\LeapController.cs" Line="1" Column="1" />
-      <File FileName="Assets\LeapMotion\Scripts\LeapImageRetriever.cs" Line="61" Column="2" />
-      <File FileName="Assets\LeapMotion\Scripts\Utils\DisconnectionNotice.cs" Line="33" Column="30" />
+      <File FileName="Assets\ViewPoint3DMouse.cs" Line="1" Column="1" />
+      <File FileName="Assets\SpaceNavigator\Plugins\SpaceNavigator.cs" Line="1" Column="1" />
+      <File FileName="Assets\Resources\VertexPoints.shader" Line="1" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
