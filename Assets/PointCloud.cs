@@ -546,8 +546,8 @@ public class PointCloud : MonoBehaviour
 		
 		size = max-min;
 
-		float fieldOfViewX = 2.0F * Mathf.Atan( Mathf.Tan( (camera.fieldOfView/57.2957795F) / 2.0F ) * camera.aspect ) * 57.2957795F;
-		float distX = bsRadius/Mathf.Tan(camera.fieldOfView * 0.0174532925F * 0.5F);
+		float fieldOfViewX = 2.0F * Mathf.Atan( Mathf.Tan( (GetComponent<Camera>().fieldOfView/57.2957795F) / 2.0F ) * GetComponent<Camera>().aspect ) * 57.2957795F;
+		float distX = bsRadius/Mathf.Tan(GetComponent<Camera>().fieldOfView * 0.0174532925F * 0.5F);
 		float distY = bsRadius/Mathf.Tan(fieldOfViewX * 0.0174532925F * 0.5F);
 		idealDistance = Mathf.Max(distX,distY);
 		//Debug.Log("1Sphere of radius "+bsRadius+" should be at "+idealDistance);
@@ -672,7 +672,7 @@ public class PointCloud : MonoBehaviour
 		Vector2[] vertices2D = new Vector2[vertices.Count];
 		for(int i = 0; i < vertices.Count; i++)
 		{
-			Vector3 screenPoint = GameObject.Find("Camera").camera.WorldToScreenPoint(vertices[i]);
+			Vector3 screenPoint = GameObject.Find("Camera").GetComponent<Camera>().WorldToScreenPoint(vertices[i]);
 			vertices2D[i] = new Vector2(screenPoint.x,screenPoint.y);
 		}
 		
@@ -680,7 +680,7 @@ public class PointCloud : MonoBehaviour
 		{
 			if(selected[i] == 1)
 			{
-				Vector3 screenPoint = GameObject.Find("Camera").camera.WorldToScreenPoint(verts[i]);
+				Vector3 screenPoint = GameObject.Find("Camera").GetComponent<Camera>().WorldToScreenPoint(verts[i]);
 				Vector2 point2D = new Vector2(screenPoint.x, screenPoint.y);
 				if(wn_PnPoly(point2D,vertices2D,vertices.Count-1) == 0) // outside
 				{

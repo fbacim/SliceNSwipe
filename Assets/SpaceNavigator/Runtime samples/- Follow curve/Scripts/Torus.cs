@@ -4,18 +4,18 @@ public class Torus : MonoBehaviour {
 	private Rigidbody _controller;
 	
 	public void Awake() {
-		_controller = GameObject.FindGameObjectWithTag("Torus controller").rigidbody;
+		_controller = GameObject.FindGameObjectWithTag("Torus controller").GetComponent<Rigidbody>();
 	}
 
 	public void OnCollisionEnter(Collision collision) {
-		audio.Play();
+		GetComponent<AudioSource>().Play();
 
 		// Move the torus.
-		rigidbody.isKinematic = true;
-		collider.isTrigger = true;
+		GetComponent<Rigidbody>().isKinematic = true;
+		GetComponent<Collider>().isTrigger = true;
 		transform.position = collision.collider.transform.position;
-		rigidbody.isKinematic = false;
-		collider.isTrigger = false;
+		GetComponent<Rigidbody>().isKinematic = false;
+		GetComponent<Collider>().isTrigger = false;
 
 		// Move the controller.
 		Vector3 oldPos = _controller.transform.position;

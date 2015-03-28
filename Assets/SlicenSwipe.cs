@@ -435,7 +435,7 @@ public class SlicenSwipe {
 		//fingerHandTrail.GetComponent<MeshFilter>().mesh = fingerHandTrailMesh;
 		//if(!fingerHandTrail.GetComponent<MeshCollider>())
 		//	fingerHandTrail.AddComponent<MeshCollider>();
-		fingerHandTrail.renderer.material = Resources.Load("Trail", typeof(Material)) as Material;
+		fingerHandTrail.GetComponent<Renderer>().material = Resources.Load("Trail", typeof(Material)) as Material;
 		fingerHandTrail.SetActive(true);
 	}
 
@@ -462,8 +462,8 @@ public class SlicenSwipe {
 		{
 
 			fingerHandTrail.SetActive(true);
-			for (int pass = 0; pass < fingerHandTrail.renderer.material.passCount; pass++)
-				if(fingerHandTrail.renderer.material.SetPass(pass))
+			for (int pass = 0; pass < fingerHandTrail.GetComponent<Renderer>().material.passCount; pass++)
+				if(fingerHandTrail.GetComponent<Renderer>().material.SetPass(pass))
 					Graphics.DrawMeshNow(fingerHandTrailMesh,Matrix4x4.identity);
 			fingerHandTrail.SetActive(false);
 		}

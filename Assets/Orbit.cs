@@ -22,7 +22,7 @@ public class Orbit : MonoBehaviour {
 		distance = d;
 
 		// reset pan
-		camera.transform.Translate(-transform.position);
+		GetComponent<Camera>().transform.Translate(-transform.position);
 		
 		// set distance
 		//Quaternion rotation = transform.rotation;

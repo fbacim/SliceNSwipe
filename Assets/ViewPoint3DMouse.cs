@@ -72,10 +72,10 @@ public class ViewPoint3DMouse : MonoBehaviour {
 		
 		rayCenter = _center;
 		sphereC = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-		sphereC.transform.renderer.material.color = new Color(256, 256, 1);
+		sphereC.transform.GetComponent<Renderer>().material.color = new Color(256, 256, 1);
 		
 		sphereR = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-		sphereR.transform.renderer.material.color = new Color(256, 1, 256);
+		sphereR.transform.GetComponent<Renderer>().material.color = new Color(256, 1, 256);
 
 		initialPosition = new Vector3();
 		initialCenter = new Vector3();
@@ -94,11 +94,11 @@ public class ViewPoint3DMouse : MonoBehaviour {
 	public void CenterView(float d, Vector3 cameraOffset) {
 		distance = d;
 		
-		initialPosition = camera.transform.position;
-		initialCenter = camera.transform.position+camera.transform.forward*distance;
+		initialPosition = GetComponent<Camera>().transform.position;
+		initialCenter = GetComponent<Camera>().transform.position+GetComponent<Camera>().transform.forward*distance;
 
 		// set distance
-		Quaternion rotation = camera.transform.rotation;
+		Quaternion rotation = GetComponent<Camera>().transform.rotation;
 		Vector3 position = rotation * (new Vector3(0.0F, 0.0F, -distance)) + _center;
 		positionOffset = position;
 
@@ -115,7 +115,7 @@ public class ViewPoint3DMouse : MonoBehaviour {
 			// if starting new animation, save transform
 			if(animationStartTime == 0.0F)
 			{
-				camera.transform.LookAt(new Vector3(0,0,0));
+				GetComponent<Camera>().transform.LookAt(new Vector3(0,0,0));
 				animationStartTime = currentTime;
 				
 				//print ("position:"+initialPosition+positionOffset);
@@ -134,25 +134,25 @@ public class ViewPoint3DMouse : MonoBehaviour {
 			}
 
 
-			camera.transform.position = Vector3.Lerp(initialPosition,positionOffset,t);
+			GetComponent<Camera>().transform.position = Vector3.Lerp(initialPosition,positionOffset,t);
 			Vector3 lookat = Vector3.Lerp(initialCenter,_center,t);
-			camera.transform.LookAt(lookat);
+			GetComponent<Camera>().transform.LookAt(lookat);
 			//print("("+t+") "+camera.transform.position);
 		}
 		else if(!GameObject.Find("Camera").GetComponent<AnnotationMenu>().menuOn)
 		{
 			//print(camera.transform.position);
-			camera.transform.RotateAround (rayCenter, -1*camera.transform.up, SpaceNavigator.Rotation.Yaw () * Mathf.Rad2Deg * yRotationCoef*100);
-			camera.transform.RotateAround (rayCenter, -1*camera.transform.right, SpaceNavigator.Rotation.Pitch () * Mathf.Rad2Deg * xRotationCoef*100);
-			camera.transform.RotateAround (rayCenter, -1*camera.transform.forward, SpaceNavigator.Rotation.Roll () * Mathf.Rad2Deg * zRotationCoef*100);
+			GetComponent<Camera>().transform.RotateAround (rayCenter, -1*GetComponent<Camera>().transform.up, SpaceNavigator.Rotation.Yaw () * Mathf.Rad2Deg * yRotationCoef*100);
+			GetComponent<Camera>().transform.RotateAround (rayCenter, -1*GetComponent<Camera>().transform.right, SpaceNavigator.Rotation.Pitch () * Mathf.Rad2Deg * xRotationCoef*100);
+			GetComponent<Camera>().transform.RotateAround (rayCenter, -1*GetComponent<Camera>().transform.forward, SpaceNavigator.Rotation.Roll () * Mathf.Rad2Deg * zRotationCoef*100);
 
 			// get the offset from 3d mouse + whatever was added to it 
-			camera.transform.Translate(-SpaceNavigator.Translation.x * xTranslationCoef,
+			GetComponent<Camera>().transform.Translate(-SpaceNavigator.Translation.x * xTranslationCoef,
 									   -SpaceNavigator.Translation.y * yTranslationCoef,
 			                           -SpaceNavigator.Translation.z * zTranslationCoef);
 		}
 
-		sphereR.transform.position = camera.transform.position + camera.transform.forward*50;
+		sphereR.transform.position = GetComponent<Camera>().transform.position + GetComponent<Camera>().transform.forward*50;
 		
 		
 		TimeSpan ts = stopWatch.Elapsed;
@@ -169,7 +169,7 @@ public class ViewPoint3DMouse : MonoBehaviour {
 		{
 			if (ts.TotalMilliseconds > timeDelayThershould)
 			{
-				Transform cam  = camera.transform;
+				Transform cam  = GetComponent<Camera>().transform;
 				Ray ray = new Ray(cam.position, cam.forward);
 				//Debug.DrawRay (ray.origin, ray.direction *  50, Color.yellow);
 				
@@ -199,14 +199,14 @@ public class ViewPoint3DMouse : MonoBehaviour {
 			}
 			
 			if (showSphere){
-				sphereC.renderer.enabled = true;
-				sphereR.renderer.enabled = true;
+				sphereC.GetComponent<Renderer>().enabled = true;
+				sphereR.GetComponent<Renderer>().enabled = true;
 				sphereC.transform.position = closestPoint;
 			}
 			else 
 			{
-				sphereC.renderer.enabled = false;
-				sphereR.renderer.enabled = false;
+				sphereC.GetComponent<Renderer>().enabled = false;
+				sphereR.GetComponent<Renderer>().enabled = false;
 			}
 			
 		}

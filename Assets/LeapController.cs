@@ -34,16 +34,16 @@ public class LeapController : MonoBehaviour {
 		for(int i = 0; i < 10; i++)
 		{
 			goFingerList.Add(GameObject.CreatePrimitive(PrimitiveType.Sphere));
-			goFingerList[i].renderer.material = Resources.Load("PhongUserLight", typeof(Material)) as Material;
-			goFingerList[i].renderer.material.color = new Color(0.7F, 0.7F, 0.7F, 1.0F);
+			goFingerList[i].GetComponent<Renderer>().material = Resources.Load("PhongUserLight", typeof(Material)) as Material;
+			goFingerList[i].GetComponent<Renderer>().material.color = new Color(0.7F, 0.7F, 0.7F, 1.0F);
 		}
 
 		goHandList = new List<GameObject>();
 		for(int i = 0; i < 2; i++)
 		{
 			goHandList.Add(GameObject.CreatePrimitive(PrimitiveType.Cube));
-			goHandList[i].renderer.material = Resources.Load("PhongUserLight", typeof(Material)) as Material;
-			goHandList[i].renderer.material.color = new Color(0.7F, 0.7F, 0.7F, 1.0F);
+			goHandList[i].GetComponent<Renderer>().material = Resources.Load("PhongUserLight", typeof(Material)) as Material;
+			goHandList[i].GetComponent<Renderer>().material.color = new Color(0.7F, 0.7F, 0.7F, 1.0F);
 		}
 	}
 
@@ -126,7 +126,7 @@ public class LeapController : MonoBehaviour {
 			goHandList[System.Convert.ToInt32(hl[i].IsRight)].SetActive(true);
 			goHandList[System.Convert.ToInt32(hl[i].IsRight)].transform.position = position;
 			goHandList[System.Convert.ToInt32(hl[i].IsRight)].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
-			goHandList[System.Convert.ToInt32(hl[i].IsRight)].renderer.enabled = false;
+			goHandList[System.Convert.ToInt32(hl[i].IsRight)].GetComponent<Renderer>().enabled = false;
 		}
 
 		// update finger renderer
@@ -150,7 +150,7 @@ public class LeapController : MonoBehaviour {
 			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].SetActive(true);
 			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].transform.position = position;
 			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
-			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].renderer.enabled = false;
+			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].GetComponent<Renderer>().enabled = false;
 
 			Debug.Log("finger["+i+";"+((int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight))+"]: "+f.Type()+"  -> "+f.IsValid+"  -> "+f.IsExtended+"  -> "+f.IsFinger+"  -> "+f.IsTool+"  -> "+f.TimeVisible);
 		}
@@ -210,14 +210,14 @@ public class LeapController : MonoBehaviour {
 		{
 			if(goHandList[i].activeSelf)
 			{
-				goHandList[i].renderer.enabled = true;
-				goHandList[i].renderer.material.SetVector("_LightPosition",new Vector4(cameraTransform.position.x,cameraTransform.position.y,cameraTransform.position.z,1.0F));
-				for (int pass = 0; pass < goHandList[i].renderer.material.passCount; pass++)
+				goHandList[i].GetComponent<Renderer>().enabled = true;
+				goHandList[i].GetComponent<Renderer>().material.SetVector("_LightPosition",new Vector4(cameraTransform.position.x,cameraTransform.position.y,cameraTransform.position.z,1.0F));
+				for (int pass = 0; pass < goHandList[i].GetComponent<Renderer>().material.passCount; pass++)
 				{
-					if(goHandList[i].renderer.material.SetPass(pass))
+					if(goHandList[i].GetComponent<Renderer>().material.SetPass(pass))
 						Graphics.DrawMeshNow(goHandList[i].GetComponent<MeshFilter>().mesh,goHandList[i].transform.localToWorldMatrix);
 				}
-				goHandList[i].renderer.enabled = false;
+				goHandList[i].GetComponent<Renderer>().enabled = false;
 			}
 		}
 		
@@ -226,14 +226,14 @@ public class LeapController : MonoBehaviour {
 		{
 			if(goFingerList[i].activeSelf)
 			{
-				goFingerList[i].renderer.enabled = true;
-				goFingerList[i].renderer.material.SetVector("_LightPosition",new Vector4(cameraTransform.position.x,cameraTransform.position.y,cameraTransform.position.z,1.0F));
-				for (int pass = 0; pass < goFingerList[i].renderer.material.passCount; pass++)
+				goFingerList[i].GetComponent<Renderer>().enabled = true;
+				goFingerList[i].GetComponent<Renderer>().material.SetVector("_LightPosition",new Vector4(cameraTransform.position.x,cameraTransform.position.y,cameraTransform.position.z,1.0F));
+				for (int pass = 0; pass < goFingerList[i].GetComponent<Renderer>().material.passCount; pass++)
 				{
-					if(goFingerList[i].renderer.material.SetPass(pass))
+					if(goFingerList[i].GetComponent<Renderer>().material.SetPass(pass))
 						Graphics.DrawMeshNow(goFingerList[i].GetComponent<MeshFilter>().mesh,goFingerList[i].transform.localToWorldMatrix);
 				}
-				goFingerList[i].renderer.enabled = false;
+				goFingerList[i].GetComponent<Renderer>().enabled = false;
 			}
 		}
 
