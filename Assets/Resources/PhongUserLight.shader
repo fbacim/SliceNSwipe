@@ -7,16 +7,19 @@
 	}
 	
 SubShader {
+      
       Pass {	
-         Tags { "LightMode" = "ForwardBase" } 
-            // pass for ambient light and first light source
- 
+	      Tags { 
+	          "LightMode" = "ForwardBase" 
+	      } // pass for ambient light and first light source
+	               
          CGPROGRAM
  
          #pragma vertex vert  
          #pragma fragment frag 
  
          #include "UnityCG.cginc"
+         
          uniform float4 _LightColor0; 
             // color of light source (from "Lighting.cginc")
  

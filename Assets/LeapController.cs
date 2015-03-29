@@ -21,6 +21,8 @@ public class LeapController : MonoBehaviour {
 	PointCloud pointCloud;
 	GUIText annotationTextInput;
 
+	Transform handTransform;
+
 	// Use this for initialization
 	void Start () {
 		controller = new Leap.Controller();
@@ -29,11 +31,13 @@ public class LeapController : MonoBehaviour {
 		annotationMenu = GameObject.Find("Camera").GetComponent<AnnotationMenu>();
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
+		//handTransform = GameObject.Find("HandController").GetComponent<Transform>();
 
 		goFingerList = new List<GameObject>();
 		for(int i = 0; i < 10; i++)
 		{
 			goFingerList.Add(GameObject.CreatePrimitive(PrimitiveType.Sphere));
+			goFingerList[i].name = "Finger Tip "+i;
 			goFingerList[i].GetComponent<Renderer>().material = Resources.Load("PhongUserLight", typeof(Material)) as Material;
 			goFingerList[i].GetComponent<Renderer>().material.color = new Color(0.7F, 0.7F, 0.7F, 1.0F);
 		}
@@ -41,6 +45,7 @@ public class LeapController : MonoBehaviour {
 		goHandList = new List<GameObject>();
 		for(int i = 0; i < 2; i++)
 		{
+			goFingerList[i].name = "Palm "+i;
 			goHandList.Add(GameObject.CreatePrimitive(PrimitiveType.Cube));
 			goHandList[i].GetComponent<Renderer>().material = Resources.Load("PhongUserLight", typeof(Material)) as Material;
 			goHandList[i].GetComponent<Renderer>().material.color = new Color(0.7F, 0.7F, 0.7F, 1.0F);
@@ -105,6 +110,17 @@ public class LeapController : MonoBehaviour {
 		//Debug.Log("<"+frame.InteractionBox.Width+", "+frame.InteractionBox.Height+", "+frame.InteractionBox.Depth+">  "+frame.InteractionBox.Center); // +"   "+pointCloud.Size()
 		float maxd = Mathf.Max(new float[]{frame.InteractionBox.Width, frame.InteractionBox.Height, frame.InteractionBox.Depth});
 
+		// transform hand model
+		Vector3 position = new Vector3();
+		Quaternion cameraRotation = cameraTransform.rotation;
+		/*position.x =   ((0.0F - frame.InteractionBox.Center.x) / frame.InteractionBox.Width ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Width/maxd));
+		position.y =   ((0.0F - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
+		position.z = -(((0.0F - frame.InteractionBox.Center.z) / frame.InteractionBox.Depth ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Depth/maxd)));
+		// rotate position to match camera
+		handTransform.position = cameraTransform.rotation * position;
+		// change scale
+		handTransform.localScale = new Vector3(maxd,maxd,maxd);*/
+
 		// update hand renderer
 		for(int i = 0; i < goHandList.Count; i++)
 			goHandList[i].SetActive(false);
@@ -112,14 +128,13 @@ public class LeapController : MonoBehaviour {
 		for(int i = 0; (i < hl.Count && i < goHandList.Count); i++)
 		{
 			//if(hl[i].is)
-			Vector3 position = new Vector3();
+			position = new Vector3();
 			// TRANSFORMING FINGER POSITION TO MATCH POINT CLOUD SIZE
 			// normalize position of fingers, then multiply by magnitude of point cloud size vector adjusted by ratio of interaction box sizes
 			position.x =   ((hl[i].PalmPosition.x - frame.InteractionBox.Center.x) / frame.InteractionBox.Width ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Width/maxd));
 			position.y =   ((hl[i].PalmPosition.y - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
 			position.z = -(((hl[i].PalmPosition.z - frame.InteractionBox.Center.z) / frame.InteractionBox.Depth ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Depth/maxd)));
 			// rotate position to match camera
-			Quaternion cameraRotation = cameraTransform.rotation;
 			position = cameraRotation * position;
 			//Debug.Log("["+Time.time+"] hand["+i+"]: "+position);
 			goHandList[System.Convert.ToInt32(hl[i].IsRight)].SetActive(true);
@@ -136,14 +151,13 @@ public class LeapController : MonoBehaviour {
 		{
 			Finger f = fl[i];
 
-			Vector3 position = new Vector3();
+			position = new Vector3();
 			// TRANSFORMING FINGER POSITION TO MATCH POINT CLOUD SIZE
 			// normalize position of fingers, then multiply by magnitude of point cloud size vector adjusted by ratio of interaction box sizes
 			position.x =   ((f.TipPosition.x - frame.InteractionBox.Center.x) / frame.InteractionBox.Width ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Width/maxd));
 			position.y =   ((f.TipPosition.y - frame.InteractionBox.Center.y) / frame.InteractionBox.Height) * (pointCloud.Size().magnitude*(frame.InteractionBox.Height/maxd));
 			position.z = -(((f.TipPosition.z - frame.InteractionBox.Center.z) / frame.InteractionBox.Depth ) * (pointCloud.Size().magnitude*(frame.InteractionBox.Depth/maxd)));
 			// rotate position to match camera
-			Quaternion cameraRotation = cameraTransform.rotation;
 			position = cameraRotation * position;
 			//Debug.Log("["+Time.time+"] finger["+i+"]: "+position);
 			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].SetActive(true);

@@ -4,9 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
-
-
-
 public class PointCloud : MonoBehaviour 
 {
 	bool initialized = false;
@@ -686,14 +683,14 @@ public class PointCloud : MonoBehaviour
 				{
 					countp1++;
 					colorsOffset[i].x = 0.5F;
-					colorsOffset[i].y = 0.0F;
-					colorsOffset[i].z = 0.0F;
+					colorsOffset[i].y = -0.3F;
+					colorsOffset[i].z = -0.3F;
 				}
 				else
 				{
 					countp2++;
-					colorsOffset[i].x = 0.0F;
-					colorsOffset[i].y = 0.0F;
+					colorsOffset[i].x = -0.3F;
+					colorsOffset[i].y = -0.3F;
 					colorsOffset[i].z = 0.5F;
 				}
 			}
@@ -728,14 +725,14 @@ public class PointCloud : MonoBehaviour
 					if(resetColor)
 					{
 						colorsOffset[i].x = 0.5F;
-						colorsOffset[i].y = 0.0F;
-						colorsOffset[i].z = 0.0F;
+						colorsOffset[i].y = -0.3F;
+						colorsOffset[i].z = -0.3F;
 					}
 				}
 				else
 				{
-					colorsOffset[i].x = 0.0F;
-					colorsOffset[i].y = 0.0F;
+					colorsOffset[i].x = -0.3F;
+					colorsOffset[i].y = -0.3F;
 					colorsOffset[i].z = 0.5F;
 				}
 				if(colorsOffset[i].x == 0.5F)

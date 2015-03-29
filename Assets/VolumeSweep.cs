@@ -60,7 +60,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 		selectionVolume = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 		selectionVolume.name = "Bubble";
 		selectionVolume.GetComponent<Renderer>().material = Resources.Load("DiffuseZ", typeof(Material)) as Material;
-		selectionVolume.GetComponent<Renderer>().material.color = new Color(0.3F, 0.3F, 0.3F, 0.5F);
+		selectionVolume.GetComponent<Renderer>().material.color = new Color(0.7F, 0.7F, 0.7F, 0.5F);
 		selectionVolume.SetActive(false);
 
 		volumeTrailSpheres = new List<Sphere>();
@@ -260,7 +260,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 		if(selectionVolume != null && isEnabled && currentState != state.SELECT_IN_OUT)
 		{
 			selectionVolume.SetActive(true);
-			//selectionVolume.renderer.material.SetVector("_LightPosition",new Vector4(cameraTransform.position.x,cameraTransform.position.y,cameraTransform.position.z,1.0F));
+			selectionVolume.GetComponent<Renderer>().material.SetVector("_LightPosition",new Vector4(cameraTransform.position.x,cameraTransform.position.y,cameraTransform.position.z,1.0F));
 			for (int pass = 0; pass < selectionVolume.GetComponent<Renderer>().material.passCount; pass++)
 				if(selectionVolume.GetComponent<Renderer>().material.SetPass(pass))
 					Graphics.DrawMeshNow(selectionVolume.GetComponent<MeshFilter>().mesh,selectionVolume.transform.localToWorldMatrix);

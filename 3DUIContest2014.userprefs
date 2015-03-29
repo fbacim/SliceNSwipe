@@ -1,17 +1,12 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="MonoDevelop.Default" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\Resources\VertexPoints.shader">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\Resources\PhongUserLight.shader">
     <Files>
-      <File FileName="Assets\LeapController.cs" Line="103" Column="33" />
-      <File FileName="Assets\LeapMotion\Scripts\HandController.cs" Line="1" Column="1" />
-      <File FileName="Assets\Orbit.cs" Line="1" Column="1" />
-      <File FileName="Assets\PointCloud.cs" Line="1" Column="1" />
-      <File FileName="Assets\AnnotationMenu.cs" Line="1" Column="1" />
-      <File FileName="Assets\ExperimentMenu.cs" Line="1" Column="1" />
-      <File FileName="Assets\StartUpOptions.cs" Line="1" Column="1" />
-      <File FileName="Assets\ViewPoint3DMouse.cs" Line="1" Column="1" />
-      <File FileName="Assets\SpaceNavigator\Plugins\SpaceNavigator.cs" Line="1" Column="1" />
-      <File FileName="Assets\Resources\VertexPoints.shader" Line="1" Column="1" />
+      <File FileName="Assets\PointCloud.cs" Line="476" Column="18" />
+      <File FileName="Assets\LeapController.cs" Line="1" Column="1" />
+      <File FileName="Assets\VolumeSweep.cs" Line="263" Column="4" />
+      <File FileName="Assets\Resources\SpritesDefaultLight.shader" Line="24" Column="25" />
+      <File FileName="Assets\Resources\PhongUserLight.shader" Line="22" Column="14" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
