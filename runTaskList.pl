@@ -7,18 +7,34 @@
 # The Unity3D app takes its parameters for execution from this file.
 # When the Unity3D app finishes executing, the next line in the file is processed.
 
-foreach $line (<>){
+
+open (LISTFILE, "<", $ARGV[0]);
+
+$n = 1;
+
+if ( $#ARGV+1 > 1 ) {
+	print "Starting from task $ARGV[1]\n";
+	$n=$ARGV[1];
+	for (my $i=0; $i<$n; $i++){
+		<LISTFILE>;
+	}
+}
+
+foreach $line (<LISTFILE>){
 	do{
 		$satisfied = 1;
 		open (TASKFILE, ">", "task.csv") or die "Could not open task.csv: $!";
 		print TASKFILE $line;
 		close TASKFILE;
 
-		print $line;
-		`exp.exe`;
+		print $n . ": " . $line;
+##		`exp.exe`;
 
 		print "Repeat last task [y/n]? ";
 		$_ = <STDIN>;
 		if (/y/) { $satisfied = 0; }
 	}while($satisfied==0);
+	$n++;
 }
+
+close LISTFILE;
