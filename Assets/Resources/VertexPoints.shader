@@ -12,6 +12,8 @@ Shader "DX11/VertexColorPoints"
 	{
 		_OffsetColorMask1("Offset Color 1", Color) = (1.0,0.0,0.0,0.0)
 		_OffsetColorMask2("Offset Color 2", Color) = (0.0,0.0,1.0,0.0)
+		_SelectedSize("Selected Size", Float) = 0.0
+		_DeselectedSize("Deselected Size", Float) = 0.0
 	}
 	SubShader 
 	{
@@ -39,6 +41,8 @@ Shader "DX11/VertexColorPoints"
 			
 			fixed4 _OffsetColorMask1;
 			fixed4 _OffsetColorMask2;
+			float _SelectedSize;
+			float _DeselectedSize;
 			
 			struct VS_INPUT
 			{
@@ -129,7 +133,6 @@ Shader "DX11/VertexColorPoints"
 				screenCoord.y = (screenCoord.y+1.0f)*_ScreenParams.y/2.0f;// + fViewport[1]; // viewport transformation
 				if(input.inst == 0)
 				{
-					
 					alpha -= abs(buf_Positions[0].w-buf_Positions[1].w)/2.0f*clamp(((screenCoord.x-_ScreenParams.x*0.4f)/(_ScreenParams.x*0.1f))*alpha,0.0f,alpha);
 				}
 				else if(input.inst == 1)
@@ -139,29 +142,52 @@ Shader "DX11/VertexColorPoints"
 				
 				float3 colorOffset = float3(0,0,0);
 				if(buf_Selected[input.id] == 1)
-				{					
-					colorOffset = float3(buf_ColorsOffset[input.id].x*(1.0-buf_Positions[1].w),
-										 buf_ColorsOffset[input.id].y*(1.0-buf_Positions[1].w),
-										 buf_ColorsOffset[input.id].z*(1.0-buf_Positions[1].w));
+				{
+					// make sure we remove (80%) color if negative offset
+					if(buf_ColorsOffset[input.id].x < 0.0f && buf_Positions[1].w == 0)
+						colorOffset.x = -buf_Colors[input.id].x*0.8f;
+					else
+						colorOffset.x = buf_ColorsOffset[input.id].x*(1.0f-buf_Positions[1].w);
+					if(buf_ColorsOffset[input.id].y < 0.0f && buf_Positions[1].w == 0)
+						colorOffset.y = -buf_Colors[input.id].y*0.8f;
+					else
+						colorOffset.y = buf_ColorsOffset[input.id].y*(1.0f-buf_Positions[1].w);
+					if(buf_ColorsOffset[input.id].z < 0.0f && buf_Positions[1].w == 0)
+						colorOffset.z = -buf_Colors[input.id].z*0.8f;
+					else
+						colorOffset.z = buf_ColorsOffset[input.id].z*(1.0f-buf_Positions[1].w);
 				}
 				else
 				{
-					colorOffset = float3(0.4-buf_Colors[input.id].x,0.4-buf_Colors[input.id].y,0.4-buf_Colors[input.id].z);
+					// if not selected, make it grey
+					colorOffset = float3(0.4f-buf_Colors[input.id].x,0.4f-buf_Colors[input.id].y,0.4f-buf_Colors[input.id].z);
 				}
 				// from 0 to 1, 0 should be both colors, 1 just the one from my instance, interpolate in between
 				
-				float pointOffset = 0.0;
+				// this is for the swipe portion, when we have two options on screen
+				float sizeOffset = 0.0f;
 				if(buf_Selected[input.id] == 1)
 				{
 					if(input.inst == 0)
 					{
-						pointOffset = -3.0*2.0*buf_ColorsOffset[input.id].x*buf_Positions[1].w;
-						alpha = clamp(alpha-0.4*2.0*buf_ColorsOffset[input.id].x*buf_Positions[1].w,0,alpha);
+						// since we are calculating alpha based on the side, use it to determine side for colors size offset
+						float newAlpha = clamp(alpha-0.4f*2.0f*buf_ColorsOffset[input.id].x*abs(buf_Positions[input.inst].w),0,alpha);
+						if(newAlpha < alpha)
+						{
+							sizeOffset = -(_SelectedSize-_DeselectedSize)*abs(buf_Positions[input.inst].w);
+							colorOffset = float3(0.4f-buf_Colors[input.id].x,0.4f-buf_Colors[input.id].y,0.4f-buf_Colors[input.id].z);
+						}
+						alpha = newAlpha;
 					}
 					else
 					{
-						pointOffset = -3.0*2.0*buf_ColorsOffset[input.id].z*buf_Positions[1].w;
-						alpha = clamp(alpha-0.4*2.0*buf_ColorsOffset[input.id].z*buf_Positions[1].w,0,alpha);
+						float newAlpha = clamp(alpha-0.4f*2.0f*buf_ColorsOffset[input.id].z*buf_Positions[input.inst].w,0,alpha);
+						if(newAlpha < alpha)
+						{
+							sizeOffset = -(_SelectedSize-_DeselectedSize)*abs(buf_Positions[input.inst].w);
+							colorOffset = float3(0.4f-buf_Colors[input.id].x,0.4f-buf_Colors[input.id].y,0.4f-buf_Colors[input.id].z);
+						}
+						alpha = newAlpha;
 					}
 				}
 				
@@ -170,19 +196,19 @@ Shader "DX11/VertexColorPoints"
 				// make it yellow if highlighted
 				if(buf_Highlighted[input.id] == 1)
 				{
-					outputColor.x = 0.9;
-					outputColor.y = 0.9;
-					outputColor.z = 0.0;
+					outputColor.x = 0.9f;
+					outputColor.y = 0.9f;
+					outputColor.z = 0.0f;
 				}
 				else if(buf_Highlighted[input.id] == 2)
 				{
-					outputColor.x -= 0.3;
-					outputColor.y -= 0.3;
-					outputColor.z -= 0.3;
+					outputColor.x -= 0.3f;
+					outputColor.y -= 0.3f;
+					outputColor.z -= 0.3f;
 				}
 				
 				// if normals are available, use phong shading
-				if(length(buf_Normals[input.id]) > 0.0)
+				if(length(buf_Normals[input.id]) > 0.0f)
 				{
 					float3 viewDir = mul(UNITY_MATRIX_T_MV,float4(0,0,-1,1));
 					float angle = acos(clamp(dot(normalize(buf_Normals[input.id]), normalize(viewDir)),-1.0f,1.0f));
@@ -193,13 +219,13 @@ Shader "DX11/VertexColorPoints"
 					float3 specularColor = GetSpecularColor(twoSidedNormal, buf_Points[input.id],_WorldSpaceCameraPos);
 
 					// Compute the color per vertex				
-					output.color = float4(ambientColor + diffuseColor + specularColor, alpha);
+					output.color = saturate(float4(ambientColor + diffuseColor + specularColor, alpha));
 				}
 				else 
 				{
-					output.color = float4(outputColor, alpha);
+					output.color = saturate(float4(outputColor, alpha));
 				}
-				output.psize = buf_Sizes[input.id] + pointOffset; // need to be sending selected/deselected as values
+				output.psize = buf_Sizes[input.id] + sizeOffset; // need to be sending selected/deselected as values
 				
 				return output;
 			}

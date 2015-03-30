@@ -45,6 +45,8 @@ public class PointCloud : MonoBehaviour
 	public float deselectedAlpha = 0.3F;
 	public float selectedSize = 7.0F;
 	public float deselectedSize = 1.0F;
+	public float currentSelectedSize;
+	public float currentDeselectedSize;
 	public bool useSeparation = true;
 	public bool resetAfterAnnotation = true;
 
@@ -166,6 +168,8 @@ public class PointCloud : MonoBehaviour
 		cloudAnnotations = new List< List<string> >();
 		annotations = new List<string>();
 		goAnnotations = new List<GameObject>();
+		currentSelectedSize = selectedSize;
+		currentDeselectedSize = deselectedSize;
 
 		// List of indexes of the vertices in a subset of the PC that correspond to an annotation given its string identifier
 		annotationsPerVertex = new Dictionary<string, List<int>> ();
@@ -236,7 +240,7 @@ public class PointCloud : MonoBehaviour
 			}
 
 			colorsOffset[lineCount] = new Vector3(0.0F,0.0F,0.0F);
-			sizes[lineCount] = selectedSize;
+			sizes[lineCount] = currentSelectedSize;
 			selected[lineCount] = 1;
 			notHighlighted[lineCount] = 0;
 			highlighted[lineCount] = 2;
@@ -251,7 +255,7 @@ public class PointCloud : MonoBehaviour
 
 		if (annotationFileName!=null) {
 			System.IO.StreamReader loadAnnotationFile = new System.IO.StreamReader(annotationFileName);
-			string annotation = loadAnnotationFile.ReadLine();		// Rewrite the first argument as the first line in the Annotation file will have the tag
+			loadAnnotationFile.ReadLine();		// Rewrite the first argument as the first line in the Annotation file will have the tag
 			string[] indexesInAnnotation = loadAnnotationFile.ReadLine().Split(',');
 			loadAnnotationFile.Close();
 			
@@ -386,6 +390,8 @@ public class PointCloud : MonoBehaviour
 			animationStartTime = Time.timeSinceLevelLoad;
 			separationMode = mode;
 
+			GameObject.Find("Camera").GetComponent<ViewPoint3DMouse>().CenterView();
+
 			steps++;
 
 		}
@@ -405,8 +411,11 @@ public class PointCloud : MonoBehaviour
 			// use the bounding sphere radius as separation distance
 			separationDistance = bsRadius;
 			//separationDistance = Mathf.Max(new float[] {oSize.x, oSize.y, oSize.z})/3.0f;
+			if(separate)
+				pos[1].y = 1;
+			else
+				pos[1].y = 0;
 		}
-
 		else
 		{
 			// get current step/time in the animation
@@ -429,17 +438,15 @@ public class PointCloud : MonoBehaviour
 			// x,y offset, z scale
 			if(separationMode == 1 && t < Mathf.PI) // get rid of left
 			{
-				print("left");
+				//print("left");
 				pos[0] = new Vector4(-separationDistance*6.0F+((Mathf.Cos(t)+1.0f)*0.5f)*separationDistance*5.0F,0,0,-(Mathf.Cos(t)+1.0f)*0.5f); // first instance goes to left
-				print(pos[0]);
 				pos[1] = new Vector4( ((Mathf.Cos(t)+1.0f)*0.5f)*separationDistance,0,0,(Mathf.Cos(t)+1.0f)*0.5f); // second goes to right
 			}
 			else if(separationMode == 2 && t < Mathf.PI) // get rid of right
 			{
-				print("right");
+				//print("right");
 				pos[0] = new Vector4(-((Mathf.Cos(t)+1.0f)*0.5f)*separationDistance,0,0,-(Mathf.Cos(t)+1.0f)*0.5f); // first instance goes to left
 				pos[1] = new Vector4( separationDistance*6.0F-((Mathf.Cos(t)+1.0f)*0.5f)*separationDistance*5.0F,0,0,(Mathf.Cos(t)+1.0f)*0.5f); // second goes to right
-				print(pos[1]);
 			}
 			else // put them back together
 			{
@@ -452,7 +459,7 @@ public class PointCloud : MonoBehaviour
 				separate = !separate;
 		}
 		
-		bufferPos.SetData(pos);
+		bufferPos.SetData (pos);
 
 		if (Input.GetKeyDown (KeyCode.Tab)) 
 		{
@@ -473,6 +480,9 @@ public class PointCloud : MonoBehaviour
 	{
 		if (!initialized)
 			return;
+
+		material.SetFloat("_SelectedSize",currentSelectedSize);
+		material.SetFloat("_DeselectedSize",currentDeselectedSize);
 
 		material.SetPass(0);
 		Graphics.DrawProcedural(MeshTopology.Points, vertexCount, instanceCount);
@@ -584,7 +594,7 @@ public class PointCloud : MonoBehaviour
 				colorsOffset[i].y = 0.0F;
 				colorsOffset[i].z = 0.0F;
 				colors[i].w = selectedAlpha;
-				sizes[i] = selectedSize;
+				sizes[i] = currentSelectedSize;
 				selectedCenter = selectedCenter + verts[i];
 				selectedCount++;
 			}
@@ -594,7 +604,7 @@ public class PointCloud : MonoBehaviour
 				colorsOffset[i].y = 0.3F;
 				colorsOffset[i].z = 0.3F;
 				colors[i].w = deselectedAlpha;
-				sizes[i] = deselectedSize;
+				sizes[i] = currentDeselectedSize;
 				selected[i] = 0;
 			}
 		}
@@ -638,7 +648,7 @@ public class PointCloud : MonoBehaviour
 				colorsOffset[i].y = 0.0F;
 				colorsOffset[i].z = 0.0F;
 				colors[i].w = selectedAlpha;
-				sizes[i] = selectedSize;
+				sizes[i] = currentSelectedSize;
 				selected[i] = 1;
 				selectedCenter = selectedCenter + verts[i];
 				selectedCount++;
@@ -649,7 +659,7 @@ public class PointCloud : MonoBehaviour
 				colorsOffset[i].y = 0.3F;
 				colorsOffset[i].z = 0.3F;
 				colors[i].w = deselectedAlpha;
-				sizes[i] = deselectedSize;
+				sizes[i] = currentDeselectedSize;
 				selected[i] = 0;
 			}
 		}
@@ -685,14 +695,14 @@ public class PointCloud : MonoBehaviour
 				{
 					countp1++;
 					colorsOffset[i].x = 0.5F;
-					colorsOffset[i].y = -0.3F;
-					colorsOffset[i].z = -0.3F;
+					colorsOffset[i].y = -0.5F;
+					colorsOffset[i].z = -0.5F;
 				}
 				else
 				{
 					countp2++;
-					colorsOffset[i].x = -0.3F;
-					colorsOffset[i].y = -0.3F;
+					colorsOffset[i].x = -0.5F;
+					colorsOffset[i].y = -0.5F;
 					colorsOffset[i].z = 0.5F;
 				}
 			}
@@ -727,14 +737,14 @@ public class PointCloud : MonoBehaviour
 					if(resetColor)
 					{
 						colorsOffset[i].x = 0.5F;
-						colorsOffset[i].y = -0.3F;
-						colorsOffset[i].z = -0.3F;
+						colorsOffset[i].y = -0.5F;
+						colorsOffset[i].z = -0.5F;
 					}
 				}
 				else
 				{
-					colorsOffset[i].x = -0.3F;
-					colorsOffset[i].y = -0.3F;
+					colorsOffset[i].x = -0.5F;
+					colorsOffset[i].y = -0.5F;
 					colorsOffset[i].z = 0.5F;
 				}
 				if(colorsOffset[i].x == 0.5F)
@@ -774,8 +784,8 @@ public class PointCloud : MonoBehaviour
 					if(Vector3.Distance(spheres[j].center,verts[i]) < spheres[j].radius)
 					{
 						countp2++;
-						colorsOffset[i].x = 0.0F;
-						colorsOffset[i].y = 0.0F;
+						colorsOffset[i].x = -0.5F;
+						colorsOffset[i].y = -0.5F;
 						colorsOffset[i].z = 0.5F;
 						inside = true;
 						break;
@@ -785,8 +795,8 @@ public class PointCloud : MonoBehaviour
 				{
 					countp1++;
 					colorsOffset[i].x = 0.5F;
-					colorsOffset[i].y = 0.0F;
-					colorsOffset[i].z = 0.0F;
+					colorsOffset[i].y = -0.5F;
+					colorsOffset[i].z = -0.5F;
 				}
 			}
 		}
@@ -819,14 +829,14 @@ public class PointCloud : MonoBehaviour
 				{
 					countp1++;
 					colorsOffset[i].x = 0.5F;
-					colorsOffset[i].y = 0.0F;
-					colorsOffset[i].z = 0.0F;
+					colorsOffset[i].y = -0.5F;
+					colorsOffset[i].z = -0.5F;
 				}
 				else
 				{
 					countp2++;
-					colorsOffset[i].x = 0.0F;
-					colorsOffset[i].y = 0.0F;
+					colorsOffset[i].x = -0.5F;
+					colorsOffset[i].y = -0.5F;
 					colorsOffset[i].z = 0.5F;
 				}
 			}
@@ -885,7 +895,7 @@ public class PointCloud : MonoBehaviour
 					colorsOffset[i].y = 0.3F;
 					colorsOffset[i].z = 0.3F;
 					colors[i].w = deselectedAlpha;
-					sizes[i] = deselectedSize;
+					sizes[i] = currentDeselectedSize;
 					selected[i] = 0;
 				}
 				else
@@ -922,7 +932,7 @@ public class PointCloud : MonoBehaviour
 					colorsOffset[i].y = 0.3F;
 					colorsOffset[i].z = 0.3F;
 					colors[i].w = deselectedAlpha;
-					sizes[i] = deselectedSize;
+					sizes[i] = currentDeselectedSize;
 					selected[i] = 0;
 				}
 				else
@@ -969,7 +979,7 @@ public class PointCloud : MonoBehaviour
 					colorsOffset[i].y = 0.3F;
 					colorsOffset[i].z = 0.3F;
 					colors[i].w = deselectedAlpha;
-					sizes[i] = deselectedSize;
+					sizes[i] = currentDeselectedSize;
 					selected[i] = 0;
 				}
 				else
@@ -1011,16 +1021,16 @@ public class PointCloud : MonoBehaviour
 					//print("blah");
 					colorsOffset[i] = deselectedColorOffset;
 					colors[i].w = deselectedAlpha;
-					sizes[i] = deselectedSize;
+					sizes[i] = currentDeselectedSize;
 					selected[i] = 0;
 				}
 				else
 				{
-					colorsOffset[i].x = 0.0F;
-					colorsOffset[i].y = 0.0F;
-					colorsOffset[i].z = 0.0F;
+					colorsOffset[i].x = 0.3F;
+					colorsOffset[i].y = 0.3F;
+					colorsOffset[i].z = 0.3F;
 					colors[i].w = selectedAlpha;
-					sizes[i] = selectedSize;
+					sizes[i] = currentSelectedSize;
 					selectedCenter = selectedCenter + verts[i];
 					selectedCount++;
 				}
@@ -1071,7 +1081,7 @@ public class PointCloud : MonoBehaviour
 			verts[i]    = originalVerts[i];
 			colors[i]   = originalColors[i];
 			selected[i] = 1;
-			sizes[i]    = selectedSize;
+			sizes[i]    = currentSelectedSize;
 			colorsOffset[i].x = 0.0F;
 			colorsOffset[i].y = 0.0F;
 			colorsOffset[i].z = 0.0F;

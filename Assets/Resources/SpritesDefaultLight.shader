@@ -102,7 +102,7 @@
             {
                 v2f OUT;
                 OUT.vertex = mul(UNITY_MATRIX_MVP, IN.vertex);
-            	OUT.normal = normalize(mul(float4(IN.normal, 0.0), _World2Object).xyz);
+            	OUT.normal = normalize(mul(UNITY_MATRIX_MVP, IN.normal));//normalize(mul(float4(IN.normal, 0.0), _World2Object).xyz);
             	OUT.posWorld = mul(_Object2World, IN.vertex);
             	OUT.color = IN.color * _Color;
                 return OUT;
@@ -115,13 +115,13 @@
             	fixed4 c = IN.color;
             	
             	PointLight light;
-            	light.position = normalize(_LightPosition.xyz);
+            	light.position = _LightPosition.xyz;
             	light.diffuseColor = float3(0.3,0.3,0.3);
             	light.diffusePower = 1.0;
             	light.specularColor = float3(1.0,1.0,1.0);
             	light.specularPower = 0.5;
             	float3 normalDirection = IN.normal;
-            	float3 viewDirection = normalize(_LightPosition.xyz - IN.posWorld.xyz);
+            	float3 viewDirection = -normalize(_LightPosition.xyz);
             	Lighting l = GetPointLight( light, IN.vertex, viewDirection, normalDirection );
             	c.rgb = c.rgb + l.Diffuse + l.Specular;
                 c.rgb *= c.a;

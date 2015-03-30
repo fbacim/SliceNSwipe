@@ -1,4 +1,6 @@
 ﻿using UnityEngine;
+using System;
+using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using Leap;
@@ -209,13 +211,29 @@ public class LeapController : MonoBehaviour {
 		style = new GUIStyle(GUI.skin.box);
 		style.fontSize = 20;
 		style.fontStyle = FontStyle.Bold;
-		if(pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent/2.0F)
+		if(pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent)
 			style.normal.textColor = Color.green;
-		else if(pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent)
+		else if(pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent*2.0f)
 			style.normal.textColor = Color.yellow;
 		else
 			style.normal.textColor = Color.red;
 		GUI.Label (new Rect (UnityEngine.Screen.width-205, 35, 200, 30), "Extra points", style);
+
+		// display task timer
+		DateTime endTime = DateTime.Now;
+		TimeSpan ts = endTime - pointCloud.startTime;
+		float secondsLeft = (300.0f-ts.Seconds);
+		style = new GUIStyle(GUI.skin.box);
+		style.border.left = style.border.right = style.border.top = style.border.bottom = 3;
+		style.fontSize = 20;
+		style.fontStyle = FontStyle.Bold;
+		if(secondsLeft > 60)
+			style.normal.textColor = Color.green;
+		else if(secondsLeft > 20)
+			style.normal.textColor = Color.yellow;
+		else
+			style.normal.textColor = Color.red;
+		GUI.Label (new Rect (UnityEngine.Screen.width-75, UnityEngine.Screen.height-35, 70, 30), ""+secondsLeft+"s", style);
 	}
 
 	public void RenderTransparentObjects() {

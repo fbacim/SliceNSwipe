@@ -61,6 +61,7 @@ public class ViewPoint3DMouse : MonoBehaviour {
 	float animationStartTime;
 	Vector3 initialPosition;
 	Vector3 initialCenter;
+	Vector3 initialUp;
 	Vector3 positionOffset;
 	Vector3 centerOffset;
 
@@ -79,6 +80,7 @@ public class ViewPoint3DMouse : MonoBehaviour {
 
 		initialPosition = new Vector3();
 		initialCenter = new Vector3();
+		initialUp = new Vector3();
 		
 		realtimeCasting = false;
 		showSphere = false;
@@ -90,12 +92,18 @@ public class ViewPoint3DMouse : MonoBehaviour {
 		
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 	}
+	
+	public void CenterView() {
+		animationStartTime = 0.0F;
+		needRecenter = true;
+	}
 
 	public void CenterView(float d, Vector3 cameraOffset) {
 		distance = d;
 		
 		initialPosition = GetComponent<Camera>().transform.position;
 		initialCenter = GetComponent<Camera>().transform.position+GetComponent<Camera>().transform.forward*distance;
+		initialUp = GetComponent<Camera>().transform.up;
 
 		// set distance
 		Quaternion rotation = GetComponent<Camera>().transform.rotation;
@@ -115,7 +123,7 @@ public class ViewPoint3DMouse : MonoBehaviour {
 			// if starting new animation, save transform
 			if(animationStartTime == 0.0F)
 			{
-				GetComponent<Camera>().transform.LookAt(new Vector3(0,0,0));
+				GetComponent<Camera>().transform.LookAt(new Vector3(0,0,0),initialUp);
 				animationStartTime = currentTime;
 				
 				//print ("position:"+initialPosition+positionOffset);
@@ -136,13 +144,13 @@ public class ViewPoint3DMouse : MonoBehaviour {
 
 			GetComponent<Camera>().transform.position = Vector3.Lerp(initialPosition,positionOffset,t);
 			Vector3 lookat = Vector3.Lerp(initialCenter,_center,t);
-			GetComponent<Camera>().transform.LookAt(lookat);
+			GetComponent<Camera>().transform.LookAt(lookat,initialUp);
 			//print("("+t+") "+camera.transform.position);
 		}
 		else if(!GameObject.Find("Camera").GetComponent<AnnotationMenu>().menuOn)
 		{
 			//print(camera.transform.position);
-			GetComponent<Camera>().transform.RotateAround (rayCenter, -1*GetComponent<Camera>().transform.up, SpaceNavigator.Rotation.Yaw () * Mathf.Rad2Deg * yRotationCoef*100);
+			GetComponent<Camera>().transform.RotateAround (rayCenter, 1*GetComponent<Camera>().transform.up, SpaceNavigator.Rotation.Yaw () * Mathf.Rad2Deg * yRotationCoef*100);
 			GetComponent<Camera>().transform.RotateAround (rayCenter, -1*GetComponent<Camera>().transform.right, SpaceNavigator.Rotation.Pitch () * Mathf.Rad2Deg * xRotationCoef*100);
 			GetComponent<Camera>().transform.RotateAround (rayCenter, -1*GetComponent<Camera>().transform.forward, SpaceNavigator.Rotation.Roll () * Mathf.Rad2Deg * zRotationCoef*100);
 
@@ -182,14 +190,14 @@ public class ViewPoint3DMouse : MonoBehaviour {
 				}
 				
 				float minDistance = Mathf.Infinity;
-				float distance = 0;
-				
+				float d = 0;
+
 				for (int i = 0; i < pointCloud.vertexCount; ++i) //ii+=10)
 				{
-					distance = Vector3.Cross(ray.direction, pointCloud.verts[i] - ray.origin).magnitude;
-					if (distance < minDistance)
+					d = Vector3.Cross(ray.direction, pointCloud.verts[i] - ray.origin).magnitude;
+					if (d < minDistance)
 					{
-						minDistance = distance;
+						minDistance = d;
 						closestPoint = pointCloud.verts[i];
 					}
 				}
