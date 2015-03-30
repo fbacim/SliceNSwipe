@@ -79,6 +79,8 @@ public class PointCloud : MonoBehaviour
 	public int steps = 0;
 	public int mistakes = 0;
 	public DateTime startTime;
+	public float maxTime = 300.0f;
+	public float timeLeft = 0;
 
 	private void preProcessFile(string fileName, ref Vector3 centerOffset, ref float scale) 
 	{
@@ -474,6 +476,21 @@ public class PointCloud : MonoBehaviour
 		UpdateAnnotations();
 
 		checkTaskCompletion();
+		
+		DateTime endTime = DateTime.Now;
+		TimeSpan ts = endTime - startTime;
+		timeLeft = (maxTime-ts.Seconds);
+		
+		if(timeLeft < 0.0f)
+		{
+			Annotate("time_elapsed");
+			Application.Quit();
+		}
+		else if(hitPercent >= minHitPercent && falseHitPercent <= maxFalseHitPercent)
+		{
+			Annotate("task_completed");
+			Application.Quit();
+		}
 	}
 
 

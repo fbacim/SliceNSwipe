@@ -220,31 +220,17 @@ public class LeapController : MonoBehaviour {
 		GUI.Label (new Rect (UnityEngine.Screen.width-205, 35, 200, 30), "Extra points", style);
 
 		// display task timer
-		DateTime endTime = DateTime.Now;
-		TimeSpan ts = endTime - pointCloud.startTime;
-		float secondsLeft = (300.0f-ts.Seconds);
 		style = new GUIStyle(GUI.skin.box);
 		style.border.left = style.border.right = style.border.top = style.border.bottom = 3;
 		style.fontSize = 20;
 		style.fontStyle = FontStyle.Bold;
-		if(secondsLeft > 60)
+		if(pointCloud.timeLeft > 60)
 			style.normal.textColor = Color.green;
-		else if(secondsLeft > 20)
+		else if(pointCloud.timeLeft > 20)
 			style.normal.textColor = Color.yellow;
 		else
 			style.normal.textColor = Color.red;
-		GUI.Label (new Rect (UnityEngine.Screen.width-75, UnityEngine.Screen.height-35, 70, 30), ""+secondsLeft+"s", style);
-
-		if(secondsLeft < 0.0f)
-		{
-			pointCloud.Annotate("time_elapsed");
-			Application.Quit();
-		}
-		else if(pointCloud.hitPercent >= pointCloud.minHitPercent && pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent)
-		{
-			pointCloud.Annotate("task_completed");
-			Application.Quit();
-		}
+		GUI.Label (new Rect (UnityEngine.Screen.width-75, UnityEngine.Screen.height-35, 70, 30), ""+pointCloud.timeLeft+"s", style);
 	}
 
 	public void RenderTransparentObjects() {
