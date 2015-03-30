@@ -235,7 +235,12 @@ public class LeapController : MonoBehaviour {
 			style.normal.textColor = Color.red;
 		GUI.Label (new Rect (UnityEngine.Screen.width-75, UnityEngine.Screen.height-35, 70, 30), ""+secondsLeft+"s", style);
 
-		if(secondsLeft || (pointCloud.hitPercent >= pointCloud.minHitPercent && pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent))
+		if(secondsLeft < 0.0f)
+		{
+			pointCloud.Annotate("time_elapsed");
+			Application.Quit();
+		}
+		else if(pointCloud.hitPercent >= pointCloud.minHitPercent && pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent)
 		{
 			pointCloud.Annotate("task_completed");
 			Application.Quit();
