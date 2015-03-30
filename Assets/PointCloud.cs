@@ -253,6 +253,7 @@ public class PointCloud : MonoBehaviour
 		originalCenter = center;
 
 		if (annotationFileName!=null) {
+			annotationFileName = Application.dataPath+@"/PointClouds/WithNormals/Tasks/"+annotationFileName;
 			System.IO.StreamReader loadAnnotationFile = new System.IO.StreamReader(annotationFileName);
 			string annotation = loadAnnotationFile.ReadLine();		// Rewrite the first argument as the first line in the Annotation file will have the tag
 			string[] indexesInAnnotation = loadAnnotationFile.ReadLine().Split(',');
