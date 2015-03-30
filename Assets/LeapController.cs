@@ -234,6 +234,12 @@ public class LeapController : MonoBehaviour {
 		else
 			style.normal.textColor = Color.red;
 		GUI.Label (new Rect (UnityEngine.Screen.width-75, UnityEngine.Screen.height-35, 70, 30), ""+secondsLeft+"s", style);
+
+		if(secondsLeft || (pointCloud.hitPercent >= pointCloud.minHitPercent && pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent))
+		{
+			pointCloud.Annotate("task_completed");
+			Application.Quit();
+		}
 	}
 
 	public void RenderTransparentObjects() {
