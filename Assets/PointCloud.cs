@@ -355,12 +355,14 @@ public class PointCloud : MonoBehaviour
 	{
 		if (bufferPoints != null) bufferPoints.Release();
 		bufferPoints = null;
-		if (bufferPos != null) bufferPos.Release();
-		bufferPos = null;
 		if (bufferColors != null) bufferColors.Release();
 		bufferColors = null;
 		if (bufferColorOffset != null) bufferColorOffset.Release();
 		bufferColorOffset = null;
+		if (bufferNormals != null) bufferNormals.Release();
+		bufferNormals = null;
+		if (bufferPos != null) bufferPos.Release();
+		bufferPos = null;
 		if (bufferSizes != null) bufferSizes.Release();
 		bufferSizes = null;
 		if (bufferSelected != null) bufferSelected.Release();
