@@ -78,6 +78,7 @@ public class PointCloud : MonoBehaviour
 
 	public int steps = 0;
 	public int mistakes = 0;
+	public int cancels = 0;
 	public DateTime startTime;
 	public float maxTime = 300.0f;
 	public float timeLeft = 0;
@@ -383,11 +384,11 @@ public class PointCloud : MonoBehaviour
 	}
 
 	// mode 0 cancel 1 left 2 right
-	public void TriggerSeparation(bool s, int mode) 
+	public void TriggerSeparation(bool state, int mode) 
 	{
 		// animation
 		// cut event, for now using slash but should be something else
-		if(useSeparation && s != separate && !animating)
+		if(useSeparation && state != separate && !animating)
 		{
 			animating = true;
 			animationStartTime = Time.timeSinceLevelLoad;
@@ -395,8 +396,10 @@ public class PointCloud : MonoBehaviour
 
 			GameObject.Find("Camera").GetComponent<ViewPoint3DMouse>().CenterView();
 
-			steps++;
-
+			if(!state && mode > 0)
+				steps++;
+			else if(!state && mode == 0)
+				cancels++;
 		}
 	}
 
@@ -637,6 +640,7 @@ public class PointCloud : MonoBehaviour
 		CenterPointCloud(selectedCenter);
 
 		mistakes++;
+		steps--;
 
 	}
 
@@ -1174,7 +1178,7 @@ public class PointCloud : MonoBehaviour
 		TimeSpan ts = endTime - startTime;
 
 		System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
-		annotationFile.WriteLine(annotation+@","+steps+@","+mistakes+@","+ts.TotalSeconds);
+		annotationFile.WriteLine(annotation+@","+steps+@","+mistakes+@","+cancels+@","+ts.TotalSeconds);
 		foreach (int index in annotationsPerVertex[annotation]) {
 			annotationFile.Write (index + ",");
 		}
