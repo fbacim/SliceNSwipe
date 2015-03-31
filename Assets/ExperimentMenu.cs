@@ -3,33 +3,27 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
+
+
 public class ExperimentMenu : MonoBehaviour {
 	public bool showMenu;
+	public string participantID = "tester";
 
 	bool init = false;
 
-	enum technique { SLICENSWIPE=0, VOLUMESWEEP=1, LASSO=2, NONE=3, SIZE=4 };
-	enum Strategy { FAST, PRECISE, BOTH };
-
-	int selectedTechnique = 0;
-	int selectedStrategy = 0;
+	public Technique selectedTechnique = Technique.SLICENSWIPE;
+	public Strategy selectedStrategy = Strategy.BOTH;
 	int selectedPointCloud = 0;
 	
-	string[] techniqueStrings;
-	string[] strategyStrings;
 	string[] pointCloudStrings;
+	public static string[] techniqueStrings = new string[] {
+		"Slice'n'Swipe", "Volume Sweeper", "Lasso"};
+	public static string[] strategyStrings = new string[] {
+		"Fast", "Precise", "Both"};
 
 	// Use this for initialization
 	void Start () {
 
-		techniqueStrings  = new string[] {"Slice'n'Swipe", 
-			"Volume Sweeper", 
-			"Lasso"};
-		
-		strategyStrings   = new string[] {"Fast", 
-			"Precise",  
-			"Both"};
-		
 		pointCloudStrings = new string[] {
 //			"../NoNormals/LongHornBeetle", 
 //			"NoNormals/QCAT_N3_Zebedee_color", 
@@ -66,15 +60,19 @@ public class ExperimentMenu : MonoBehaviour {
 				string line = reader.ReadLine ();
 				string[] values = line.Split (',');
 
-				if (values[0].Equals("Slice'n'Swipe")) selectedTechnique = (int) technique.SLICENSWIPE;
-				else if(values[0].Equals("Volume Sweeper")) selectedTechnique = (int) technique.VOLUMESWEEP;
-				else if(values[0].Equals("Lasso")) selectedTechnique = (int) technique.LASSO;
-				else selectedTechnique = (int) technique.SLICENSWIPE;
+				// The 5 arguments in task.csv are:
+				// technique,strategy,model,task,participantID
 
-				if (values[1].Equals("Fast")) selectedStrategy = (int) Strategy.FAST;
-				else if(values[1].Equals("Precise")) selectedStrategy = (int) Strategy.PRECISE;
-				else if(values[1].Equals("Both")) selectedStrategy = (int) Strategy.BOTH;
-				else selectedStrategy = (int) Strategy.FAST;
+				participantID = values[4];
+
+				for (int i=0; i<3; i++){
+					if (values[0].Equals(techniqueStrings[i])){
+					    selectedTechnique = (Technique) i;
+					}
+					if (values[1].Equals(strategyStrings[i])){
+						selectedStrategy = (Strategy) i;
+					}
+				}
 
 				LeapController leapObject = GameObject.Find ("Leap").GetComponent<LeapController> ();
 				leapObject.init (selectedTechnique, selectedStrategy);
@@ -96,8 +94,8 @@ public class ExperimentMenu : MonoBehaviour {
 
 		if(!init && showMenu)
 		{
-			selectedTechnique  = GUI.SelectionGrid(new Rect (1.0F*Screen.width/4.0F-100.0F, Screen.height/2.0F-35*techniqueStrings.Length/2, 200, 35*techniqueStrings.Length),selectedTechnique, techniqueStrings, 1);
-			selectedStrategy   = GUI.SelectionGrid(new Rect (2.0F*Screen.width/4.0F-100.0F, Screen.height/2.0F-35*strategyStrings.Length/2, 200, 35*strategyStrings.Length), selectedStrategy, strategyStrings, 1);
+			selectedTechnique  = (Technique) GUI.SelectionGrid(new Rect (1.0F*Screen.width/4.0F-100.0F, Screen.height/2.0F-35*techniqueStrings.Length/2, 200, 35*techniqueStrings.Length),(int)selectedTechnique, techniqueStrings, 1);
+			selectedStrategy   = (Strategy) GUI.SelectionGrid(new Rect (2.0F*Screen.width/4.0F-100.0F, Screen.height/2.0F-35*strategyStrings.Length/2, 200, 35*strategyStrings.Length), (int)selectedStrategy, strategyStrings, 1);
 			selectedPointCloud = GUI.SelectionGrid(new Rect (3.0F*Screen.width/4.0F-100.0F, Screen.height/2.0F-35*pointCloudStrings.Length/2, 200, 35*pointCloudStrings.Length), selectedPointCloud, pointCloudStrings, 1);
 
 			init = GUI.Button(new Rect(Screen.width/2.0F-100.0F, Screen.height/2.0F+35*techniqueStrings.Length/2 + 10, 200, 35*techniqueStrings.Length), "Start");

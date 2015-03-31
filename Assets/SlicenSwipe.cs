@@ -38,12 +38,11 @@ public class SlicenSwipe {
 	bool isEnabled = true;
 	bool needsClear = true;
 	
-	enum Strategy { FAST, PRECISE, BOTH };
 	Strategy strategy = Strategy.BOTH;
 	
-	public SlicenSwipe(int selectedStrategy)
+	public SlicenSwipe(Strategy selectedStrategy)
 	{
-		strategy = (Strategy)selectedStrategy;
+		strategy = selectedStrategy;
 
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 		

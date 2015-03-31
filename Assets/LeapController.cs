@@ -12,8 +12,7 @@ public class LeapController : MonoBehaviour {
 	VolumeSweep volumeSweep;
 	Lasso lasso;
 	
-	enum technique { SLICENSWIPE=0, VOLUMESWEEP=1, LASSO=2, NONE=3, SIZE=4 };
-	technique currentTechnique = technique.VOLUMESWEEP;  
+	Technique currentTechnique = Technique.VOLUMESWEEP;  
 
 	Leap.Controller controller;
 	List<GameObject> goFingerList;
@@ -54,18 +53,18 @@ public class LeapController : MonoBehaviour {
 		}
 	}
 
-	public void init(int selectedTechnique, int selectedStrategy) {
-		if (selectedTechnique == (int)technique.SLICENSWIPE) {
+	public void init(Technique selectedTechnique, Strategy selectedStrategy) {
+		if (selectedTechnique == Technique.SLICENSWIPE) {
 			slicenSwipe = new SlicenSwipe (selectedStrategy);
-			currentTechnique = technique.SLICENSWIPE;
+			currentTechnique = Technique.SLICENSWIPE;
 		}
-		else if (selectedTechnique == (int)technique.VOLUMESWEEP) {
+		else if (selectedTechnique == Technique.VOLUMESWEEP) {
 			volumeSweep = new VolumeSweep(selectedStrategy);
-			currentTechnique = technique.VOLUMESWEEP;
+			currentTechnique = Technique.VOLUMESWEEP;
 		}
-		else if (selectedTechnique == (int)technique.LASSO) {
+		else if (selectedTechnique == Technique.LASSO) {
 			lasso = new Lasso(selectedStrategy);
-			currentTechnique = technique.LASSO;
+			currentTechnique = Technique.LASSO;
 		}
 		else {
 			return;
@@ -265,9 +264,9 @@ public class LeapController : MonoBehaviour {
 			}
 		}
 
-		if(currentTechnique == technique.SLICENSWIPE && slicenSwipe != null)
+		if(currentTechnique == Technique.SLICENSWIPE && slicenSwipe != null)
 			slicenSwipe.RenderTransparentObjects();
-		else if(currentTechnique == technique.VOLUMESWEEP && volumeSweep != null)
+		else if(currentTechnique == Technique.VOLUMESWEEP && volumeSweep != null)
 			volumeSweep.RenderTransparentObjects();
 		//else if(currentTechnique == technique.LASSO && lasso != null)
 		//	lasso.RenderTransparentObjects();

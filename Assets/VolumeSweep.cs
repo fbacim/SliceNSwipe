@@ -44,11 +44,10 @@ public class VolumeSweep {//}: MonoBehaviour {
 
 	bool shiftToggle = false;
 	
-	enum Strategy { FAST, PRECISE, BOTH };
 	Strategy strategy = Strategy.BOTH;
 	
-	public VolumeSweep(int selectedStrategy) {
-		strategy = (Strategy)selectedStrategy;
+	public VolumeSweep(Strategy selectedStrategy) {
+		strategy = selectedStrategy;
 
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();

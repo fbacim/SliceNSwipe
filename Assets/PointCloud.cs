@@ -1178,7 +1178,8 @@ public class PointCloud : MonoBehaviour
 		TimeSpan ts = endTime - startTime;
 
 		System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
-		annotationFile.WriteLine(annotation+@","+steps+@","+mistakes+@","+cancels+@","+ts.TotalSeconds);
+		string participantID = GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu> ().participantID;
+		annotationFile.WriteLine(participantID+@","+annotation+@","+steps+@","+mistakes+@","+cancels+@","+ts.TotalSeconds);
 		foreach (int index in annotationsPerVertex[annotation]) {
 			annotationFile.Write (index + ",");
 		}

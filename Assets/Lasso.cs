@@ -28,11 +28,10 @@ public class Lasso {//}: MonoBehaviour {
 	bool needsClear = true;
 	bool canSelect = false;
 
-	enum Strategy { FAST, PRECISE, BOTH };
 	Strategy strategy = Strategy.BOTH;
 
-	public Lasso(int selectedStrategy) {
-		strategy = (Strategy)selectedStrategy;
+	public Lasso(Strategy selectedStrategy) {
+		strategy = selectedStrategy;
 
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();

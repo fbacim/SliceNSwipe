@@ -1,17 +1,18 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\PointCloud.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\ExperimentMenu.cs">
     <Files>
-      <File FileName="Assets\PointCloud.cs" Line="452" Column="74" />
-      <File FileName="Assets\LeapController.cs" Line="1" Column="1" />
-      <File FileName="Assets\VolumeSweep.cs" Line="263" Column="181" />
-      <File FileName="Assets\Resources\SpritesDefaultLight.shader" Line="1" Column="36" />
-      <File FileName="Assets\Resources\PhongUserLight.shader" Line="22" Column="10" />
-      <File FileName="Assets\Resources\VertexPoints.shader" Line="176" Column="76" />
+      <File FileName="Assets\ExperimentMenu.cs" Line="15" Column="43" />
+      <File FileName="Assets\PointCloud.cs" Line="1166" Column="38" />
+      <File FileName="Assets\LeapController.cs" Line="267" Column="3" />
+      <File FileName="Assets\Enumerations.cs" Line="5" Column="46" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
-    <BreakpointStore />
+    <BreakpointStore>
+      <Breakpoint file="C:\Users\Tests\Desktop\3DUIContest2014\Assets\PointCloud.cs" line="1182" />
+      <Breakpoint file="C:\Users\Tests\Desktop\3DUIContest2014\Assets\PointCloud.cs" line="1129" />
+    </BreakpointStore>
   </MonoDevelop.Ide.DebuggingService.Breakpoints>
   <MonoDevelop.Ide.DebuggingService.PinnedWatches />
 </Properties>

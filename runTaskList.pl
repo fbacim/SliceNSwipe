@@ -8,13 +8,13 @@
 # When the Unity3D app finishes executing, the next line in the file is processed.
 
 
-open (LISTFILE, "<", $ARGV[0]);
+open (LISTFILE, "<", $ARGV[1]);
 
 $n = 1;
 
-if ( $#ARGV+1 > 1 ) {
+if ( $#ARGV+1 > 2 ) {
 	print "Starting from task $ARGV[1]\n";
-	$n=$ARGV[1];
+	$n=$ARGV[2];
 	for (my $i=0; $i<$n; $i++){
 		<LISTFILE>;
 	}
@@ -24,13 +24,15 @@ foreach $line (<LISTFILE>){
 	do{
 		$satisfied = 1;
 		open (TASKFILE, ">", "task.csv") or die "Could not open task.csv: $!";
+		$line =~ s/\s+$//;
+		$line .= ",".$ARGV[0];
 		print TASKFILE $line;
 		close TASKFILE;
 
 		print $n . ": " . $line;
-##		`exp.exe`;
+		`exp.exe`;
 
-		print "Repeat last task [y/n]? ";
+		print "\nRepeat last task [y/n]? ";
 		$_ = <STDIN>;
 		if (/y/) { $satisfied = 0; }
 	}while($satisfied==0);
