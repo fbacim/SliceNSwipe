@@ -76,6 +76,9 @@ public class PointCloud : MonoBehaviour
 
 	private string pointCloudFile;
 
+	private string modelName;
+	private string taskName;
+
 	public int steps = 0;
 	public int mistakes = 0;
 	public int cancels = 0;
@@ -139,6 +142,9 @@ public class PointCloud : MonoBehaviour
 	public void init (string fileName, string annotationFileName=null) 
 	{
 		pointCloudFile = Application.dataPath+"/PointClouds/WithNormals/"+fileName+".csv";
+
+		modelName = fileName;
+
 
 		Debug.Log (pointCloudFile);
 
@@ -256,8 +262,12 @@ public class PointCloud : MonoBehaviour
 		center = center / vertexCount;
 		originalCenter = center;
 
+	
 		if (annotationFileName!=null) {
+			taskName = annotationFileName.Split(new char[]{'_'})[1];
 			annotationFileName = Application.dataPath+@"/PointClouds/WithNormals/Tasks/"+annotationFileName;
+			
+
 			System.IO.StreamReader loadAnnotationFile = new System.IO.StreamReader(annotationFileName);
 			loadAnnotationFile.ReadLine();		// Rewrite the first argument as the first line in the Annotation file will have the tag
 			string[] indexesInAnnotation = loadAnnotationFile.ReadLine().Split(',');
@@ -285,7 +295,9 @@ public class PointCloud : MonoBehaviour
 					string annotation = loadAnnotationFile.ReadLine();		// Rewrite the first argument as the first line in the Annotation file will have the tag
 					string[] indexesInAnnotation = loadAnnotationFile.ReadLine().Split(',');
 					loadAnnotationFile.Close();
-					
+
+					taskName = annotationFilename.Split(new char[]{'_'})[1];
+
 					foreach( string index in indexesInAnnotation ){
 						int num;
 						if (int.TryParse(index, out num))
@@ -299,7 +311,8 @@ public class PointCloud : MonoBehaviour
 				}
 			}
 		}
-		
+
+
 		ReleaseBuffers ();
 		
 		bufferPoints = new ComputeBuffer (vertexCount, 12);
@@ -1126,8 +1139,8 @@ public class PointCloud : MonoBehaviour
 	public void Annotate(string annotation)
 	{
 
-		if(separate || animating)
-			return;
+//		if(separate || animating)
+//			return;
 		
 		Vector3 center = new Vector3();
 		int selectedCount = 0;
@@ -1172,14 +1185,25 @@ public class PointCloud : MonoBehaviour
 		o.cameraToUse = GameObject.Find("Camera").GetComponent<Camera>();
 		goAnnotations.Add(tmpGo);
 		
-		string annotationFileName = pointCloudFile.Remove(pointCloudFile.Length-4)+@"_"+annotation+@"_"+Path.GetRandomFileName().Substring(0,2)+@".annotation.csv";
+		//string annotationFileName = pointCloudFile.Remove(pointCloudFile.Length-4)+@"_"+annotation+@"_"+Path.GetRandomFileName().Substring(0,2)+@".annotation.csv";
 
+		string participantID = GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu> ().participantID;
+
+		
 		DateTime endTime = DateTime.Now;
 		TimeSpan ts = endTime - startTime;
 
+		string annotationFileName = @"C:\Users\Tests\Dropbox\TaskResults\"
+			+participantID+@"_"
+			+ @"t" +(int) GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu> ().selectedTechnique
+			+ @"s" +(int) GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu> ().selectedStrategy
+			+ @"_" + modelName + @"_" + taskName
+			+ @"_" + endTime.ToShortDateString ().Replace ('/', '_')
+			+ @"_" + endTime.ToLongTimeString ().Replace (':', '_').Replace(" ","")
+			+ @".csv";
+
 		System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
-		string participantID = GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu> ().participantID;
-		annotationFile.WriteLine(participantID+@","+annotation+@","+steps+@","+mistakes+@","+cancels+@","+ts.TotalSeconds);
+				annotationFile.WriteLine(participantID+@","+annotation+@","+steps+@","+mistakes+@","+cancels+@","+ts.TotalSeconds);
 		foreach (int index in annotationsPerVertex[annotation]) {
 			annotationFile.Write (index + ",");
 		}
