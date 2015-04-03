@@ -1183,7 +1183,7 @@ public class PointCloud : MonoBehaviour
 		
 		GameObject tmpGo = new GameObject("Annotation");
 		GUIText t = tmpGo.AddComponent<GUIText>();
-		t.text = annotation;
+		t.text = reset ? annotation : "";
 		t.fontSize = (int)(15.0F+(selectedCount/vertexCount)*15.0F);
 		t.anchor = TextAnchor.MiddleCenter;
 		t.alignment = TextAlignment.Center;
