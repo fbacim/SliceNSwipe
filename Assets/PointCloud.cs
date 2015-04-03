@@ -414,12 +414,12 @@ public class PointCloud : MonoBehaviour
 			if(!state && mode > 0)
 			{
 				steps++;
-				Annotate(""+(steps+cancels+mistakes));
+				Annotate(""+(steps+cancels+mistakes), false);
 			}
 			else if(!state && mode == 0)
 			{
 				cancels++;
-				Annotate(""+(steps+cancels+mistakes));
+				Annotate(""+(steps+cancels+mistakes), false);
 			}
 		}
 	}
@@ -508,12 +508,12 @@ public class PointCloud : MonoBehaviour
 		if(timeLeft < 0.0f && !taskDone)
 		{
 			taskDone = true;
-			Annotate("time_elapsed");
+			Annotate("time_elapsed", true);
 		}
 		else if(hitPercent >= minHitPercent && falseHitPercent <= maxFalseHitPercent && !taskDone)
 		{
 			taskDone = true;
-			Annotate("task_completed");
+			Annotate("task_completed", true);
 		}
 	}
 
@@ -663,7 +663,7 @@ public class PointCloud : MonoBehaviour
 		mistakes++;
 		steps--;
 		
-		Annotate(""+(steps+cancels+mistakes));
+		Annotate(""+(steps+cancels+mistakes), false);
 	}
 
 	public void SelectAnnotation(int index)
@@ -1145,7 +1145,7 @@ public class PointCloud : MonoBehaviour
 	}
 
 	// The parameter is the name of the annotation that the user writes on screen
-	public void Annotate(string annotation)
+	public void Annotate(string annotation, bool reset)
 	{
 
 //		if(separate || animating)
@@ -1233,7 +1233,7 @@ public class PointCloud : MonoBehaviour
 		annotationFile.Close ();
 
 		
-		if (resetAfterAnnotation) {
+		if (reset) {
 			ResetAll ();
 			steps = 0;
 			mistakes = 0;
