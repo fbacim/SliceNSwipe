@@ -33,7 +33,7 @@ public class PointCloud : MonoBehaviour
 	private List< List<int> > selectedHistory;
 	private int[] highlighted;
 	private int[] notHighlighted;
-	private int highlightedCount;
+	public int highlightedCount;
 	public float hitPercent;
 	public float falseHitPercent;
 	public float minHitPercent = 0.95F;
@@ -49,6 +49,8 @@ public class PointCloud : MonoBehaviour
 	public float currentDeselectedSize;
 	public bool useSeparation = true;
 	public bool resetAfterAnnotation = true;
+
+	public bool taskDone = false;
 
 	// store the subset of the PC that corresponds to an annotation, given the index of the point in the file
 	private Dictionary<string, List<int>> annotationsPerVertex;
@@ -410,9 +412,15 @@ public class PointCloud : MonoBehaviour
 			GameObject.Find("Camera").GetComponent<ViewPoint3DMouse>().CenterView();
 
 			if(!state && mode > 0)
+			{
 				steps++;
+				Annotate(""+(steps+cancels+mistakes));
+			}
 			else if(!state && mode == 0)
+			{
 				cancels++;
+				Annotate(""+(steps+cancels+mistakes));
+			}
 		}
 	}
 
@@ -495,17 +503,17 @@ public class PointCloud : MonoBehaviour
 		
 		DateTime endTime = DateTime.Now;
 		TimeSpan ts = endTime - startTime;
-		timeLeft = (maxTime-ts.Seconds);
+		timeLeft = (maxTime-(int)ts.TotalSeconds);
 		
-		if(timeLeft < 0.0f)
+		if(timeLeft < 0.0f && !taskDone)
 		{
+			taskDone = true;
 			Annotate("time_elapsed");
-			Application.Quit();
 		}
-		else if(hitPercent >= minHitPercent && falseHitPercent <= maxFalseHitPercent)
+		else if(hitPercent >= minHitPercent && falseHitPercent <= maxFalseHitPercent && !taskDone)
 		{
+			taskDone = true;
 			Annotate("task_completed");
-			Application.Quit();
 		}
 	}
 
@@ -596,7 +604,7 @@ public class PointCloud : MonoBehaviour
 		//Debug.Log("1Sphere of radius "+bsRadius+" should be at "+idealDistance);
 		//idealDistance = bsRadius/Mathf.Sin(Mathf.Max(camera.fieldOfView, fieldOfViewX) * 0.0174532925F * 0.5F);
 		//Debug.Log("2Sphere of radius "+bsRadius+" should be at "+idealDistance);
-		GameObject.Find("Camera").GetComponent<ViewPoint3DMouse>().CenterView(idealDistance,selectedCenter);//distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
+		GameObject.Find("Camera").GetComponent<ViewPoint3DMouse>().CenterView(idealDistance);//distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
 		GameObject.Find("Camera").GetComponent<Orbit>().CenterView(idealDistance);//distance = 30 - (1.0F-((float)selectedCount/(float)vertexCount))*15.0F;
 
 
@@ -654,7 +662,8 @@ public class PointCloud : MonoBehaviour
 
 		mistakes++;
 		steps--;
-
+		
+		Annotate(""+(steps+cancels+mistakes));
 	}
 
 	public void SelectAnnotation(int index)
@@ -1187,23 +1196,37 @@ public class PointCloud : MonoBehaviour
 		
 		//string annotationFileName = pointCloudFile.Remove(pointCloudFile.Length-4)+@"_"+annotation+@"_"+Path.GetRandomFileName().Substring(0,2)+@".annotation.csv";
 
-		string participantID = GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu> ().participantID;
+		string participantID = GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu>().participantID;
 
 		
 		DateTime endTime = DateTime.Now;
 		TimeSpan ts = endTime - startTime;
 
-		string annotationFileName = @"C:\Users\Tests\Dropbox\TaskResults\"
-			+participantID+@"_"
-			+ @"t" +(int) GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu> ().selectedTechnique
-			+ @"s" +(int) GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu> ().selectedStrategy
+		string path = Directory.GetParent(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)).FullName;
+		if ( Environment.OSVersion.Version.Major >= 6 ) {
+			path = Directory.GetParent(path).ToString();
+		}
+		string annotationFileName = path+@"\Dropbox\TaskResults\"
+			+ participantID
+			+ @"_"+ annotation 
+			+ @"_t" +(int) GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu>().selectedTechnique
+			+ @"s" +(int) GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu>().selectedStrategy
 			+ @"_" + modelName + @"_" + taskName
 			+ @"_" + endTime.ToShortDateString ().Replace ('/', '_')
 			+ @"_" + endTime.ToLongTimeString ().Replace (':', '_').Replace(" ","")
 			+ @".csv";
 
 		System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
-				annotationFile.WriteLine(participantID+@","+annotation+@","+steps+@","+mistakes+@","+cancels+@","+ts.TotalSeconds);
+		annotationFile.WriteLine(participantID
+		                         +@","+annotation
+		                         +@","+(int)GameObject.Find("Experiment Menu").GetComponent<ExperimentMenu>().selectedTechnique
+		                         +@","+(int)GameObject.Find("Experiment Menu").GetComponent<ExperimentMenu>().selectedStrategy
+		                         +@","+modelName
+		                         +@","+taskName
+		                         +@","+steps
+		                         +@","+mistakes
+		                         +@","+cancels
+		                         +@","+ts.TotalSeconds);
 		foreach (int index in annotationsPerVertex[annotation]) {
 			annotationFile.Write (index + ",");
 		}

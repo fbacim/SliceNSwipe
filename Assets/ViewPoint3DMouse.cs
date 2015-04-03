@@ -94,11 +94,19 @@ public class ViewPoint3DMouse : MonoBehaviour {
 	}
 	
 	public void CenterView() {
+		initialPosition = GetComponent<Camera>().transform.position;
+		initialCenter = GetComponent<Camera>().transform.position+GetComponent<Camera>().transform.forward*distance;
+		initialUp = GetComponent<Camera>().transform.up;
+		
+		Quaternion rotation = GetComponent<Camera>().transform.rotation;
+		Vector3 position = rotation * (new Vector3(0.0F, 0.0F, -distance)) + _center;
+		positionOffset = position;
+		
 		animationStartTime = 0.0F;
 		needRecenter = true;
 	}
 
-	public void CenterView(float d, Vector3 cameraOffset) {
+	public void CenterView(float d) {
 		distance = d;
 		
 		initialPosition = GetComponent<Camera>().transform.position;
@@ -123,11 +131,11 @@ public class ViewPoint3DMouse : MonoBehaviour {
 			// if starting new animation, save transform
 			if(animationStartTime == 0.0F)
 			{
-				GetComponent<Camera>().transform.LookAt(new Vector3(0,0,0),initialUp);
+				//GetComponent<Camera>().transform.LookAt(new Vector3(0,0,0),initialUp);
 				animationStartTime = currentTime;
 				
-				//print ("position:"+initialPosition+positionOffset);
-				//print ("center:"+initialCenter+_center);
+				print ("position:"+initialPosition+positionOffset);
+				print ("center:"+initialCenter+_center);
 			}
 
 
