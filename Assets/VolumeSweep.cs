@@ -297,6 +297,10 @@ public class VolumeSweep {//}: MonoBehaviour {
 			volumeTrailSpheres.Clear();
 		}
 
+
+		// Modify this variable to the appropriate strategy so that Annotate can throw it in the file it creates
+		// GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu>().selectedStrategy = Strategy.FAST;
+
 		//hold SHIFT key for bubble sweep
 		if(strategy == Strategy.BOTH)
 		{

@@ -81,6 +81,8 @@ public class PointCloud : MonoBehaviour
 	private string modelName;
 	private string taskName;
 
+	public Strategy currentStrategy;
+
 	public int steps = 0;
 	public int mistakes = 0;
 	public int cancels = 0;
@@ -146,7 +148,7 @@ public class PointCloud : MonoBehaviour
 		pointCloudFile = Application.dataPath+"/PointClouds/WithNormals/"+fileName+".csv";
 
 		modelName = fileName;
-
+		currentStrategy = GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu>().selectedStrategy;
 
 		Debug.Log (pointCloudFile);
 
@@ -1219,8 +1221,9 @@ public class PointCloud : MonoBehaviour
 		System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
 		annotationFile.WriteLine(participantID
 		                         +@","+annotation
-		                         +@","+(int)GameObject.Find("Experiment Menu").GetComponent<ExperimentMenu>().selectedTechnique
-		                         +@","+(int)GameObject.Find("Experiment Menu").GetComponent<ExperimentMenu>().selectedStrategy
+		                         +@","+GameObject.Find("Experiment Menu").GetComponent<ExperimentMenu>().selectedTechnique
+		                         +@","+GameObject.Find("Experiment Menu").GetComponent<ExperimentMenu>().selectedStrategy
+		                         +@","+currentStrategy
 		                         +@","+modelName
 		                         +@","+taskName
 		                         +@","+steps
