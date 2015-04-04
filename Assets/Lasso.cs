@@ -147,6 +147,7 @@ public class Lasso {//}: MonoBehaviour {
 		}
 		else if(currentState == state.DRAW && strategy != Strategy.PRECISE && !(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && filteredVelocity < lowVelocityThreshold)
 		{
+			pointCloud.currentStrategy = Strategy.FAST;
 			if(canSelect)
 			{
 				currentState = state.SELECT_IN_OUT;
@@ -275,6 +276,7 @@ public class Lasso {//}: MonoBehaviour {
 		// selection
 		if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // ready to select
 		{
+			pointCloud.currentStrategy = Strategy.PRECISE;
 			if(canSelect)
 				currentState = state.SELECT_IN_OUT;
 			else

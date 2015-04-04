@@ -196,51 +196,29 @@ public class LeapController : MonoBehaviour {
 	
 	void OnGUI ()
 	{
-		/*GUIStyle style = new GUIStyle(GUI.skin.box);
-		style.fontSize = 20;
-		style.fontStyle = FontStyle.Bold;
-		if(pointCloud.hitPercent >= 1.0F)
-			style.normal.textColor = Color.green;
-		else if(pointCloud.hitPercent >= pointCloud.minHitPercent)
-			style.normal.textColor = Color.yellow;
-		else
-			style.normal.textColor = Color.red;
-		GUI.Label (new Rect (UnityEngine.Screen.width-205, 5, 200, 30), "Selection hits", style);
-
-		style = new GUIStyle(GUI.skin.box);
-		style.fontSize = 20;
-		style.fontStyle = FontStyle.Bold;
-		if(pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent)
-			style.normal.textColor = Color.green;
-		else if(pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent*2.0f)
-			style.normal.textColor = Color.yellow;
-		else
-			style.normal.textColor = Color.red;
-		GUI.Label (new Rect (UnityEngine.Screen.width-205, 35, 200, 30), "Extra points", style);*/
-
 		// update gauges based on task completion
 		if(pointCloud.hitPercent >= pointCloud.minHitPercent)
 		{
 			float value = pointCloud.hitPercent;
 			float offset = pointCloud.minHitPercent;
 			GameObject.Find("GoodRedProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f;
-			GameObject.Find("GoodYellowProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f;
+			//GameObject.Find("GoodYellowProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f;
 			GameObject.Find("GoodGreenProgressBarFill").GetComponent<ProgressBar>().scale = Mathf.Clamp((value-offset)/(1.0f-offset),0.0f,1.0f);
 		}
-		else if(pointCloud.hitPercent >= (pointCloud.minHitPercent-(1.0f-pointCloud.minHitPercent)))
-		{
-			float value = pointCloud.hitPercent;
-			float offset = (pointCloud.minHitPercent-(1.0f-pointCloud.minHitPercent));
-			GameObject.Find("GoodRedProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f;
-			GameObject.Find("GoodYellowProgressBarFill").GetComponent<ProgressBar>().scale = Mathf.Clamp((value-offset)/(1.0f-offset),0.0f,1.0f);
-			GameObject.Find("GoodGreenProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
-		}
+//		else if(pointCloud.hitPercent >= (pointCloud.minHitPercent-(1.0f-pointCloud.minHitPercent)))
+//		{
+//			float value = pointCloud.hitPercent;
+//			float offset = (pointCloud.minHitPercent-(1.0f-pointCloud.minHitPercent));
+//			GameObject.Find("GoodRedProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f;
+//			GameObject.Find("GoodYellowProgressBarFill").GetComponent<ProgressBar>().scale = Mathf.Clamp((value-offset)/(1.0f-offset),0.0f,1.0f);
+//			GameObject.Find("GoodGreenProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
+//		}
 		else
 		{
 			float value = pointCloud.hitPercent;
-			float offset = (pointCloud.minHitPercent-(1.0f-pointCloud.minHitPercent));
+			float offset = pointCloud.minHitPercent;//(pointCloud.minHitPercent-(1.0f-pointCloud.minHitPercent));
 			GameObject.Find("GoodRedProgressBarFill").GetComponent<ProgressBar>().scale = Mathf.Clamp(value/offset,0.0f,1.0f);
-			GameObject.Find("GoodYellowProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
+			//GameObject.Find("GoodYellowProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
 			GameObject.Find("GoodGreenProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
 		}
 

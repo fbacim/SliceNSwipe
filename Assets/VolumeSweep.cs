@@ -297,15 +297,15 @@ public class VolumeSweep {//}: MonoBehaviour {
 			volumeTrailSpheres.Clear();
 		}
 
-
-		// Modify this variable to the appropriate strategy so that Annotate can throw it in the file it creates
-		// GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu>().selectedStrategy = Strategy.FAST;
-
 		//hold SHIFT key for bubble sweep
 		if(strategy == Strategy.BOTH)
 		{
 			if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // reset
 			{
+				if(volumeTrailSpheres.Count > 1.0/Time.deltaTime*0.5f)
+					pointCloud.currentStrategy = Strategy.PRECISE;
+				else
+					pointCloud.currentStrategy = Strategy.FAST;
 				if(pointCloud.ValidateSets())
 				{
 					select = true;
@@ -327,6 +327,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 		}
 		else if(strategy == Strategy.FAST) 
 		{
+			pointCloud.currentStrategy = Strategy.FAST;
 			if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) // reset
 			{
 				Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);
@@ -347,6 +348,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 		}
 		else if(strategy == Strategy.PRECISE) 
 		{
+			pointCloud.currentStrategy = Strategy.PRECISE;
 			if(shiftToggle) // if selection started
 			{
 				Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);

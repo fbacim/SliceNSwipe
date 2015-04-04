@@ -124,6 +124,11 @@ public class ViewPoint3DMouse : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		if (Input.GetKeyDown (KeyCode.LeftAlt)) 
+		{
+			CenterView();
+		}
+
 		if(needRecenter)
 		{
 			float currentTime = Time.timeSinceLevelLoad;

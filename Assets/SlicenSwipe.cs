@@ -195,6 +195,12 @@ public class SlicenSwipe {
 				                      handPosition[1],
 				                      fingerPosition[initialPosition < 0 ? 0 : initialPosition]);
 			}
+			
+			// identify strategy used
+			if(rubberBandActive)
+				pointCloud.currentStrategy = Strategy.PRECISE;
+			else
+				pointCloud.currentStrategy = Strategy.FAST;
 
 			//Debug.Log("normal: "+slashPlane.normal+"  d: "+slashPlane.distance);
 			// first check if slice is valid

@@ -50,8 +50,6 @@ public class PointCloud : MonoBehaviour
 	public bool useSeparation = true;
 	public bool resetAfterAnnotation = true;
 
-	public bool taskDone = false;
-
 	// store the subset of the PC that corresponds to an annotation, given the index of the point in the file
 	private Dictionary<string, List<int>> annotationsPerVertex;
 
@@ -63,6 +61,7 @@ public class PointCloud : MonoBehaviour
 	private Vector3 min, max, size, oMin, oMax, oSize;
 	public float bsRadius; // bounding sphere radius, always with center on 0,0,0
 	private float idealDistance;
+	private float initialBSRadius = 0.0f;
 	
 	public float animationTotalTime = 0.25F;
 	private float animationStartTime;
@@ -89,6 +88,8 @@ public class PointCloud : MonoBehaviour
 	public DateTime startTime;
 	public float maxTime = 300.0f;
 	public float timeLeft = 0;
+	public bool training = false;
+	public bool taskDone = false;
 
 	private void preProcessFile(string fileName, ref Vector3 centerOffset, ref float scale) 
 	{
@@ -507,15 +508,24 @@ public class PointCloud : MonoBehaviour
 		TimeSpan ts = endTime - startTime;
 		timeLeft = (maxTime-(int)ts.TotalSeconds);
 		
-		if(timeLeft < 0.0f && !taskDone)
+		if(timeLeft < 0.0f && !taskDone && !training)
 		{
 			taskDone = true;
+			startTime = DateTime.Now;
 			Annotate("time_elapsed", true);
 		}
 		else if(hitPercent >= minHitPercent && falseHitPercent <= maxFalseHitPercent && !taskDone)
 		{
 			taskDone = true;
+			startTime = DateTime.Now;
 			Annotate("task_completed", true);
+		}
+
+		// wait 5 seconds before quitting after task is finished
+		if(taskDone && (DateTime.Now - startTime).TotalSeconds > 5.0f)
+		{
+			print("quitting now");
+			Application.Quit();
 		}
 	}
 
@@ -599,6 +609,17 @@ public class PointCloud : MonoBehaviour
 		
 		size = max-min;
 
+		// calculate size of points in the point cloud
+		if(initialBSRadius == 0.0f)
+			initialBSRadius = bsRadius;
+		currentSelectedSize = selectedSize+initialBSRadius/bsRadius;
+
+		// apply sizes
+		for (int i = 0; i < vertexCount; ++i)
+			if(selected[i] == 1)
+				sizes[i] = currentSelectedSize;
+
+		// calculate ideal distance from the camera
 		float fieldOfViewX = 2.0F * Mathf.Atan( Mathf.Tan( (GetComponent<Camera>().fieldOfView/57.2957795F) / 2.0F ) * GetComponent<Camera>().aspect ) * 57.2957795F;
 		float distX = bsRadius/Mathf.Tan(GetComponent<Camera>().fieldOfView * 0.0174532925F * 0.5F);
 		float distY = bsRadius/Mathf.Tan(fieldOfViewX * 0.0174532925F * 0.5F);
@@ -1204,37 +1225,41 @@ public class PointCloud : MonoBehaviour
 		DateTime endTime = DateTime.Now;
 		TimeSpan ts = endTime - startTime;
 
-		string path = Directory.GetParent(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)).FullName;
-		if ( Environment.OSVersion.Version.Major >= 6 ) {
-			path = Directory.GetParent(path).ToString();
-		}
-		string annotationFileName = path+@"\Dropbox\TaskResults\"
-			+ participantID
-			+ @"_"+ annotation 
-			+ @"_t" +(int) GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu>().selectedTechnique
-			+ @"s" +(int) GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu>().selectedStrategy
-			+ @"_" + modelName + @"_" + taskName
-			+ @"_" + endTime.ToShortDateString ().Replace ('/', '_')
-			+ @"_" + endTime.ToLongTimeString ().Replace (':', '_').Replace(" ","")
-			+ @".csv";
+		try {
+			string path = Directory.GetParent(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)).FullName;
+			if ( Environment.OSVersion.Version.Major >= 6 ) {
+				path = Directory.GetParent(path).ToString();
+			}
+			string annotationFileName = path+@"\Dropbox\TaskResults\"
+				+ participantID
+				+ @"_"+ annotation 
+				+ @"_t" +(int) GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu>().selectedTechnique
+				+ @"s" +(int) GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu>().selectedStrategy
+				+ @"_" + modelName + @"_" + taskName
+				+ @"_" + endTime.ToShortDateString ().Replace ('/', '_')
+				+ @"_" + endTime.ToLongTimeString ().Replace (':', '_').Replace(" ","")
+				+ @".csv";
 
-		System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
-		annotationFile.WriteLine(participantID
-		                         +@","+annotation
-		                         +@","+GameObject.Find("Experiment Menu").GetComponent<ExperimentMenu>().selectedTechnique
-		                         +@","+GameObject.Find("Experiment Menu").GetComponent<ExperimentMenu>().selectedStrategy
-		                         +@","+currentStrategy
-		                         +@","+modelName
-		                         +@","+taskName
-		                         +@","+steps
-		                         +@","+mistakes
-		                         +@","+cancels
-		                         +@","+ts.TotalSeconds);
-		foreach (int index in annotationsPerVertex[annotation]) {
-			annotationFile.Write (index + ",");
+			System.IO.StreamWriter annotationFile = new System.IO.StreamWriter (annotationFileName);
+			annotationFile.WriteLine(participantID
+			                         +@","+annotation
+			                         +@","+GameObject.Find("Experiment Menu").GetComponent<ExperimentMenu>().selectedTechnique
+			                         +@","+GameObject.Find("Experiment Menu").GetComponent<ExperimentMenu>().selectedStrategy
+			                         +@","+currentStrategy
+			                         +@","+modelName
+			                         +@","+taskName
+			                         +@","+steps
+			                         +@","+mistakes
+			                         +@","+cancels
+			                         +@","+ts.TotalSeconds);
+			foreach (int index in annotationsPerVertex[annotation]) {
+				annotationFile.Write (index + ",");
+			}
+			annotationFile.Close ();
 		}
-		annotationFile.Close ();
-
+		catch(DirectoryNotFoundException e) {
+			print("Caught exception:\n"+e.StackTrace);
+		}
 		
 		if (reset) {
 			ResetAll ();
