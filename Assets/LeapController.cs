@@ -24,6 +24,8 @@ public class LeapController : MonoBehaviour {
 
 	Transform handTransform;
 
+	GameObject targetPointsAlert;
+
 	// Use this for initialization
 	void Start () {
 		controller = new Leap.Controller();
@@ -33,6 +35,7 @@ public class LeapController : MonoBehaviour {
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 		//handTransform = GameObject.Find("HandController").GetComponent<Transform>();
+		targetPointsAlert = GameObject.Find("TargetPointsAlert");
 
 		goFingerList = new List<GameObject>();
 		for(int i = 0; i < 10; i++)
@@ -204,6 +207,7 @@ public class LeapController : MonoBehaviour {
 			GameObject.Find("GoodRedProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f;
 			//GameObject.Find("GoodYellowProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f;
 			GameObject.Find("GoodGreenProgressBarFill").GetComponent<ProgressBar>().scale = Mathf.Clamp((value-offset)/(1.0f-offset),0.0f,1.0f);
+			targetPointsAlert.SetActive(false);
 		}
 //		else if(pointCloud.hitPercent >= (pointCloud.minHitPercent-(1.0f-pointCloud.minHitPercent)))
 //		{
@@ -220,6 +224,7 @@ public class LeapController : MonoBehaviour {
 			GameObject.Find("GoodRedProgressBarFill").GetComponent<ProgressBar>().scale = Mathf.Clamp(value/offset,0.0f,1.0f);
 			//GameObject.Find("GoodYellowProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
 			GameObject.Find("GoodGreenProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
+			targetPointsAlert.SetActive(true);
 		}
 
 		
@@ -248,6 +253,8 @@ public class LeapController : MonoBehaviour {
 			GameObject.Find("BadYellowProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
 			GameObject.Find("BadGreenProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
 		}
+
+
 		
 		// display task timer
 		GUIStyle style = new GUIStyle(GUI.skin.box);
