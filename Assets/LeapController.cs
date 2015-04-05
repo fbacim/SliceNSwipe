@@ -70,7 +70,7 @@ public class LeapController : MonoBehaviour {
 			currentTechnique = Technique.LASSO;
 		}
 		else {
-			return;
+			currentTechnique = Technique.NONE;
 		}
 
 		initialized = true;

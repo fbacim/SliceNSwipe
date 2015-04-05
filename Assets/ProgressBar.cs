@@ -12,6 +12,8 @@ public class ProgressBar : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		if(float.IsNaN(scale)) 
+			scale = 0.0f;
 		rectTransform.localScale = new Vector3(scale,rectTransform.localScale.y,rectTransform.localScale.z);
 	}
 }

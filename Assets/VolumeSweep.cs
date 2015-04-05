@@ -277,7 +277,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 		{
 			resetTimer = currentTime;
 		}
-		else if(Input.GetKey(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer > 2.0f)
+		else if(Input.GetKey(KeyCode.F8))
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.NONE;
@@ -286,7 +286,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 			pointCloud.ResetAll();
 			resetTimer = 0;
 		}
-		else if(Input.GetKeyUp(KeyCode.Escape) && resetTimer > 0.0f && currentTime-resetTimer < 2.0f)
+		else if(Input.GetKeyUp(KeyCode.Escape))
 		{
 			pointCloud.TriggerSeparation(false,0);
 			if(currentState == state.NONE || currentState == state.MOVING_FINGER)//timeSinceLastStateChange > 4.0F)

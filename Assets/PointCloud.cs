@@ -53,8 +53,8 @@ public class PointCloud : MonoBehaviour
 	// store the subset of the PC that corresponds to an annotation, given the index of the point in the file
 	private Dictionary<string, List<int>> annotationsPerVertex;
 
-	private bool separate  = false;  // are the point cloud instances separate?
-	private bool animating = false;  // is it currently animating?
+	public bool separate  = false;  // are the point cloud instances separate?
+	public bool animating = false;  // is it currently animating?
 
 	private List<GUIText> goAnnotation;
 
@@ -90,6 +90,9 @@ public class PointCloud : MonoBehaviour
 	public float timeLeft = 0;
 	public bool training = false;
 	public bool taskDone = false;
+
+	GameObject taskCompletedAlert;
+	GameObject timeElapsedAlert;
 
 	private void preProcessFile(string fileName, ref Vector3 centerOffset, ref float scale) 
 	{
@@ -150,6 +153,11 @@ public class PointCloud : MonoBehaviour
 
 		modelName = fileName;
 		currentStrategy = GameObject.Find ("Experiment Menu").GetComponent<ExperimentMenu>().selectedStrategy;
+
+		taskCompletedAlert = GameObject.Find("TaskCompletedAlert");
+		taskCompletedAlert.SetActive(false);
+		timeElapsedAlert = GameObject.Find("TimeElapsedAlert");
+		timeElapsedAlert.SetActive(false);
 
 		Debug.Log (pointCloudFile);
 
@@ -316,7 +324,6 @@ public class PointCloud : MonoBehaviour
 				}
 			}
 		}
-
 
 		ReleaseBuffers ();
 		
@@ -513,19 +520,27 @@ public class PointCloud : MonoBehaviour
 			taskDone = true;
 			startTime = DateTime.Now;
 			Annotate("time_elapsed", true);
+			timeElapsedAlert.SetActive(true);
 		}
 		else if(hitPercent >= minHitPercent && falseHitPercent <= maxFalseHitPercent && !taskDone)
 		{
 			taskDone = true;
 			startTime = DateTime.Now;
 			Annotate("task_completed", true);
+			taskCompletedAlert.SetActive(true);
 		}
 
 		// wait 5 seconds before quitting after task is finished
-		if(taskDone && (DateTime.Now - startTime).TotalSeconds > 5.0f)
+		if(taskDone && !training && (DateTime.Now - startTime).TotalSeconds > 5.0f)
 		{
-			print("quitting now");
-			Application.Quit();
+			if (Application.isEditor)
+			{
+				Debug.Log("Cannot quit the application (Application is editor).");
+			}
+			else
+			{
+				System.Diagnostics.Process.GetCurrentProcess().Kill();
+			}
 		}
 	}
 
