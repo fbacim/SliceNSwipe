@@ -12,6 +12,10 @@ open (LISTFILE, "<", $ARGV[1]);
 
 $n = 1;
 
+if ( $#ARGV+1 < 2 ){
+	print "Usage: ./runTaskList.pl participantID taskList.csv";
+}
+
 if ( $#ARGV+1 > 2 ) {
 	print "Starting from task $ARGV[1]\n";
 	$n=$ARGV[2];
@@ -29,12 +33,30 @@ foreach $line (<LISTFILE>){
 		print TASKFILE $line;
 		close TASKFILE;
 
-		print $n . ": " . $line;
+		my @values = split(',', $line); 
+		my @taskParts = split('_', $values[3]);
+	
+		print $n . "\t" . $values[1] . "\t" . $values[2] ;
+		if (length($values[2])<8) { 
+			print "\t\t";
+		} else {
+			print "\t";
+		}
+		
+		print $taskParts[1] ;
+##		if (length($taskParts[1])<8) { 
+##			print "\t\t";
+##		} else {
+##			print "\t";
+##		}
+##		print "> ";
+		<STDIN>;
+
 		`exp.exe`;
 
-		print "\nRepeat last task [y/n]? ";
+		print "\tENTER to continue or type Repeat : ";
 		$_ = <STDIN>;
-		if (/y/) { $satisfied = 0; }
+		if (/^[Rr]/) { $satisfied = 0; }
 	}while($satisfied==0);
 	$n++;
 }

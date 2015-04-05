@@ -17,7 +17,7 @@ public class ExperimentMenu : MonoBehaviour {
 	
 	string[] pointCloudStrings;
 	public static string[] techniqueStrings = new string[] {
-		"Slice'n'Swipe", "Volume Sweeper", "Lasso"};
+		"Slice'n'Swipe", "VolumeSweeper", "Lasso"};
 	public static string[] strategyStrings = new string[] {
 		"Fast", "Precise", "Both"};
 

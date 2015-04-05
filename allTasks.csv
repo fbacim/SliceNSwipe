@@ -34,21 +34,21 @@ Lasso,Both,LongHornBeetle,LassoFast/LongHornBeetle_tail_zr.annotation.csv
 Lasso,Both,Lobby,LassoFast/Lobby_facade_d1.annotation.csv
 Lasso,Both,office2,Bubble/Office2_chairs_2e.annotation.csv
 Lasso,Both,Lobby,SliceNSwipe/Lobby_stairs_sk.annotation.csv
-Volume Sweeper,Fast,FSite6,Bubble/FSite6_clouds_c7.annotation.csv
-Volume Sweeper,Fast,office2,Bubble/Office2_redbook_he.annotation.csv
-Volume Sweeper,Fast,LongHornBeetle,LassoFast/LongHornBeetle_tail_zr.annotation.csv
-Volume Sweeper,Fast,Site20,Bubble/Site20_train_x7.annotation.csv
-Volume Sweeper,Fast,office2,Bubble/Office2_chairs_2e.annotation.csv
-Volume Sweeper,Fast,Lobby,Bubble/Lobby_stairs_2k.annotation.csv
-Volume Sweeper,Precise,FSite6,Bubble/FSite6_clouds_c7.annotation.csv
-Volume Sweeper,Precise,office2,Bubble/Office2_redbook_he.annotation.csv
-Volume Sweeper,Precise,LongHornBeetle,LassoFast/LongHornBeetle_tail_zr.annotation.csv
-Volume Sweeper,Precise,Site20,Bubble/Site20_train_x7.annotation.csv
-Volume Sweeper,Precise,office2,Bubble/Office2_chairs_2e.annotation.csv
-Volume Sweeper,Precise,Lobby,Bubble/Lobby_stairs_2k.annotation.csv
-Volume Sweeper,Both,FSite6,Bubble/FSite6_clouds_c7.annotation.csv
-Volume Sweeper,Both,office2,Bubble/Office2_redbook_he.annotation.csv
-Volume Sweeper,Both,LongHornBeetle,LassoFast/LongHornBeetle_tail_zr.annotation.csv
-Volume Sweeper,Both,Site20,Bubble/Site20_train_x7.annotation.csv
-Volume Sweeper,Both,office2,Bubble/Office2_chairs_2e.annotation.csv
-Volume Sweeper,Both,Lobby,Bubble/Lobby_stairs_2k.annotation.csv
+VolumeSweeper,Fast,FSite6,Bubble/FSite6_clouds_c7.annotation.csv
+VolumeSweeper,Fast,office2,Bubble/Office2_redbook_he.annotation.csv
+VolumeSweeper,Fast,LongHornBeetle,LassoFast/LongHornBeetle_tail_zr.annotation.csv
+VolumeSweeper,Fast,Site20,Bubble/Site20_train_x7.annotation.csv
+VolumeSweeper,Fast,office2,Bubble/Office2_chairs_2e.annotation.csv
+VolumeSweeper,Fast,Lobby,Bubble/Lobby_stairs_2k.annotation.csv
+VolumeSweeper,Precise,FSite6,Bubble/FSite6_clouds_c7.annotation.csv
+VolumeSweeper,Precise,office2,Bubble/Office2_redbook_he.annotation.csv
+VolumeSweeper,Precise,LongHornBeetle,LassoFast/LongHornBeetle_tail_zr.annotation.csv
+VolumeSweeper,Precise,Site20,Bubble/Site20_train_x7.annotation.csv
+VolumeSweeper,Precise,office2,Bubble/Office2_chairs_2e.annotation.csv
+VolumeSweeper,Precise,Lobby,Bubble/Lobby_stairs_2k.annotation.csv
+VolumeSweeper,Both,FSite6,Bubble/FSite6_clouds_c7.annotation.csv
+VolumeSweeper,Both,office2,Bubble/Office2_redbook_he.annotation.csv
+VolumeSweeper,Both,LongHornBeetle,LassoFast/LongHornBeetle_tail_zr.annotation.csv
+VolumeSweeper,Both,Site20,Bubble/Site20_train_x7.annotation.csv
+VolumeSweeper,Both,office2,Bubble/Office2_chairs_2e.annotation.csv
+VolumeSweeper,Both,Lobby,Bubble/Lobby_stairs_2k.annotation.csv
