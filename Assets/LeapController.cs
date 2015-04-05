@@ -227,31 +227,31 @@ public class LeapController : MonoBehaviour {
 			targetPointsAlert.SetActive(true);
 		}
 
-		
+		float yellowBarThresholdScale = 10.0f;
 		if(pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent)
 		{
 			float value = pointCloud.falseHitPercent;
 			float offset = pointCloud.maxFalseHitPercent;
-			GameObject.Find("BadRedProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f;
-			GameObject.Find("BadYellowProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f;
-			GameObject.Find("BadGreenProgressBarFill").GetComponent<ProgressBar>().scale = Mathf.Clamp((offset-value)/offset,0.0f,1.0f);
+			GameObject.Find("BadRedProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
+			GameObject.Find("BadYellowProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
+			GameObject.Find("BadGreenProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f - Mathf.Clamp((offset-value)/offset,0.0f,1.0f);
 		}
-		else if(pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent*2.0f)
+		else if(pointCloud.falseHitPercent <= pointCloud.maxFalseHitPercent*yellowBarThresholdScale)
 		{
 			float value = pointCloud.falseHitPercent;
-			float offset = pointCloud.maxFalseHitPercent;
-			GameObject.Find("BadRedProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f;
-			GameObject.Find("BadYellowProgressBarFill").GetComponent<ProgressBar>().scale = Mathf.Clamp((offset*2.0f-value)/offset,0.0f,1.0f);
-			GameObject.Find("BadGreenProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
+			float offset = pointCloud.maxFalseHitPercent*yellowBarThresholdScale;
+			GameObject.Find("BadRedProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
+			GameObject.Find("BadYellowProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f-Mathf.Clamp((offset-value)/offset,0.0f,1.0f);
+			GameObject.Find("BadGreenProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f;
 		}
 		else
 		{
 			float value = pointCloud.falseHitPercent*(float)pointCloud.highlightedCount;
 			float offset = pointCloud.maxFalseHitPercent;
 			float total = (float)pointCloud.vertexCount-(float)pointCloud.highlightedCount;
-			GameObject.Find("BadRedProgressBarFill").GetComponent<ProgressBar>().scale = Mathf.Clamp(1.0f-((value-offset*2.0f)/(total-offset*2.0f)),0.0f,1.0f);
-			GameObject.Find("BadYellowProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
-			GameObject.Find("BadGreenProgressBarFill").GetComponent<ProgressBar>().scale = 0.0f;
+			GameObject.Find("BadRedProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f-Mathf.Clamp(1.0f-((value-offset*yellowBarThresholdScale)/(total-offset*yellowBarThresholdScale)),0.0f,1.0f);
+			GameObject.Find("BadYellowProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f;
+			GameObject.Find("BadGreenProgressBarFill").GetComponent<ProgressBar>().scale = 1.0f;
 		}
 
 
