@@ -1,4 +1,5 @@
-Slice'n'Swipe,Precise,office2,LassoPrecise/Office2_whiteboard_ki.annotation.csv,training
+None,Fast,LongHornBeetle,SliceNSwipe/LongHornBeetle_tail_2n.annotation.csv
+Slice'n'Swipe,Precise,office2,LassoFast/Office2_whiteboard_ki.annotation.csv,training
 Slice'n'Swipe,Precise,office2,SliceNSwipe/Office2_redbook_6b.annotation.csv,training
 Slice'n'Swipe,Precise,Lobby,SliceNSwipe/Lobby_stairs_sk.annotation.csv
 Slice'n'Swipe,Precise,office2,SliceNSwipe/Office2_monitors_7u.annotation.csv

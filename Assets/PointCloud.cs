@@ -88,7 +88,7 @@ public class PointCloud : MonoBehaviour
 	public DateTime startTime;
 	public float maxTime = 300.0f;
 	public float timeLeft = 0;
-	public bool training = false;
+	public bool training = true;
 	public bool taskDone = false;
 
 	GameObject taskCompletedAlert;

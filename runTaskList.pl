@@ -25,17 +25,18 @@ if ( $#ARGV+1 > 2 ) {
 }
 
 foreach $line (<LISTFILE>){
+	open (TASKFILE, ">", "task.csv") or die "Could not open task.csv: $!";
+	$line =~ s/\s+$//;
+	$line .= ",".$ARGV[0];
+	print TASKFILE $line;
+	close TASKFILE;
+
+	my @values = split(',', $line); 
+	my @taskParts = split('_', $values[3]);
+	
 	do{
 		$satisfied = 1;
-		open (TASKFILE, ">", "task.csv") or die "Could not open task.csv: $!";
-		$line =~ s/\s+$//;
-		$line .= ",".$ARGV[0];
-		print TASKFILE $line;
-		close TASKFILE;
 
-		my @values = split(',', $line); 
-		my @taskParts = split('_', $values[3]);
-	
 		print $n . "\t" . $values[1] . "\t" . $values[2] ;
 		if (length($values[2])<8) { 
 			print "\t\t";

@@ -63,12 +63,19 @@ public class ExperimentMenu : MonoBehaviour {
 				// The 5 arguments in task.csv are:
 				// technique,strategy,model,task,participantID
 
-				participantID = values[4];
+				Debug.Log("Fifth Value: " + values[4]);
+				if (values[4].Equals("training")) {
+					participantID = values[5];				}
+				else {
+					participantID = values[4];
+				}
 
-				for (int i=0; i<3; i++){
+				for (int i=0; i<4; i++){
 					if (values[0].Equals(techniqueStrings[i])){
-					    selectedTechnique = (Technique) i;
+						selectedTechnique = (Technique) i;
 					}
+				}
+				for (int i=0; i<3; i++){
 					if (values[1].Equals(strategyStrings[i])){
 						selectedStrategy = (Strategy) i;
 					}
@@ -79,6 +86,8 @@ public class ExperimentMenu : MonoBehaviour {
 
 				PointCloud pointCloud = GameObject.Find ("Camera").GetComponent<PointCloud> ();
 				pointCloud.init (values[2],values[3]);
+
+				if (values[4].Equals("training")) { pointCloud.training = true; }
 
 				init = true;
 			}
