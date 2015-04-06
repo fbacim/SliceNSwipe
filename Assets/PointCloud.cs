@@ -518,15 +518,15 @@ public class PointCloud : MonoBehaviour
 		if(timeLeft < 0.0f && !taskDone && !training)
 		{
 			taskDone = true;
-			startTime = DateTime.Now;
 			Annotate("time_elapsed", true);
+			startTime = DateTime.Now;
 			timeElapsedAlert.SetActive(true);
 		}
 		else if(hitPercent >= minHitPercent && falseHitPercent <= maxFalseHitPercent && !taskDone)
 		{
 			taskDone = true;
-			startTime = DateTime.Now;
 			Annotate("task_completed", true);
+			startTime = DateTime.Now;
 			taskCompletedAlert.SetActive(true);
 		}
 
