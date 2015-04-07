@@ -13,8 +13,8 @@ public class SlicenSwipe {
 	float timeSinceLastClickCompleted = 0.0F;
 	float timeLastUpdate = 0.0F;
 	float resetTimer = 0.0F;
-	float lastScalarVelocity = 0.0F;
-	float velocityThreshold = 500.0F;
+	float lastFilteredVelocity = 0.0F;
+	float velocityThreshold = 400.0F;
 	float stateChangeTimeThreshold = 0.2F;
 	int updateCountSinceMovingSlashStarted = 0;
 	Plane slashPlane;
@@ -122,10 +122,10 @@ public class SlicenSwipe {
 		// calculate velocity
 		float scalarVelocity;// = fl[0].TipVelocity.Magnitude; 
 		float filteredVelocity;
-		if(indexFinger != null && indexFinger.TimeVisible > 0.2)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
+		if(indexFinger != null && indexFinger.TimeVisible > 1 && !pointCloud.animating)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
 		{
 			scalarVelocity = indexFinger.TipVelocity.Magnitude;
-			filteredVelocity = scalarVelocity;//0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
+			filteredVelocity = 0.7F*lastFilteredVelocity + 0.3F*scalarVelocity;
 		}
 		else
 		{
@@ -136,7 +136,9 @@ public class SlicenSwipe {
 				currentState = state.NONE;
 			}
 		}
-		lastScalarVelocity = scalarVelocity;
+		lastFilteredVelocity = filteredVelocity;
+		Debug.Log("Velocity: "+scalarVelocity+"    filtered: "+filteredVelocity);
+		
 
 		// shouldnt do anything really if the point cloud is being animated.
 		if(pointCloud.animating)
@@ -155,8 +157,6 @@ public class SlicenSwipe {
 			}
 		}
 
-		//Debug.Log("Velocity: "+scalarVelocity+"    filtered: "+filteredVelocity);
-		
 		// reset state machine
 		if(currentState == state.NONE && indexFinger != null) 
 		{
@@ -507,6 +507,7 @@ public class SlicenSwipe {
 			pointCloud.TriggerSeparation(false,0);
 			if((currentState == state.NONE || currentState == state.MOVING_FINGER) && !rubberBandActive)//timeSinceLastStateChange > 4.0F)
 				pointCloud.Undo();
+			lastFilteredVelocity = 0.0f;
 			currentState = state.NONE;
 			timeSinceLastStateChange = 0.0F;
 			pointCloud.ResetSelected();

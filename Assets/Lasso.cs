@@ -13,9 +13,9 @@ public class Lasso {//}: MonoBehaviour {
 	float timeSinceLastClickCompleted = 0.0F;
 	float timeLastUpdate = 0.0F;
 	float resetTimer = 0.0F;
-	float highVelocityThreshold = 500.0F;
-	float lowVelocityThreshold = 50.0F;
-	float lastScalarVelocity = 0.0F;
+	float highVelocityThreshold = 400.0F;
+	float lowVelocityThreshold = 20.0F;
+	float lastFilteredVelocity = 0.0F;
 	int updateCountSinceMovingSlashStarted = 0;
 
 	GameObject goFingerLineRenderer;
@@ -82,10 +82,10 @@ public class Lasso {//}: MonoBehaviour {
 		// calculate velocity
 		float scalarVelocity;
 		float filteredVelocity;
-		if(indexFinger != null && indexFinger.TimeVisible > 0.2)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
+		if(indexFinger != null && indexFinger.TimeVisible > 1.0 && !pointCloud.animating)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
 		{
 			scalarVelocity = indexFinger.TipVelocity.Magnitude;
-			filteredVelocity = scalarVelocity;//0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
+			filteredVelocity = 0.7F*lastFilteredVelocity + 0.3F*scalarVelocity;
 		}
 		else
 		{
@@ -94,7 +94,7 @@ public class Lasso {//}: MonoBehaviour {
 			if(currentState != state.SELECT_IN_OUT)
 				currentState = state.NONE;
 		}
-		lastScalarVelocity = scalarVelocity;
+		lastFilteredVelocity = filteredVelocity;
 
 		// update internal structures and visual feedback 		
 		if(currentState == state.DRAW)
@@ -172,7 +172,7 @@ public class Lasso {//}: MonoBehaviour {
 			{
 				updateCountSinceMovingSlashStarted++;
 			}
-			else if(filteredVelocity < highVelocityThreshold && updateCountSinceMovingSlashStarted > 0)
+			else if(filteredVelocity < lowVelocityThreshold && updateCountSinceMovingSlashStarted > 0)
 			{
 				int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
 				Vector3 direction = new Vector3();
@@ -193,25 +193,18 @@ public class Lasso {//}: MonoBehaviour {
 				pointCloud.SelectLasso(fingerPosition,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F));
 				pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
 				
-				currentState = state.SELECT;
 				timeSinceLastStateChange = 0.0F;
-			}
-			else
-			{
 				updateCountSinceMovingSlashStarted = 0;
+				currentState = state.NONE;
+				fingerPosition.Clear();
+				handPosition.Clear();
+				fingerPositionTime.Clear();
+				fingerLineRenderer.SetVertexCount(0);
+				lastFilteredVelocity = 0;
 			}
 		}
 
 		ProcessKeys ();
-		
-		if(currentState == state.SELECT)
-		{
-			currentState = state.NONE;
-			fingerPosition.Clear();
-			handPosition.Clear();
-			fingerPositionTime.Clear();
-			fingerLineRenderer.SetVertexCount(0);
-		}
 
 		if(currentState == state.SELECT_IN_OUT)
 			locked = true;

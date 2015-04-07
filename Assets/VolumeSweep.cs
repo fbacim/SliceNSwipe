@@ -26,7 +26,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 	float resetTimer = 0.0F;
 	float velocityThreshold = 500.0F;
 	float highVelocityThreshold = 200.0F;
-	float lowVelocityThreshold = 50.0F;
+	float lowVelocityThreshold = 20.0F;
 	int updateCountSinceMovingSlashStarted = 0;
 	bool crossedThreshold = false;
 
@@ -167,11 +167,11 @@ public class VolumeSweep {//}: MonoBehaviour {
 			if(indexFinger != null)
 			{
 				// check finger velocity against velocity threshold for selection of side in swipe phase
-				if(scalarVelocity > velocityThreshold)
+				if(lastFilteredVelocity > highVelocityThreshold)
 				{
 					updateCountSinceMovingSlashStarted++;
 				}
-				else if(scalarVelocity < velocityThreshold && updateCountSinceMovingSlashStarted > 0)
+				else if(lastFilteredVelocity < lowVelocityThreshold && updateCountSinceMovingSlashStarted > 0)
 				{
 					int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
 					Vector3 direction = new Vector3();
@@ -191,23 +191,14 @@ public class VolumeSweep {//}: MonoBehaviour {
 					pointCloud.SelectSphereTrail(volumeTrailSpheres,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
 					pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
 
-					currentState = state.SELECT_BUBBLE;
 					timeSinceLastStateChange = 0.0F;
-				}
-				else
-				{
+					timeSinceLastClickCompleted = 0.0F;
 					updateCountSinceMovingSlashStarted = 0;
+					lastFilteredVelocity = 0;
+					currentState = state.NONE;
+					volumeTrailSpheres.Clear();
 				}
 			}
-		}
-
-		// if things have been selected, reset state machine
-		if(currentState == state.SELECT_BUBBLE)
-		{
-			lastFilteredVelocity = 0;
-			currentState = state.NONE;
-			timeSinceLastClickCompleted = 0.0F;
-			volumeTrailSpheres.Clear();
 		}
 
 		// if in any state other than NONE, need to update pointcloud state for rendering

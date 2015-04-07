@@ -767,25 +767,27 @@ public class PointCloud : MonoBehaviour
 
 	public bool SetLasso(List<Vector3> vertices)
 	{
-		Debug.Log("setLasso");
+		//Debug.Log("setLasso");
 
 		// calculate lasso input
 
-		if(lassoThread == null || !lassoThread.IsAlive)
+		//if(lassoThread == null || !lassoThread.IsAlive)
 		{
-			if(lassoThread != null)
-			{
-				// process the last lasso
-				DateTime s = DateTime.Now;
-				ProcessLasso();
-				print("processlasso: "+(DateTime.Now - s).TotalSeconds);
-			}
+			//if(lassoThread != null)
+			//{
+			//	// process the last lasso
+			//	ProcessLasso();
+			//}
 			// start a new processLassoInput thread to calculate lasso vertices and points
+			DateTime s = DateTime.Now;
 			tLassoVertices = vertices;
-			tProjMatrix = GameObject.Find("Camera").GetComponent<Camera>().projectionMatrix;
-			tViewMatrix = GameObject.Find("Camera").GetComponent<Camera>().worldToCameraMatrix;
-			tCamera = GameObject.Find("Camera").GetComponent<Camera>();
 			ProcessLassoInput();
+			print("processlassoinput: "+(DateTime.Now - s).TotalSeconds);
+
+			s = DateTime.Now;
+			ProcessLasso();
+			print("processlasso: "+(DateTime.Now - s).TotalSeconds);
+
 			//lassoThread = new Thread(new ThreadStart(ProcessLassoInput));
 			//lassoThread.Start();
 		}
@@ -812,7 +814,7 @@ public class PointCloud : MonoBehaviour
 		tLasso = new Vector2[tLassoVertices.Count];
 		for(int i = 0; i < tLassoVertices.Count; i++)
 		{
-			Vector3 screenPoint = tCamera.WorldToScreenPoint(tLassoVertices[i]);
+			Vector3 screenPoint = GameObject.Find("Camera").GetComponent<Camera>().WorldToScreenPoint(tLassoVertices[i]);
 			tLasso[i] = new Vector2(screenPoint.x,screenPoint.y);
 		}
 		
@@ -821,7 +823,7 @@ public class PointCloud : MonoBehaviour
 		{
 			if(selected[i] == 1)
 			{
-				Vector3 screenPoint = tCamera.WorldToScreenPoint(verts[i]);
+				Vector3 screenPoint = GameObject.Find("Camera").GetComponent<Camera>().WorldToScreenPoint(verts[i]);
 				Vector2 point2D = new Vector2(screenPoint.x, screenPoint.y);
 				tPoints2D.Add(point2D);
 			}
