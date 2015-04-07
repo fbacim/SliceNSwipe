@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 
 public class PointCloud : MonoBehaviour 
 {
@@ -90,6 +91,16 @@ public class PointCloud : MonoBehaviour
 	public float timeLeft = 0;
 	public bool training = true;
 	public bool taskDone = false;
+
+	private Thread lassoThread;
+	private List<Vector2> tPoints2D;
+	private Vector2[] tLasso;
+	private int tLassoSize;
+	private bool tValidLasso;
+	private List<Vector3> tLassoVertices;
+	private Camera tCamera;
+	private Matrix4x4 tProjMatrix;
+	private Matrix4x4 tViewMatrix;
 
 	GameObject taskCompletedAlert;
 	GameObject timeElapsedAlert;
@@ -651,7 +662,7 @@ public class PointCloud : MonoBehaviour
 		bufferSizes.SetData (sizes);
 		bufferColorOffset.SetData (colorsOffset);
 		bufferSelected.SetData (selected);
-		bufferHighlighted.SetData (notHighlighted);
+		//bufferHighlighted.SetData (notHighlighted);
 	}
 
 	public void Undo()
@@ -756,54 +767,96 @@ public class PointCloud : MonoBehaviour
 
 	public bool SetLasso(List<Vector3> vertices)
 	{
-		int countp1 = 0;
-		int countp2 = 0;
 		//Debug.Log("setLasso");
 
-		Vector2[] vertices2D = new Vector2[vertices.Count];
-		for(int i = 0; i < vertices.Count; i++)
+		// calculate lasso input
+
+		//if(lassoThread == null || !lassoThread.IsAlive)
 		{
-			Vector3 screenPoint = GameObject.Find("Camera").GetComponent<Camera>().WorldToScreenPoint(vertices[i]);
-			vertices2D[i] = new Vector2(screenPoint.x,screenPoint.y);
+			//if(lassoThread != null)
+			//{
+			//	// process the last lasso
+			//	ProcessLasso();
+			//}
+			// start a new processLassoInput thread to calculate lasso vertices and points
+			DateTime s = DateTime.Now;
+			tLassoVertices = vertices;
+			ProcessLassoInput();
+			print("processlassoinput: "+(DateTime.Now - s).TotalSeconds);
+
+			s = DateTime.Now;
+			ProcessLasso();
+			print("processlasso: "+(DateTime.Now - s).TotalSeconds);
+
+			//lassoThread = new Thread(new ThreadStart(ProcessLassoInput));
+			//lassoThread.Start();
+		}
+
+		if(!tValidLasso)
+		{
+			ResetSelected();
+		}
+		else
+		{
+			bufferPoints.SetData (verts);
+			bufferColors.SetData (colors);
+			bufferSizes.SetData (sizes);
+			bufferColorOffset.SetData (colorsOffset);
+			bufferSelected.SetData (selected);
+			//bufferHighlighted.SetData (notHighlighted);
 		}
 		
+		return tValidLasso;
+	}
+
+	private void ProcessLassoInput()
+	{
+		tLasso = new Vector2[tLassoVertices.Count];
+		for(int i = 0; i < tLassoVertices.Count; i++)
+		{
+			Vector3 screenPoint = GameObject.Find("Camera").GetComponent<Camera>().WorldToScreenPoint(tLassoVertices[i]);
+			tLasso[i] = new Vector2(screenPoint.x,screenPoint.y);
+		}
+		
+		tPoints2D = new List<Vector2>();
 		for (int i = 0; i < vertexCount; ++i)
 		{
 			if(selected[i] == 1)
 			{
 				Vector3 screenPoint = GameObject.Find("Camera").GetComponent<Camera>().WorldToScreenPoint(verts[i]);
 				Vector2 point2D = new Vector2(screenPoint.x, screenPoint.y);
-				if(wn_PnPoly(point2D,vertices2D,vertices.Count-1) == 0) // outside
-				{
-					countp1++;
-					colorsOffset[i].x = 0.5F;
-					colorsOffset[i].y = -0.5F;
-					colorsOffset[i].z = -0.5F;
-				}
-				else
-				{
-					countp2++;
-					colorsOffset[i].x = -0.5F;
-					colorsOffset[i].y = -0.5F;
-					colorsOffset[i].z = 0.5F;
-				}
+				tPoints2D.Add(point2D);
+			}
+		}
+	}
+
+	private void ProcessLasso()
+	{
+		int countp1 = 0;
+		int countp2 = 0;
+
+		for(int i = 0; i < tPoints2D.Count; i++)
+		{
+			if(wn_PnPoly(tPoints2D[i], tLasso, tLassoSize-1) == 0) // outside
+			{
+				countp1++;
+				colorsOffset[i].x = 0.5F;
+				colorsOffset[i].y = -0.5F;
+				colorsOffset[i].z = -0.5F;
+			}
+			else
+			{
+				countp2++;
+				colorsOffset[i].x = -0.5F;
+				colorsOffset[i].y = -0.5F;
+				colorsOffset[i].z = 0.5F;
 			}
 		}
 		
 		if(countp1 == 0 || countp2 == 0)
-		{
-			ResetSelected();
-			return false;
-		}
-		
-		bufferPoints.SetData (verts);
-		bufferColors.SetData (colors);
-		bufferSizes.SetData (sizes);
-		bufferColorOffset.SetData (colorsOffset);
-		bufferSelected.SetData (selected);
-		bufferHighlighted.SetData (notHighlighted);
-		
-		return true;
+			tValidLasso = false;
+		else
+			tValidLasso = true;
 	}
 	
 	public bool SetSphere(Vector3 center, float radius, bool resetColor)
@@ -847,7 +900,7 @@ public class PointCloud : MonoBehaviour
 		bufferSizes.SetData (sizes);
 		bufferColorOffset.SetData (colorsOffset);
 		bufferSelected.SetData (selected);
-		bufferHighlighted.SetData (notHighlighted);
+		//bufferHighlighted.SetData (notHighlighted);
 		
 		return true;
 	}
@@ -894,7 +947,7 @@ public class PointCloud : MonoBehaviour
 		bufferSizes.SetData (sizes);
 		bufferColorOffset.SetData (colorsOffset);
 		bufferSelected.SetData (selected);
-		bufferHighlighted.SetData (notHighlighted);
+		//bufferHighlighted.SetData (notHighlighted);
 		
 		return true;
 	}
@@ -935,7 +988,7 @@ public class PointCloud : MonoBehaviour
 		bufferSizes.SetData (sizes);
 		bufferColorOffset.SetData (colorsOffset);
 		bufferSelected.SetData (selected);
-		bufferHighlighted.SetData (notHighlighted);
+		//bufferHighlighted.SetData (notHighlighted);
 		
 		return true;
 	}
@@ -1089,8 +1142,8 @@ public class PointCloud : MonoBehaviour
 		Vector3 selectedCenter = new Vector3();
 		int selectedCount = 0;
 
-		Vector3 leftColorOffset = new Vector3(0.0F,0.0F,0.5F);
-		Vector3 rightColorOffset = new Vector3(0.5F,0.0F,0.0F);
+		Vector3 leftColorOffset = new Vector3(-0.5F,-0.5F,0.5F);
+		Vector3 rightColorOffset = new Vector3(0.5F,-0.5F,-0.5F);
 		Vector3 deselectedColorOffset = new Vector3(0.3F,0.3F,0.3F);
 
 		for (int i = 0; i < vertexCount; ++i)
@@ -1100,7 +1153,6 @@ public class PointCloud : MonoBehaviour
 				if((colorsOffset[i].x == leftColorOffset.x && colorsOffset[i].y == leftColorOffset.y && colorsOffset[i].z == leftColorOffset.z && inside) || 
 				   (colorsOffset[i].x == rightColorOffset.x && colorsOffset[i].y == rightColorOffset.y && colorsOffset[i].z == rightColorOffset.z && !inside)) 
 				{
-					//print("blah");
 					colorsOffset[i] = deselectedColorOffset;
 					colors[i].w = deselectedAlpha;
 					sizes[i] = currentDeselectedSize;
@@ -1149,7 +1201,7 @@ public class PointCloud : MonoBehaviour
 		bufferSizes.SetData (sizes);
 		bufferColorOffset.SetData (colorsOffset);
 		bufferSelected.SetData (selected);
-		bufferHighlighted.SetData (notHighlighted);
+		//bufferHighlighted.SetData (notHighlighted);
 	}
 	
 	public void ResetAll()

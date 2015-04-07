@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Leap;
@@ -22,15 +23,19 @@ public class VolumeSweep {//}: MonoBehaviour {
 	state currentState = state.MOVING_FINGER;
 	float timeSinceLastStateChange = 0.0F;
 	float timeSinceLastClickCompleted = 0.0F;
-	float timeLastUpdate = 0.0F;
+	DateTime timeLastUpdate;
 	float resetTimer = 0.0F;
 	float velocityThreshold = 500.0F;
+	float highVelocityThreshold = 200.0F;
+	float lowVelocityThreshold = 20.0F;
+	float stateChangeTimeThreshold = 0.7F;
 	int updateCountSinceMovingSlashStarted = 0;
+	bool crossedThreshold = false;
 
 	List<Vector3> handPosition;
 	List<Vector3> fingerPosition;
 	List<float> fingerPositionTime;
-	float lastScalarVelocity = 0.0F;
+	float lastFilteredVelocity = 0.0F;
 	
 	GameObject selectionVolume;
 	List<GameObject> volumeTrail;
@@ -41,8 +46,6 @@ public class VolumeSweep {//}: MonoBehaviour {
 	bool isEnabled = true;
 	bool needsClear = true;
 	bool canSelect = false;
-
-	bool shiftToggle = false;
 	
 	Strategy strategy = Strategy.BOTH;
 	
@@ -63,6 +66,8 @@ public class VolumeSweep {//}: MonoBehaviour {
 		selectionVolume.SetActive(false);
 
 		volumeTrailSpheres = new List<Sphere>();
+		
+		timeLastUpdate = DateTime.Now;
 	}
 	
 	public bool ProcessFrame (Frame frame, List<GameObject> goHandList, List<GameObject> goFingerList) {
@@ -78,11 +83,11 @@ public class VolumeSweep {//}: MonoBehaviour {
 		needsClear = true;
 
 		// calculate how much time has passed since last update
-		float currentTime = Time.timeSinceLevelLoad;
-		float timeSinceLastUpdate = currentTime - timeLastUpdate;
+		DateTime currentTime = DateTime.Now;
+		float timeSinceLastUpdate = (float)(currentTime - timeLastUpdate).TotalSeconds;
 		timeLastUpdate = currentTime;
 		timeSinceLastClickCompleted += timeSinceLastUpdate;
-		if(timeSinceLastClickCompleted < 0.5F) 
+		if(timeSinceLastClickCompleted < 2.0F) 
 			return false; // avoid detecting two clicks in one
 		timeSinceLastStateChange += timeSinceLastUpdate;
 
@@ -105,7 +110,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 		{
 			fingerPosition.Add(goFingerList[1+5*System.Convert.ToInt32(indexFinger.Hand.IsRight)].transform.position);
 			handPosition.Add(goHandList[System.Convert.ToInt32(indexFinger.Hand.IsRight)].transform.position);
-			fingerPositionTime.Add(currentTime);
+			fingerPositionTime.Add(currentTime.Ticks);
 
 			while(fingerPosition.Count > 60)
 			{
@@ -118,10 +123,14 @@ public class VolumeSweep {//}: MonoBehaviour {
 		// calculate velocity
 		float scalarVelocity;// = fl[0].TipVelocity.Magnitude; 
 		float filteredVelocity;
-		if(indexFinger != null && indexFinger.TimeVisible > 0.2)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
+		if(indexFinger != null && indexFinger.TimeVisible > 1 && !pointCloud.animating)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
 		{
-			scalarVelocity = indexFinger.TipVelocity.Magnitude;
-			filteredVelocity = scalarVelocity;//0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
+			scalarVelocity = indexFinger.Hand.PalmVelocity.Magnitude;
+			filteredVelocity = 0.7F*lastFilteredVelocity + 0.3F*scalarVelocity;
+		}
+		else if(timeSinceLastStateChange <= stateChangeTimeThreshold)
+		{
+			filteredVelocity = 0.0f;
 		}
 		else
 		{
@@ -132,8 +141,9 @@ public class VolumeSweep {//}: MonoBehaviour {
 				currentState = state.NONE;
 			}
 		}
-		lastScalarVelocity = scalarVelocity;
-		
+		lastFilteredVelocity = filteredVelocity;
+
+
 		// change state to moving finger (initial state) if there are two fingers 
 		if(currentState == state.NONE && thumbFinger != null && indexFinger != null) 
 		{
@@ -143,7 +153,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 			updateCountSinceMovingSlashStarted = 0;
 		}
 		// if moving fingers, update volume object position and size
-		else if(currentState == state.MOVING_FINGER && thumbFinger != null && indexFinger != null) 
+		else if(currentState == state.MOVING_FINGER && thumbFinger != null && indexFinger != null && timeSinceLastStateChange > stateChangeTimeThreshold) 
 		{
 			// update selection volume position
 			selectionVolume.transform.position = (goFingerList[5*System.Convert.ToInt32(thumbFinger.Hand.IsRight)].transform.position+goFingerList[1+5*System.Convert.ToInt32(indexFinger.Hand.IsRight)].transform.position)/2.0F;
@@ -151,8 +161,6 @@ public class VolumeSweep {//}: MonoBehaviour {
 			float distance = Vector3.Distance(goFingerList[5*System.Convert.ToInt32(thumbFinger.Hand.IsRight)].transform.position,goFingerList[1+5*System.Convert.ToInt32(indexFinger.Hand.IsRight)].transform.position);
 			float selectionVolumeScale = distance;
 			selectionVolume.transform.localScale = new Vector3(selectionVolumeScale,selectionVolumeScale,selectionVolumeScale);
-
-			timeSinceLastStateChange = 0.0F;
 		}
 		// if angle between two hand-finger vectors is smaller than angle trigger threshold, change to 
 		else if(currentState == state.SELECT_IN_OUT) 
@@ -166,11 +174,11 @@ public class VolumeSweep {//}: MonoBehaviour {
 			if(indexFinger != null)
 			{
 				// check finger velocity against velocity threshold for selection of side in swipe phase
-				if(filteredVelocity > velocityThreshold)
+				if(lastFilteredVelocity > highVelocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
 				{
 					updateCountSinceMovingSlashStarted++;
 				}
-				else if(filteredVelocity < velocityThreshold && updateCountSinceMovingSlashStarted > 0)
+				else if(lastFilteredVelocity < highVelocityThreshold && updateCountSinceMovingSlashStarted > 1)
 				{
 					int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
 					Vector3 direction = new Vector3();
@@ -190,22 +198,14 @@ public class VolumeSweep {//}: MonoBehaviour {
 					pointCloud.SelectSphereTrail(volumeTrailSpheres,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
 					pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
 
-					currentState = state.SELECT_BUBBLE;
 					timeSinceLastStateChange = 0.0F;
-				}
-				else
-				{
+					timeSinceLastClickCompleted = 0.0F;
 					updateCountSinceMovingSlashStarted = 0;
+					lastFilteredVelocity = 0;
+					currentState = state.NONE;
+					volumeTrailSpheres.Clear();
 				}
 			}
-		}
-
-		// if things have been selected, reset state machine
-		if(currentState == state.SELECT_BUBBLE)
-		{
-			currentState = state.NONE;
-			timeSinceLastClickCompleted = 0.0F;
-			volumeTrailSpheres.Clear();
 		}
 
 		// if in any state other than NONE, need to update pointcloud state for rendering
@@ -222,6 +222,23 @@ public class VolumeSweep {//}: MonoBehaviour {
 		}
 
 		ProcessKeys();
+
+		// FAST STRATEGY
+		if(strategy != Strategy.PRECISE && currentState == state.MOVING_FINGER && thumbFinger != null && indexFinger != null && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift))
+		{
+			if(filteredVelocity > highVelocityThreshold || crossedThreshold) // ready to select
+			{
+				AddCurrentBubbleToSweep();
+				crossedThreshold = true;
+			}
+			if(filteredVelocity <= lowVelocityThreshold && crossedThreshold) // reset
+			{
+				pointCloud.currentStrategy = Strategy.FAST;
+				CompleteBubbleSweep();
+				crossedThreshold = false;
+				timeSinceLastStateChange = 0.0F;
+			}
+		}
 
 		// if select key has been pressed, transition to swipe phase
 		if(select) 
@@ -267,6 +284,28 @@ public class VolumeSweep {//}: MonoBehaviour {
 		}
 	}
 
+	public void CompleteBubbleSweep()
+	{
+		if(pointCloud.ValidateSets())
+		{
+			select = true;
+		}
+		else
+		{
+			pointCloud.TriggerSeparation(false,0);
+			pointCloud.ResetSelected();
+			currentState = state.NONE;
+			timeSinceLastStateChange = 0.0F;
+			volumeTrailSpheres.Clear();
+		}
+	}
+
+	public void AddCurrentBubbleToSweep()
+	{
+		Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);
+		volumeTrailSpheres.Add(s);
+	}
+
 	public void ProcessKeys()
 	{
 		float currentTime = Time.timeSinceLevelLoad;
@@ -298,81 +337,17 @@ public class VolumeSweep {//}: MonoBehaviour {
 		}
 
 		//hold SHIFT key for bubble sweep
-		if(strategy == Strategy.BOTH)
+		if(strategy != Strategy.FAST)
 		{
 			if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // reset
 			{
-				if(volumeTrailSpheres.Count > 1.0/Time.deltaTime*0.5f)
-					pointCloud.currentStrategy = Strategy.PRECISE;
-				else
-					pointCloud.currentStrategy = Strategy.FAST;
-				if(pointCloud.ValidateSets())
-				{
-					select = true;
-				}
-				else
-				{
-					pointCloud.TriggerSeparation(false,0);
-					pointCloud.ResetSelected();
-					currentState = state.NONE;
-					timeSinceLastStateChange = 0.0F;
-					volumeTrailSpheres.Clear();
-				}
+				pointCloud.currentStrategy = Strategy.PRECISE;
+				CompleteBubbleSweep();
+				timeSinceLastStateChange = 0.0F;
 			}
 			else if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) // ready to select
 			{
-				Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);
-				volumeTrailSpheres.Add(s);
-			}
-		}
-		else if(strategy == Strategy.FAST) 
-		{
-			pointCloud.currentStrategy = Strategy.FAST;
-			if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) // reset
-			{
-				Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);
-				volumeTrailSpheres.Add(s);
-				if(pointCloud.ValidateSets())
-				{
-					select = true;
-				}
-				else
-				{
-					pointCloud.TriggerSeparation(false,0);
-					pointCloud.ResetSelected();
-					currentState = state.NONE;
-					timeSinceLastStateChange = 0.0F;
-					volumeTrailSpheres.Clear();
-				}
-			}
-		}
-		else if(strategy == Strategy.PRECISE) 
-		{
-			pointCloud.currentStrategy = Strategy.PRECISE;
-			if(shiftToggle) // if selection started
-			{
-				Sphere s = new Sphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F);
-				volumeTrailSpheres.Add(s);
-			}
-
-			if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) 
-			{
-				shiftToggle = !shiftToggle;
-				if(!shiftToggle)
-				{
-					if(pointCloud.ValidateSets())
-					{
-						select = true;
-					}
-					else
-					{
-						pointCloud.TriggerSeparation(false,0);
-						pointCloud.ResetSelected();
-						currentState = state.NONE;
-						timeSinceLastStateChange = 0.0F;
-						volumeTrailSpheres.Clear();
-					}
-				}
+				AddCurrentBubbleToSweep();
 			}
 		}
 	}

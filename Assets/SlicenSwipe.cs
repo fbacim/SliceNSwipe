@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Leap;
@@ -11,11 +12,12 @@ public class SlicenSwipe {
 	state currentState = state.NONE;
 	float timeSinceLastStateChange = 0.0F;
 	float timeSinceLastClickCompleted = 0.0F;
-	float timeLastUpdate = 0.0F;
+	DateTime timeLastUpdate;
 	float resetTimer = 0.0F;
-	float lastScalarVelocity = 0.0F;
-	float velocityThreshold = 500.0F;
-	float stateChangeTimeThreshold = 0.2F;
+	float lastFilteredVelocity = 0.0F;
+	float highVelocityThreshold = 400.0F;
+	float lowVelocityThreshold = 200.0F;
+	float stateChangeTimeThreshold = 0.7F;
 	int updateCountSinceMovingSlashStarted = 0;
 	Plane slashPlane;
 	
@@ -26,7 +28,7 @@ public class SlicenSwipe {
 	
 	LineRenderer fingerLineRenderer;
 	LineRenderer handLineRenderer;
-	LineRenderer fingerHandLineRenderer;//GameObject fingerHandLineRenderer;
+	//LineRenderer fingerHandLineRenderer;//GameObject fingerHandLineRenderer;
 	List<Vector3> handPosition;
 	List<Vector3> fingerPosition;
 	List<float> fingerPositionTime;
@@ -60,15 +62,17 @@ public class SlicenSwipe {
 		handLineRenderer.SetColors(new Color(0.8F,0.1F,0.1F,0.0F), new Color(0.1F,0.1F,0.8F,1.0F));
 		handLineRenderer.SetWidth(0.2F,0.2F);
 		
-		fingerHandLineRenderer = (new GameObject("Finger-Hand Line Renderer")).AddComponent<LineRenderer>();//GameObject.CreatePrimitive(PrimitiveType.Cube);
-		fingerHandLineRenderer.material.shader = Shader.Find("Sprites/Default");
-		fingerHandLineRenderer.SetColors(new Color(0.8F,0.8F,0.8F), new Color(0.8F,0.8F,0.8F));
-		fingerHandLineRenderer.SetWidth(0.3F,0.3F);
+//		fingerHandLineRenderer = (new GameObject("Finger-Hand Line Renderer")).AddComponent<LineRenderer>();//GameObject.CreatePrimitive(PrimitiveType.Cube);
+//		fingerHandLineRenderer.material.shader = Shader.Find("Sprites/Default");
+//		fingerHandLineRenderer.SetColors(new Color(0.8F,0.8F,0.8F), new Color(0.8F,0.8F,0.8F));
+//		fingerHandLineRenderer.SetWidth(0.3F,0.3F);
 
 		fingerHandTrail = new GameObject("Finger-Hand Trail"); //create a new gameobject. This gameobject will hold the mesh we’re creating.
 		fingerHandTrail.AddComponent<MeshFilter>(); //this is what makes the mesh available to the other mesh components
 		fingerHandTrail.AddComponent<MeshRenderer>(); //this is what makes the mesh visible
 		fingerHandTrail.SetActive(false);
+
+		timeLastUpdate = DateTime.Now;
 	}
 
 	public void SetEnabled(bool enable)
@@ -76,7 +80,7 @@ public class SlicenSwipe {
 		isEnabled = enable;
 		fingerHandTrail.SetActive(isEnabled);
 		fingerLineRenderer.gameObject.SetActive(isEnabled);
-		fingerHandLineRenderer.gameObject.SetActive(false);
+		//fingerHandLineRenderer.gameObject.SetActive(false);
 	}
 
 	// receives current frame
@@ -94,15 +98,16 @@ public class SlicenSwipe {
 		needsClear = true;
 
 		// calculate how much time has passed since last updates
-		float currentTime = Time.timeSinceLevelLoad;
-		float timeSinceLastUpdate = currentTime - timeLastUpdate;
+		DateTime currentTime = DateTime.Now;
+		float timeSinceLastUpdate = (float)(currentTime - timeLastUpdate).TotalSeconds;
 		timeLastUpdate = currentTime;
 		timeSinceLastStateChange += timeSinceLastUpdate;
+		timeSinceLastClickCompleted += timeSinceLastUpdate;
+		if(timeSinceLastClickCompleted < 3.0F) 
+			return locked; // avoid detecting two clicks in one
+		
 		if(currentState == state.MOVING_CUT || currentState == state.MOVING_SELECT)
 			updateCountSinceMovingSlashStarted++;
-		timeSinceLastClickCompleted += timeSinceLastUpdate;
-		if(timeSinceLastClickCompleted < 0.5F) 
-			return locked; // avoid detecting two clicks in one
 
 		// get reference to the index finger
 		FingerList indexFingers = frame.Fingers.FingerType(Finger.FingerType.TYPE_INDEX);
@@ -122,10 +127,14 @@ public class SlicenSwipe {
 		// calculate velocity
 		float scalarVelocity;// = fl[0].TipVelocity.Magnitude; 
 		float filteredVelocity;
-		if(indexFinger != null && indexFinger.TimeVisible > 0.2)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
+		if(indexFinger != null && indexFinger.TimeVisible > 1 && !pointCloud.animating)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
 		{
 			scalarVelocity = indexFinger.TipVelocity.Magnitude;
-			filteredVelocity = scalarVelocity;//0.5F*lastScalarVelocity + 0.5F*scalarVelocity;
+			filteredVelocity = 0.7F*lastFilteredVelocity + 0.3F*scalarVelocity;
+		}
+		else if(timeSinceLastStateChange <= stateChangeTimeThreshold)
+		{
+			filteredVelocity = 0.0f;
 		}
 		else
 		{
@@ -136,7 +145,8 @@ public class SlicenSwipe {
 				currentState = state.NONE;
 			}
 		}
-		lastScalarVelocity = scalarVelocity;
+		lastFilteredVelocity = filteredVelocity;
+		//Debug.Log("Velocity: "+scalarVelocity+"    filtered: "+filteredVelocity);
 
 		// shouldnt do anything really if the point cloud is being animated.
 		if(pointCloud.animating)
@@ -155,8 +165,6 @@ public class SlicenSwipe {
 			}
 		}
 
-		//Debug.Log("Velocity: "+scalarVelocity+"    filtered: "+filteredVelocity);
-		
 		// reset state machine
 		if(currentState == state.NONE && indexFinger != null) 
 		{
@@ -165,7 +173,7 @@ public class SlicenSwipe {
 			timeSinceLastStateChange = 0.0F;
 		}
 		// if velocity above threshold, record motion in moving cut state
-		else if(currentState == state.MOVING_FINGER && indexFinger != null && ((filteredVelocity > velocityThreshold && strategy != Strategy.PRECISE) || useRubberBand)) 
+		else if(currentState == state.MOVING_FINGER && indexFinger != null && ((filteredVelocity > highVelocityThreshold && strategy != Strategy.PRECISE) || useRubberBand) && timeSinceLastStateChange > stateChangeTimeThreshold) 
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.MOVING_CUT;
@@ -186,9 +194,9 @@ public class SlicenSwipe {
 			}
 		}
 		// if velocity goes below the threshold again, change state to cut slash, where the cut has been made
-		else if(currentState == state.MOVING_CUT && indexFinger != null && ((!rubberBandActive && filteredVelocity < velocityThreshold && strategy != Strategy.PRECISE) || (rubberBandActive && !useRubberBand))) 
+		else if(currentState == state.MOVING_CUT && indexFinger != null && ((!rubberBandActive && filteredVelocity < lowVelocityThreshold && strategy != Strategy.PRECISE) || (rubberBandActive && !useRubberBand))) 
 		{
-			//Debug.Log("SLICE "+fingerPosition.Count);
+			Debug.Log("MOVING_CUT "+timeSinceLastStateChange);
 			if(fingerPosition.Count > 1)
 			{
 				int initialPosition = fingerPosition.Count-1-updateCountSinceMovingSlashStarted;
@@ -219,7 +227,7 @@ public class SlicenSwipe {
 				if(rubberBandActive)
 					updateCountSinceMovingSlashStarted = 1;
 				rubberBandActive = false;
-
+				lastFilteredVelocity = 0.0F;
 				timeSinceLastStateChange = 0.0F;
 			}
 			else
@@ -231,39 +239,45 @@ public class SlicenSwipe {
 			}
 		}
 		// if a cut has been made, velocity is above threshold again and significant time has passed since cut slash was registered, we record motions again for selection of 
-		else if(currentState == state.CUT_SLASH && indexFinger != null && filteredVelocity > velocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
+		else if(currentState == state.CUT_SLASH && indexFinger != null && filteredVelocity > highVelocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
 		{
+			Debug.Log("CUT_SLASH "+timeSinceLastStateChange);
 			pointCloud.TriggerSeparation(true,0);
 			//Debug.Log("STARTING SWIPE");
 			currentState = state.MOVING_SELECT;
 			timeSinceLastStateChange = 0.0F;
 			updateCountSinceMovingSlashStarted = 0;
 		}
-		else if(currentState == state.MOVING_SELECT && indexFinger != null && filteredVelocity < velocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
+		else if(currentState == state.MOVING_SELECT && indexFinger != null && filteredVelocity < lowVelocityThreshold)
 		{
-			//Debug.Log("SWIPE");
+			Debug.Log("MOVING_SELECT "+timeSinceLastStateChange);
 			if(fingerPosition.Count < 2)
-				return true;
-			int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
-			Vector3 direction = new Vector3();
-			for(int i = initialPosition; i < fingerPosition.Count; i++)
-				direction += fingerPosition[i];
-			direction /= fingerPosition.Count-initialPosition;
-			//Debug.Log(direction.normalized);
-			//Debug.Log(Mathf.Abs(Vector3.Angle(slashPlane.normal,direction.normalized)));
+			{
+				currentState = state.CUT_SLASH;
+			}
+			else
+			{
+				int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
+				Vector3 direction = new Vector3();
+				for(int i = initialPosition; i < fingerPosition.Count; i++)
+					direction += fingerPosition[i];
+				direction /= fingerPosition.Count-initialPosition;
+				//Debug.Log(direction.normalized);
+				//Debug.Log(Mathf.Abs(Vector3.Angle(slashPlane.normal,direction.normalized)));
 
-			Plane tmp = new Plane();
-			tmp.Set3Points(GameObject.Find("Camera").transform.position+GameObject.Find("Camera").transform.forward,
-			               GameObject.Find("Camera").transform.position,
-			               GameObject.Find("Camera").transform.position+GameObject.Find("Camera").transform.up);
-			//Debug.Log(tmp.normal);
-			//Debug.Log(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
+				Plane tmp = new Plane();
+				tmp.Set3Points(GameObject.Find("Camera").transform.position+GameObject.Find("Camera").transform.forward,
+				               GameObject.Find("Camera").transform.position,
+				               GameObject.Find("Camera").transform.position+GameObject.Find("Camera").transform.up);
+				//Debug.Log(tmp.normal);
+				//Debug.Log(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
 
-
-			pointCloud.SelectSide(slashPlane,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
-			pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
-			currentState = state.SELECT_SLASH;
-			timeSinceLastStateChange = 0.0F;
+				pointCloud.SelectSide(slashPlane,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
+				pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
+				currentState = state.NONE;//state.SELECT_SLASH;
+				timeSinceLastStateChange = 0.0F;
+				lastFilteredVelocity = 0.0F;
+			}
 		}
 
 		ProcessKeys ();
@@ -283,12 +297,6 @@ public class SlicenSwipe {
 			                      handPosition[1], 
 			                      fingerPosition[1]);
 			pointCloud.SetSelectionPlane(slashPlane);
-		}
-				
-		if(currentState == state.SELECT_SLASH)
-		{
-			currentState = state.NONE;
-			timeSinceLastClickCompleted = 0.0F;
 		}
 
 		if(currentState == state.CUT_SLASH || currentState == state.MOVING_SELECT)
@@ -357,9 +365,9 @@ public class SlicenSwipe {
 			handLineRenderer.SetPosition(1,handPosition[1]);
 		}
 		
-		fingerHandLineRenderer.SetVertexCount(2);
-		fingerHandLineRenderer.SetPosition(0,handPosition[handPosition.Count-1]);
-		fingerHandLineRenderer.SetPosition(1,fingerPosition[fingerPosition.Count-1]);
+		//fingerHandLineRenderer.SetVertexCount(2);
+		//fingerHandLineRenderer.SetPosition(0,handPosition[handPosition.Count-1]);
+		//fingerHandLineRenderer.SetPosition(1,fingerPosition[fingerPosition.Count-1]);
 		
 		// create trail
 		fingerHandTrailMesh = new Mesh(); //this is the mesh we’re creating.
@@ -507,6 +515,7 @@ public class SlicenSwipe {
 			pointCloud.TriggerSeparation(false,0);
 			if((currentState == state.NONE || currentState == state.MOVING_FINGER) && !rubberBandActive)//timeSinceLastStateChange > 4.0F)
 				pointCloud.Undo();
+			lastFilteredVelocity = 0.0f;
 			currentState = state.NONE;
 			timeSinceLastStateChange = 0.0F;
 			pointCloud.ResetSelected();
