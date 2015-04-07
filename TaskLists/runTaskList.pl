@@ -20,6 +20,8 @@ $filename = $ARGV[0];
 my @fileParts = split('\.',$ARGV[0]);
 $participantID = $fileParts[0];
 
+$strategy = "None";
+
 if ( $#ARGV+1 > 1 ) {
 	print "Starting from task $ARGV[1]\n";
 	$n=$ARGV[1];
@@ -37,6 +39,16 @@ foreach $line (<LISTFILE>){
 
 	my @values = split(',', $line); 
 	my @taskParts = split('_', $values[3]);
+
+	if ($strategy ne $values[1] and $n>1){
+		$strategy = $values[1];
+						  print "********************************************************\n";
+		if ($strategy eq "Fast")	{ print "************************* FAST *************************\n"; }
+		elsif ($strategy eq "Precise")	{ print "*********************** PRECISE ************************\n"; }
+		elsif ($strategy eq "Both")	{ print "************************* BOTH *************************\n"; }
+						  print "********************************************************\n";
+	}
+
 	
 	do{
 		$satisfied = 1;
@@ -49,6 +61,14 @@ foreach $line (<LISTFILE>){
 		}
 		
 		print $taskParts[1] ;
+		if (length($taskParts[1])<8) {
+			print "\t\t";
+		} else {
+			print "\t";
+		}
+		
+		if ($values[4] eq "training") { print "TRAINING" };
+
 		<STDIN>;
 
 		`exp.exe`;
@@ -59,5 +79,8 @@ foreach $line (<LISTFILE>){
 	}while($satisfied==0);
 	$n++;
 }
+print "********************************************************\n";
+print "********************* THANK YOU ************************\n";
+print "********************************************************\n";
 
 close LISTFILE;
