@@ -87,8 +87,6 @@ public class VolumeSweep {//}: MonoBehaviour {
 		float timeSinceLastUpdate = (float)(currentTime - timeLastUpdate).TotalSeconds;
 		timeLastUpdate = currentTime;
 		timeSinceLastClickCompleted += timeSinceLastUpdate;
-		if(timeSinceLastClickCompleted < 2.0F) 
-			return false; // avoid detecting two clicks in one
 		timeSinceLastStateChange += timeSinceLastUpdate;
 
 		// get reference to the index and thumb fingers
@@ -123,9 +121,9 @@ public class VolumeSweep {//}: MonoBehaviour {
 		// calculate velocity
 		float scalarVelocity;// = fl[0].TipVelocity.Magnitude; 
 		float filteredVelocity;
-		if(indexFinger != null && indexFinger.TimeVisible > 1 && !pointCloud.animating)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
+		if(indexFinger != null && indexFinger.TimeVisible > 1 && !pointCloud.animating && timeSinceLastClickCompleted > 2.0F)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
 		{
-			scalarVelocity = indexFinger.Hand.PalmVelocity.Magnitude;
+			scalarVelocity = ((indexFinger.TipVelocity+thumbFinger.TipVelocity)/2.0f).Magnitude;
 			filteredVelocity = 0.7F*lastFilteredVelocity + 0.3F*scalarVelocity;
 		}
 		else if(timeSinceLastStateChange <= stateChangeTimeThreshold)
@@ -148,12 +146,14 @@ public class VolumeSweep {//}: MonoBehaviour {
 		if(currentState == state.NONE && thumbFinger != null && indexFinger != null) 
 		{
 			pointCloud.TriggerSeparation(false,0);
+			pointCloud.ResetSelected();
 			currentState = state.MOVING_FINGER;
 			timeSinceLastStateChange = 0.0F;
 			updateCountSinceMovingSlashStarted = 0;
+			volumeTrailSpheres.Clear();
 		}
 		// if moving fingers, update volume object position and size
-		else if(currentState == state.MOVING_FINGER && thumbFinger != null && indexFinger != null && timeSinceLastStateChange > stateChangeTimeThreshold) 
+		else if(currentState == state.MOVING_FINGER && thumbFinger != null && indexFinger != null) 
 		{
 			// update selection volume position
 			selectionVolume.transform.position = (goFingerList[5*System.Convert.ToInt32(thumbFinger.Hand.IsRight)].transform.position+goFingerList[1+5*System.Convert.ToInt32(indexFinger.Hand.IsRight)].transform.position)/2.0F;
@@ -193,8 +193,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 					               cameraTransform.position,
 					               cameraTransform.position+cameraTransform.up);
 
-					//Debug.Log(""+tmp.normal+direction.normalized+Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
-					
+					Debug.Log(""+tmp.normal+direction.normalized+Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
 					pointCloud.SelectSphereTrail(volumeTrailSpheres,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) < 90.0F));
 					pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
 
@@ -203,8 +202,15 @@ public class VolumeSweep {//}: MonoBehaviour {
 					updateCountSinceMovingSlashStarted = 0;
 					lastFilteredVelocity = 0;
 					currentState = state.NONE;
-					volumeTrailSpheres.Clear();
 				}
+				else if(timeSinceLastStateChange < stateChangeTimeThreshold)
+				{
+					lastFilteredVelocity = 0.0F;
+				}
+			}
+			else
+			{
+				updateCountSinceMovingSlashStarted = 0;
 			}
 		}
 
@@ -224,7 +230,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 		ProcessKeys();
 
 		// FAST STRATEGY
-		if(strategy != Strategy.PRECISE && currentState == state.MOVING_FINGER && thumbFinger != null && indexFinger != null && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift))
+		if(strategy != Strategy.PRECISE && currentState == state.MOVING_FINGER && thumbFinger != null && indexFinger != null && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift) && timeSinceLastStateChange > stateChangeTimeThreshold)
 		{
 			if(filteredVelocity > highVelocityThreshold || crossedThreshold) // ready to select
 			{

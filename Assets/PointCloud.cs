@@ -1100,15 +1100,18 @@ public class PointCloud : MonoBehaviour
 			if(selected[i] == 1)
 			{
 				bool isInside = false;
-				for(int j = 0; j < spheres.Count; j++)
-				{
-					if(Vector3.Distance(spheres[j].center,verts[i]) < spheres[j].radius)
-					{
-						isInside = true;
-						break;
-					}
-				}
-				if((!isInside && inside) || (isInside && !inside))
+//				for(int j = 0; j < spheres.Count; j++)
+//				{
+//					if(Vector3.Distance(spheres[j].center,verts[i]) < spheres[j].radius)
+//					{
+//						isInside = true;
+//						break;
+//					}
+//				}
+				if(colorsOffset[i].x == 0.5F && colorsOffset[i].y == -0.5F && colorsOffset[i].z == -0.5F)
+					isInside = true;
+
+				if((isInside && inside) || (!isInside && !inside))
 				{
 					colorsOffset[i].x = 0.3F;
 					colorsOffset[i].y = 0.3F;
