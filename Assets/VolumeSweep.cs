@@ -117,6 +117,9 @@ public class VolumeSweep {//}: MonoBehaviour {
 				fingerPositionTime.RemoveAt(0);
 			}
 		}
+
+		if((indexFinger == null || thumbFinger == null) && !pointCloud.animating && !pointCloud.separate)
+			pointCloud.ResetSelected();
 		
 		// calculate velocity
 		float scalarVelocity;// = fl[0].TipVelocity.Magnitude; 
@@ -227,7 +230,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 		// if in any state other than NONE, need to update pointcloud state for rendering
 		if(currentState != state.NONE)
 		{
-			if(volumeTrailSpheres.Count == 0 || !canSelect)
+			if(volumeTrailSpheres.Count == 0)
 			{
 				canSelect = pointCloud.SetSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,true);
 			}

@@ -861,6 +861,7 @@ public class PointCloud : MonoBehaviour
 	
 	public bool SetSphere(Vector3 center, float radius, bool resetColor)
 	{
+		bool canSelect = true;
 		int countp1 = 0;
 		int countp2 = 0;
 		for (int i = 0; i < vertexCount; ++i)
@@ -889,10 +890,10 @@ public class PointCloud : MonoBehaviour
 			}
 		}
 		
-		if(resetColor && (countp1 == 0 || countp2 == 0))
+		if(resetColor)// && (countp1 == 0 || countp2 == 0))
 		{
-			ResetSelected();
-			return false;
+			//ResetSelected();
+			canSelect = false;
 		}
 		
 		bufferPoints.SetData (verts);
@@ -902,7 +903,7 @@ public class PointCloud : MonoBehaviour
 		bufferSelected.SetData (selected);
 		//bufferHighlighted.SetData (notHighlighted);
 		
-		return true;
+		return canSelect;
 	}
 	
 	public bool SetSphereTrail(List<Sphere> spheres)
