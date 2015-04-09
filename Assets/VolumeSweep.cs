@@ -25,9 +25,9 @@ public class VolumeSweep {//}: MonoBehaviour {
 	float timeSinceLastClickCompleted = 0.0F;
 	DateTime timeLastUpdate;
 	float resetTimer = 0.0F;
-	float velocityThreshold = 500.0F;
-	float highVelocityThreshold = 200.0F;
-	float lowVelocityThreshold = 20.0F;
+	float velocityThreshold = 200.0F;
+	float highVelocityThreshold = 150.0F;
+	float lowVelocityThreshold = 3.0F;
 	float stateChangeTimeThreshold = 0.7F;
 	int updateCountSinceMovingSlashStarted = 0;
 	bool crossedThreshold = false;
@@ -124,7 +124,15 @@ public class VolumeSweep {//}: MonoBehaviour {
 		if(indexFinger != null && indexFinger.TimeVisible > 1 && !pointCloud.animating && timeSinceLastClickCompleted > 2.0F)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
 		{
 			scalarVelocity = ((indexFinger.TipVelocity+thumbFinger.TipVelocity)/2.0f).Magnitude;
-			filteredVelocity = 0.7F*lastFilteredVelocity + 0.3F*scalarVelocity;
+			// only use smoothing after first cut
+			if(strategy != Strategy.PRECISE && currentState == state.MOVING_FINGER && !crossedThreshold)
+			{
+				filteredVelocity = scalarVelocity;
+			}
+			else
+			{
+				filteredVelocity = 0.7F*lastFilteredVelocity + 0.3F*scalarVelocity;
+			}
 		}
 		else if(timeSinceLastStateChange <= stateChangeTimeThreshold)
 		{
@@ -141,6 +149,8 @@ public class VolumeSweep {//}: MonoBehaviour {
 		}
 		lastFilteredVelocity = filteredVelocity;
 
+		if(GameObject.Find("VelocityBar") != null)
+			GameObject.Find("VelocityBar").GetComponent<ProgressBar>().scale = filteredVelocity/50.0f;
 
 		// change state to moving finger (initial state) if there are two fingers 
 		if(currentState == state.NONE && thumbFinger != null && indexFinger != null) 
@@ -174,11 +184,11 @@ public class VolumeSweep {//}: MonoBehaviour {
 			if(indexFinger != null)
 			{
 				// check finger velocity against velocity threshold for selection of side in swipe phase
-				if(lastFilteredVelocity > highVelocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
+				if(lastFilteredVelocity > velocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
 				{
 					updateCountSinceMovingSlashStarted++;
 				}
-				else if(lastFilteredVelocity < highVelocityThreshold && updateCountSinceMovingSlashStarted > 1)
+				else if(lastFilteredVelocity < velocityThreshold && updateCountSinceMovingSlashStarted > 1)
 				{
 					int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
 					Vector3 direction = new Vector3();
@@ -334,7 +344,9 @@ public class VolumeSweep {//}: MonoBehaviour {
 		else if(Input.GetKeyUp(KeyCode.Escape))
 		{
 			pointCloud.TriggerSeparation(false,0);
-			if(currentState == state.NONE || currentState == state.MOVING_FINGER)//timeSinceLastStateChange > 4.0F)
+			if(strategy != Strategy.PRECISE && currentState == state.MOVING_FINGER && crossedThreshold) 
+				crossedThreshold = false;
+			else if(currentState == state.NONE || currentState == state.MOVING_FINGER)//timeSinceLastStateChange > 4.0F)
 				pointCloud.Undo();
 			pointCloud.ResetSelected();
 			currentState = state.NONE;
