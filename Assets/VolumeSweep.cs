@@ -27,7 +27,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 	float resetTimer = 0.0F;
 	float velocityThreshold = 200.0F;
 	float highVelocityThreshold = 150.0F;
-	float lowVelocityThreshold = 3.0F;
+	float lowVelocityThreshold = 5.0F;
 	float stateChangeTimeThreshold = 0.7F;
 	int updateCountSinceMovingSlashStarted = 0;
 	bool crossedThreshold = false;
@@ -341,7 +341,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 			pointCloud.ResetAll();
 			resetTimer = 0;
 		}
-		else if(Input.GetKeyUp(KeyCode.Escape))
+		else if(Input.GetKeyUp(KeyCode.Escape) && !pointCloud.animating)
 		{
 			pointCloud.TriggerSeparation(false,0);
 			if(strategy != Strategy.PRECISE && currentState == state.MOVING_FINGER && crossedThreshold) 
