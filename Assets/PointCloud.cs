@@ -12,7 +12,8 @@ public class PointCloud : MonoBehaviour
 	public Material material;
 	public int vertexCount; // this should match the amount of points from file
 	private int instanceCount = 2; // no need to adjust (otherwise you have instanceCount * vertexCount amount of objects..
-	
+
+	// these are general purpose compute buffers for point cloud rendering
 	private ComputeBuffer bufferPoints;
 	private ComputeBuffer bufferPos;
 	private ComputeBuffer bufferColors;
@@ -21,6 +22,13 @@ public class PointCloud : MonoBehaviour
 	private ComputeBuffer bufferSizes;
 	private ComputeBuffer bufferSelected;
 	private ComputeBuffer bufferHighlighted;
+
+	// these are buffers only used to calculate lasso
+	private ComputeBuffer bufferUseLasso;
+	private ComputeBuffer bufferLasso;
+	// and these are the CPU-side buffers to accompany them
+	private Vector3[] lassoBuffer;
+	private int[] useLasso;
 
 	private Vector4[] pos;
 	public Vector3[] verts;
@@ -96,7 +104,6 @@ public class PointCloud : MonoBehaviour
 	private List<Vector2> tPoints2D;
 	private Vector2[] tLasso;
 	private int tLassoSize;
-	private bool tValidLasso;
 	private List<Vector3> tLassoVertices;
 	private Camera tCamera;
 	private Matrix4x4 tProjMatrix;
@@ -316,7 +323,7 @@ public class PointCloud : MonoBehaviour
 				if(annotationFullPath.Contains(fileName) && annotationCount++ == GameObject.Find("StartUpOptions").GetComponent<StartUpOptions>().selectedAnnotation)
 				{
 					System.IO.StreamReader loadAnnotationFile = new System.IO.StreamReader(annotationFullPath);
-					string annotation = loadAnnotationFile.ReadLine();		// Rewrite the first argument as the first line in the Annotation file will have the tag
+					loadAnnotationFile.ReadLine();//string annotation = loadAnnotationFile.ReadLine();// Rewrite the first argument as the first line in the Annotation file will have the tag
 					string[] indexesInAnnotation = loadAnnotationFile.ReadLine().Split(',');
 					loadAnnotationFile.Close();
 
@@ -335,6 +342,8 @@ public class PointCloud : MonoBehaviour
 				}
 			}
 		}
+
+		useLasso = new int[] {0};
 
 		ReleaseBuffers ();
 		
@@ -369,6 +378,10 @@ public class PointCloud : MonoBehaviour
 		bufferHighlighted = new ComputeBuffer (vertexCount, 4);
 		bufferHighlighted.SetData (notHighlighted);
 		material.SetBuffer ("buf_Highlighted", bufferHighlighted);
+
+		bufferUseLasso = new ComputeBuffer (1, 4);
+		bufferUseLasso.SetData (useLasso);
+		material.SetBuffer ("buf_UseLasso", bufferUseLasso);
 		
 		CenterPointCloud(center);
 
@@ -412,6 +425,10 @@ public class PointCloud : MonoBehaviour
 		bufferSelected = null;
 		if (bufferHighlighted != null) bufferHighlighted.Release();
 		bufferHighlighted = null;
+		if (bufferUseLasso != null) bufferUseLasso.Release();
+		bufferUseLasso = null;
+		if (bufferLasso != null) bufferLasso.Release();
+		bufferLasso = null;
 	}
 	
 	void OnDisable() 
@@ -765,6 +782,38 @@ public class PointCloud : MonoBehaviour
 		CenterPointCloud(selectedCenter);
 	}
 
+	public void ClearLassoGPU()
+	{
+		useLasso[0] = 0;
+		bufferUseLasso.SetData (useLasso);
+	}
+
+	public bool SetLassoGPU(List<Vector3> vertices)
+	{
+		// calculate lasso input
+		useLasso[0] = vertices.Count;
+
+		lassoBuffer = new Vector3[vertices.Count];
+
+		for(int i = 0; i < vertices.Count; i++)
+			lassoBuffer[i] = vertices[i];
+
+		if (bufferLasso != null) bufferLasso.Release();
+		bufferLasso = new ComputeBuffer (vertices.Count+1, 12);
+		bufferLasso.SetData (lassoBuffer);
+		material.SetBuffer ("buf_Lasso", bufferLasso);
+
+		bufferUseLasso.SetData (useLasso);
+		bufferPoints.SetData (verts);
+		bufferColors.SetData (colors);
+		bufferSizes.SetData (sizes);
+		bufferColorOffset.SetData (colorsOffset);
+		bufferSelected.SetData (selected);
+		//bufferHighlighted.SetData (notHighlighted);
+		
+		return true;
+	}
+
 	public bool SetLasso(List<Vector3> vertices)
 	{
 		Debug.Log("setLasso "+vertices.Count);
@@ -797,6 +846,9 @@ public class PointCloud : MonoBehaviour
 //			ResetSelected();
 //		}
 
+		useLasso[0] = 0;
+
+		bufferUseLasso.SetData (useLasso);
 		bufferPoints.SetData (verts);
 		bufferColors.SetData (colors);
 		bufferSizes.SetData (sizes);
@@ -830,8 +882,8 @@ public class PointCloud : MonoBehaviour
 
 	private void ProcessLasso()
 	{
-		int countp1 = 0;
-		int countp2 = 0;
+//		int countp1 = 0;
+//		int countp2 = 0;
 
 		print(tPoints2D.Count);
 		for (int i = 0; i < vertexCount; ++i)
@@ -842,25 +894,20 @@ public class PointCloud : MonoBehaviour
 				Vector2 point2D = new Vector2(screenPoint.x, screenPoint.y);
 				if(wn_PnPoly(point2D,tLasso,tLassoVertices.Count-1) == 0) // outside
 				{
-					//						countp1++;
+//					countp1++;
 					colorsOffset[i].x = 0.5F;
 					colorsOffset[i].y = -0.5F;
 					colorsOffset[i].z = -0.5F;
 				}
 				else
 				{
-					//						countp2++;
+//					countp2++;
 					colorsOffset[i].x = -0.5F;
 					colorsOffset[i].y = -0.5F;
 					colorsOffset[i].z = 0.5F;
 				}
 			}
 		}
-		
-		if(countp1 == 0 || countp2 == 0)
-			tValidLasso = false;
-		else
-			tValidLasso = true;
 	}
 	
 	public bool SetSphere(Vector3 center, float radius, bool resetColor)
@@ -1394,7 +1441,7 @@ public class PointCloud : MonoBehaviour
 	//            =0 for P2  on the line
 	//            <0 for P2  right of the line
 	//    See: Algorithm 1 "Area of Triangles and Polygons"
-	public int isLeft( Vector3 P0, Vector3 P1, Vector3 P2 )
+	public int isLeft( Vector2 P0, Vector2 P1, Vector2 P2 )
 	{
 		return (int)( (P1.x - P0.x) * (P2.y - P0.y) - (P2.x -  P0.x) * (P1.y - P0.y) );
 	}

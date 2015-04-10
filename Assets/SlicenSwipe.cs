@@ -13,7 +13,7 @@ public class SlicenSwipe {
 	float timeSinceLastStateChange = 0.0F;
 	float timeSinceLastClickCompleted = 0.0F;
 	DateTime timeLastUpdate;
-	float resetTimer = 0.0F;
+	//float resetTimer = 0.0F;
 	float lastFilteredVelocity = 0.0F;
 	float highVelocityThreshold = 400.0F;
 	float lowVelocityThreshold = 200.0F;
@@ -493,13 +493,11 @@ public class SlicenSwipe {
 
 	public void ProcessKeys()
 	{
-		float currentTime = Time.timeSinceLevelLoad;
-		
 		// CHECK FOR CANCEL/RESET
 		// if two seconds have passed without a state change, reset state machine
 		if(Input.GetKeyDown(KeyCode.Escape))
 		{
-			resetTimer = currentTime;
+			//resetTimer = currentTime;
 		}
 		else if(Input.GetKey(KeyCode.F8))
 		{
@@ -508,7 +506,7 @@ public class SlicenSwipe {
 			timeSinceLastStateChange = 0.0F;
 			Clear();
 			pointCloud.ResetAll();
-			resetTimer = 0;
+			//resetTimer = 0;
 		}
 		else if(Input.GetKeyUp(KeyCode.Escape))
 		{

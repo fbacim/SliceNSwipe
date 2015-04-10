@@ -17,7 +17,7 @@ public class LeapController : MonoBehaviour {
 	Leap.Controller controller;
 	List<GameObject> goFingerList;
 	List<GameObject> goHandList;
-	AnnotationMenu annotationMenu;
+	//AnnotationMenu annotationMenu;
 	Transform cameraTransform;
 	PointCloud pointCloud;
 	GUIText annotationTextInput;
@@ -31,7 +31,7 @@ public class LeapController : MonoBehaviour {
 		controller = new Leap.Controller();
 		
 		annotationTextInput = GameObject.Find("Annotation Input").GetComponent<GUIText>();
-		annotationMenu = GameObject.Find("Camera").GetComponent<AnnotationMenu>();
+		//annotationMenu = GameObject.Find("Camera").GetComponent<AnnotationMenu>();
 		cameraTransform = GameObject.Find("Camera").GetComponent<Transform>();
 		pointCloud = GameObject.Find("Camera").GetComponent<PointCloud>();
 		//handTransform = GameObject.Find("HandController").GetComponent<Transform>();

@@ -13,10 +13,10 @@ public class Lasso {//}: MonoBehaviour {
 	float timeSinceLastStateChange = 0.0F;
 	float timeSinceLastClickCompleted = 0.0F;
 	DateTime timeLastUpdate;
-	float resetTimer = 0.0F;
+	//float resetTimer = 0.0F;
 	float velocityThreshold = 200.0F;
-	float highVelocityThreshold = 300.0F;
-	float lowVelocityThreshold = 20.0F;
+	float highVelocityThreshold = 250.0F;
+	float lowVelocityThreshold = 10.0F;
 	float lastFilteredVelocity = 0.0F;
 	float stateChangeTimeThreshold = 0.7F;
 	int updateCountSinceMovingSlashStarted = 0;
@@ -116,10 +116,15 @@ public class Lasso {//}: MonoBehaviour {
 			fingerLineRenderer.SetPosition(fingerPosition.Count,fingerPosition[0]);
 			goFingerLineRenderer.SetActive(true);
 			
+			List<Vector3> lasso = new List<Vector3>(fingerPosition);
+			lasso.Add(fingerPosition[0]);
+			pointCloud.SetLassoGPU(lasso);
+
 			updateCountSinceMovingSlashStarted = 0;
 		}
 		else
 		{
+			pointCloud.ClearLassoGPU();
 			goFingerLineRenderer.SetActive(false);
 			if(frame.Fingers.Count > 0)
 			{
@@ -253,13 +258,13 @@ public class Lasso {//}: MonoBehaviour {
 
 	public void ProcessKeys()
 	{
-		float currentTime = Time.timeSinceLevelLoad;
+		//float currentTime = Time.timeSinceLevelLoad;
 		
 		// CHECK FOR CANCEL/RESET
 		// if two seconds have passed without a state change, reset state machine
 		if(Input.GetKeyDown(KeyCode.Escape))
 		{
-			resetTimer = currentTime;
+			//resetTimer = currentTime;
 		}
 		else if(Input.GetKey(KeyCode.F8))
 		{
@@ -268,9 +273,10 @@ public class Lasso {//}: MonoBehaviour {
 			timeSinceLastStateChange = 0.0F;
 			Clear();
 			pointCloud.ResetAll();
-			resetTimer = 0;
+			//resetTimer = 0;
 		}
-		else if(Input.GetKeyUp(KeyCode.Escape))
+		//else if(Input.GetKeyUp(KeyCode.Escape))
+		if(Input.GetKeyUp(KeyCode.Escape))
 		{
 			pointCloud.TriggerSeparation(false,0);
 			if(currentState == state.NONE || currentState == state.DRAW)//timeSinceLastStateChange > 4.0F)
@@ -285,8 +291,15 @@ public class Lasso {//}: MonoBehaviour {
 		if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) // ready to select
 		{
 			pointCloud.currentStrategy = Strategy.PRECISE;
+
+			List<Vector3> lasso = new List<Vector3>(fingerPosition);
+			lasso.Add(fingerPosition[0]);
+			canSelect = pointCloud.SetLasso(lasso);
+
 			if(canSelect)
+			{
 				currentState = state.SELECT_IN_OUT;
+			}
 			else
 				currentState = state.SELECT;
 		}

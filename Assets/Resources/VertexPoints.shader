@@ -30,6 +30,7 @@ Shader "DX11/VertexColorPoints"
 			#pragma fragment frag
 			#include "UnityCG.cginc"
 
+			// common point cloud rendering structures
 			StructuredBuffer<float3> buf_Points;
 			StructuredBuffer<float4> buf_Colors;
 			StructuredBuffer<float3> buf_ColorsOffset;
@@ -38,6 +39,10 @@ Shader "DX11/VertexColorPoints"
 			StructuredBuffer<float>  buf_Sizes;
 			StructuredBuffer<int>    buf_Selected;
 			StructuredBuffer<int>    buf_Highlighted;
+			
+			// used for lasso
+			StructuredBuffer<float3> buf_Lasso;
+			StructuredBuffer<int>    buf_UseLasso;
 			
 			fixed4 _OffsetColorMask1;
 			fixed4 _OffsetColorMask2;
@@ -67,55 +72,12 @@ Shader "DX11/VertexColorPoints"
 			};
 			
 
-			float3 GetSpecularColor(float3 vVertexNormal, float3 vVertexPosition, float3 vLightPosition)
-			{
-			    // Transform the Vertex and corresponding Normal into Model space
-			    float3 vTransformedNormal = mul(_Object2World, float4( vVertexNormal, 1 ));
-			    float3 vTransformedVertex = mul(_Object2World, float4( vVertexPosition, 1 ));
-			 
-			    // Get the directional vector to the light and to the camera
-			    // originating from the vertex position
-			    float3 vLightDirection = normalize( vLightPosition - vTransformedVertex );
-			    float3 vCameraDirection = normalize( _WorldSpaceCameraPos - vTransformedVertex );
-			 
-			    // Calculate the reflection vector between the incoming light and the
-			    // normal (incoming angle = outgoing angle)
-			    // We have to use the invert of the light direction because "reflect"
-			    // expects the incident vector as its first parameter
-			    float3 vReflection = reflect( -vLightDirection, vTransformedNormal );
-			 
-			    // Calculate specular component
-			    // Based on the dot product between the reflection vector and the camera
-			    // direction
-			    float spec = pow( max( 0.0, dot( vCameraDirection, vReflection )), 32 );
-			 
-			    return float3( spec, spec, spec );
-			}
- 
-			float3 GetAmbientColor()
-			{
-			    // Ambient material is 0.2/0/0
-			    // Ambient light is 0.2/0.2/0.2
-			    return float3( 0.5f, 0.5f, 0.5f );
-			}
- 
-			float3 GetDiffuseColor(float3 vVertexNormal, float3 vLightPosition)
-			{
-			    // Transform the normal from Object to Model space
-			    // we also normalize the vector just to be sure ...
-			    float3 vTransformedNormal = normalize( mul( _Object2World, float4( vVertexNormal, 1 )));
-			 
-			    // Get direction of light in Model space
-			    float3 vLightDirection = normalize( vLightPosition - vTransformedNormal );
-			 
-			    // Calculate Diffuse intensity
-			    float fDiffuseIntensity = max( 0.0, dot( vTransformedNormal, vLightDirection ));
-			 
-			    // Calculate resulting Color
-			    float3 vDiffuseColor = float3( 1.0, 1.0, 1.0 ) * fDiffuseIntensity;
-			 
-			    return vDiffuseColor;
-			} 
+			float3 GetSpecularColor(float3 vVertexNormal, float3 vVertexPosition, float3 vLightPosition);
+			float3 GetAmbientColor();
+			float3 GetDiffuseColor(float3 vVertexNormal, float3 vLightPosition);
+			
+			int isLeft( float3 P0, float3 P1, float3 P2 );
+//			int wn_PnPoly( float3 P, float3 V, int n );
 
 			GS_INPUT vert(VS_INPUT input)
 			{
@@ -140,22 +102,65 @@ Shader "DX11/VertexColorPoints"
 					alpha -= abs(buf_Positions[0].w-buf_Positions[1].w)/2.0f*clamp(((_ScreenParams.x-screenCoord.x-_ScreenParams.x*0.4f)/(_ScreenParams.x*0.1f))*alpha,0.0f,alpha);
 				}
 				
+				float3 oldColorOffset = buf_ColorsOffset[input.id];
+				if(buf_UseLasso[0] > 0 && buf_Selected[input.id] == 1)
+				{
+					float3 point2D = screenCoord;
+					
+					int wn = 0;    // the  winding number counter
+					// loop through all edges of the polygon
+					for (int i=0; i<buf_UseLasso[0]-1; i++) {   // edge from V[i] to  V[i+1]
+						// calculate screen coordinates for lasso points
+						float4 Vi = mul(mul(UNITY_MATRIX_MVP, _World2Object),float4(buf_Lasso[i],1.0f));
+						Vi /= Vi.w; // perspective divide
+						Vi.x = (Vi.x+1.0f)*_ScreenParams.x/2.0f;// + fViewport[0]; // viewport transformation
+						Vi.y = (Vi.y+1.0f)*_ScreenParams.y/2.0f;// + fViewport[1]; // viewport transformation
+						float4 Vi1 = mul(mul(UNITY_MATRIX_MVP, _World2Object),float4(buf_Lasso[i+1],1.0f));
+						Vi1 /= Vi1.w; // perspective divide
+						Vi1.x = (Vi1.x+1.0f)*_ScreenParams.x/2.0f;// + fViewport[0]; // viewport transformation
+						Vi1.y = (Vi1.y+1.0f)*_ScreenParams.y/2.0f;// + fViewport[1]; // viewport transformation
+						if (Vi.y <= point2D.y) {          // start y <= P.y
+							if (Vi1.y  > point2D.y)      // an upward crossing
+								if (isLeft( Vi, Vi1, point2D) > 0)  // P left of  edge
+									++wn;            // have  a valid up intersect
+						}
+						else {                        // start y > P.y (no test needed)
+							if (Vi1.y  <= point2D.y)     // a downward crossing
+								if (isLeft( Vi, Vi1, point2D) < 0)  // P right of  edge
+									--wn;            // have  a valid down intersect
+						}
+					}
+					
+					if(wn == 0)//wn_PnPoly(point2D,buf_Lasso[0],buf_UseLasso[0]-1) == 0) // outside
+					{
+						oldColorOffset.x = 0.5F;
+						oldColorOffset.y = -0.5F;
+						oldColorOffset.z = -0.5F;
+					}
+					else
+					{
+						oldColorOffset.x = -0.5F;
+						oldColorOffset.y = -0.5F;
+						oldColorOffset.z = 0.5F;
+					}
+				}
+				
 				float3 colorOffset = float3(0,0,0);
 				if(buf_Selected[input.id] == 1)
 				{
 					// make sure we remove (80%) color if negative offset
-					if(buf_ColorsOffset[input.id].x < 0.0f && buf_Positions[1].w == 0)
+					if(oldColorOffset.x < 0.0f && buf_Positions[1].w == 0)
 						colorOffset.x = -buf_Colors[input.id].x*0.8f;
 					else
-						colorOffset.x = buf_ColorsOffset[input.id].x*(1.0f-buf_Positions[1].w);
-					if(buf_ColorsOffset[input.id].y < 0.0f && buf_Positions[1].w == 0)
+						colorOffset.x = oldColorOffset.x*(1.0f-buf_Positions[1].w);
+					if(oldColorOffset.y < 0.0f && buf_Positions[1].w == 0)
 						colorOffset.y = -buf_Colors[input.id].y*0.8f;
 					else
-						colorOffset.y = buf_ColorsOffset[input.id].y*(1.0f-buf_Positions[1].w);
-					if(buf_ColorsOffset[input.id].z < 0.0f && buf_Positions[1].w == 0)
+						colorOffset.y = oldColorOffset.y*(1.0f-buf_Positions[1].w);
+					if(oldColorOffset.z < 0.0f && buf_Positions[1].w == 0)
 						colorOffset.z = -buf_Colors[input.id].z*0.8f;
 					else
-						colorOffset.z = buf_ColorsOffset[input.id].z*(1.0f-buf_Positions[1].w);
+						colorOffset.z = oldColorOffset.z*(1.0f-buf_Positions[1].w);
 				}
 				else
 				{
@@ -171,7 +176,7 @@ Shader "DX11/VertexColorPoints"
 					if(input.inst == 0)
 					{
 						// since we are calculating alpha based on the side, use it to determine side for colors size offset
-						float newAlpha = clamp(alpha-0.4f*2.0f*buf_ColorsOffset[input.id].x*abs(buf_Positions[input.inst].w),0,alpha);
+						float newAlpha = clamp(alpha-0.4f*2.0f*oldColorOffset.x*abs(buf_Positions[input.inst].w),0,alpha);
 						if(newAlpha < alpha)
 						{
 							sizeOffset = -(_SelectedSize-_DeselectedSize)*abs(buf_Positions[input.inst].w);
@@ -181,7 +186,7 @@ Shader "DX11/VertexColorPoints"
 					}
 					else
 					{
-						float newAlpha = clamp(alpha-0.4f*2.0f*buf_ColorsOffset[input.id].z*buf_Positions[input.inst].w,0,alpha);
+						float newAlpha = clamp(alpha-0.4f*2.0f*oldColorOffset.z*buf_Positions[input.inst].w,0,alpha);
 						if(newAlpha < alpha)
 						{
 							sizeOffset = -(_SelectedSize-_DeselectedSize)*abs(buf_Positions[input.inst].w);
@@ -283,6 +288,82 @@ Shader "DX11/VertexColorPoints"
 			{
 				return i.color;
 			}
+			
+			float3 GetSpecularColor(float3 vVertexNormal, float3 vVertexPosition, float3 vLightPosition)
+			{
+			    // Transform the Vertex and corresponding Normal into Model space
+			    float3 vTransformedNormal = mul(_Object2World, float4( vVertexNormal, 1 ));
+			    float3 vTransformedVertex = mul(_Object2World, float4( vVertexPosition, 1 ));
+			 
+			    // Get the directional vector to the light and to the camera
+			    // originating from the vertex position
+			    float3 vLightDirection = normalize( vLightPosition - vTransformedVertex );
+			    float3 vCameraDirection = normalize( _WorldSpaceCameraPos - vTransformedVertex );
+			 
+			    // Calculate the reflection vector between the incoming light and the
+			    // normal (incoming angle = outgoing angle)
+			    // We have to use the invert of the light direction because "reflect"
+			    // expects the incident vector as its first parameter
+			    float3 vReflection = reflect( -vLightDirection, vTransformedNormal );
+			 
+			    // Calculate specular component
+			    // Based on the dot product between the reflection vector and the camera
+			    // direction
+			    float spec = pow( max( 0.0, dot( vCameraDirection, vReflection )), 32 );
+			 
+			    return float3( spec, spec, spec );
+			}
+ 
+			float3 GetAmbientColor()
+			{
+			    // Ambient material is 0.2/0/0
+			    // Ambient light is 0.2/0.2/0.2
+			    return float3( 0.5f, 0.5f, 0.5f );
+			}
+ 
+			float3 GetDiffuseColor(float3 vVertexNormal, float3 vLightPosition)
+			{
+			    // Transform the normal from Object to Model space
+			    // we also normalize the vector just to be sure ...
+			    float3 vTransformedNormal = normalize( mul( _Object2World, float4( vVertexNormal, 1 )));
+			 
+			    // Get direction of light in Model space
+			    float3 vLightDirection = normalize( vLightPosition - vTransformedNormal );
+			 
+			    // Calculate Diffuse intensity
+			    float fDiffuseIntensity = max( 0.0, dot( vTransformedNormal, vLightDirection ));
+			 
+			    // Calculate resulting Color
+			    float3 vDiffuseColor = float3( 1.0, 1.0, 1.0 ) * fDiffuseIntensity;
+			 
+			    return vDiffuseColor;
+			}
+			
+			int isLeft( float3 P0, float3 P1, float3 P2 )
+			{
+				return (int)( (P1.x - P0.x) * (P2.y - P0.y) - (P2.x -  P0.x) * (P1.y - P0.y) );
+			}
+			
+//			int wn_PnPoly( float3 P, float3 V[], int n )
+//			{
+//				int wn = 0;    // the  winding number counter
+//				
+//				// loop through all edges of the polygon
+//				for (int i=0; i<n; i++) {   // edge from V[i] to  V[i+1]
+//					if (V[i].y <= P.y) {          // start y <= P.y
+//						if (V[i+1].y  > P.y)      // an upward crossing
+//							if (isLeft( V[i], V[i+1], P) > 0)  // P left of  edge
+//								++wn;            // have  a valid up intersect
+//					}
+//					else {                        // start y > P.y (no test needed)
+//						if (V[i+1].y  <= P.y)     // a downward crossing
+//							if (isLeft( V[i], V[i+1], P) < 0)  // P right of  edge
+//								--wn;            // have  a valid down intersect
+//					}
+//				}
+//				return wn;
+//			}
+			
 
 			ENDCG
 

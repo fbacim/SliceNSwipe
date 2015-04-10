@@ -24,7 +24,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 	float timeSinceLastStateChange = 0.0F;
 	float timeSinceLastClickCompleted = 0.0F;
 	DateTime timeLastUpdate;
-	float resetTimer = 0.0F;
+	//float resetTimer = 0.0F;
 	float velocityThreshold = 200.0F;
 	float highVelocityThreshold = 150.0F;
 	float lowVelocityThreshold = 5.0F;
@@ -45,7 +45,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 
 	bool isEnabled = true;
 	bool needsClear = true;
-	bool canSelect = false;
+	//bool canSelect = false;
 	
 	Strategy strategy = Strategy.BOTH;
 	
@@ -232,11 +232,13 @@ public class VolumeSweep {//}: MonoBehaviour {
 		{
 			if(volumeTrailSpheres.Count == 0)
 			{
-				canSelect = pointCloud.SetSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,true);
+				//canSelect = 
+				pointCloud.SetSphere(selectionVolume.transform.position,selectionVolume.transform.localScale.x/2.0F,true);
 			}
 			else if(currentState == state.MOVING_FINGER)
 			{
-				canSelect = pointCloud.SetSphere(volumeTrailSpheres[volumeTrailSpheres.Count-1].center,volumeTrailSpheres[volumeTrailSpheres.Count-1].radius,false);//pointCloud.SetSphereTrail(volumeTrailSpheres);
+				//canSelect = 
+				pointCloud.SetSphere(volumeTrailSpheres[volumeTrailSpheres.Count-1].center,volumeTrailSpheres[volumeTrailSpheres.Count-1].radius,false);//pointCloud.SetSphereTrail(volumeTrailSpheres);
 			}
 		}
 
@@ -327,13 +329,13 @@ public class VolumeSweep {//}: MonoBehaviour {
 
 	public void ProcessKeys()
 	{
-		float currentTime = Time.timeSinceLevelLoad;
+		//float currentTime = Time.timeSinceLevelLoad;
 
 		// CHECK FOR CANCEL/RESET
 		// if two seconds have passed without a state change, reset state machine
 		if(Input.GetKeyDown(KeyCode.Escape))
 		{
-			resetTimer = currentTime;
+			//resetTimer = currentTime;
 		}
 		else if(Input.GetKey(KeyCode.F8))
 		{
@@ -342,7 +344,7 @@ public class VolumeSweep {//}: MonoBehaviour {
 			timeSinceLastStateChange = 0.0F;
 			volumeTrailSpheres.Clear();
 			pointCloud.ResetAll();
-			resetTimer = 0;
+			//resetTimer = 0;
 		}
 		else if(Input.GetKeyUp(KeyCode.Escape) && !pointCloud.animating)
 		{
