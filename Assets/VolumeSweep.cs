@@ -187,11 +187,11 @@ public class VolumeSweep {//}: MonoBehaviour {
 			if(indexFinger != null)
 			{
 				// check finger velocity against velocity threshold for selection of side in swipe phase
-				if(lastFilteredVelocity > velocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
+				if(filteredVelocity > velocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
 				{
 					updateCountSinceMovingSlashStarted++;
 				}
-				else if(lastFilteredVelocity < velocityThreshold && updateCountSinceMovingSlashStarted > 1)
+				else if(filteredVelocity < velocityThreshold && updateCountSinceMovingSlashStarted > 1)
 				{
 					int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
 					Vector3 direction = new Vector3();

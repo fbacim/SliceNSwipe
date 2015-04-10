@@ -767,7 +767,7 @@ public class PointCloud : MonoBehaviour
 
 	public bool SetLasso(List<Vector3> vertices)
 	{
-		//Debug.Log("setLasso");
+		Debug.Log("setLasso "+vertices.Count);
 
 		// calculate lasso input
 
@@ -792,21 +792,19 @@ public class PointCloud : MonoBehaviour
 			//lassoThread.Start();
 		}
 
-		if(!tValidLasso)
-		{
-			ResetSelected();
-		}
-		else
-		{
-			bufferPoints.SetData (verts);
-			bufferColors.SetData (colors);
-			bufferSizes.SetData (sizes);
-			bufferColorOffset.SetData (colorsOffset);
-			bufferSelected.SetData (selected);
-			//bufferHighlighted.SetData (notHighlighted);
-		}
+//		if(countp1 == 0 || countp2 == 0)
+//		{
+//			ResetSelected();
+//		}
+
+		bufferPoints.SetData (verts);
+		bufferColors.SetData (colors);
+		bufferSizes.SetData (sizes);
+		bufferColorOffset.SetData (colorsOffset);
+		bufferSelected.SetData (selected);
+		//bufferHighlighted.SetData (notHighlighted);
 		
-		return tValidLasso;
+		return true;
 	}
 
 	private void ProcessLassoInput()
@@ -835,21 +833,27 @@ public class PointCloud : MonoBehaviour
 		int countp1 = 0;
 		int countp2 = 0;
 
-		for(int i = 0; i < tPoints2D.Count; i++)
+		print(tPoints2D.Count);
+		for (int i = 0; i < vertexCount; ++i)
 		{
-			if(wn_PnPoly(tPoints2D[i], tLasso, tLassoSize-1) == 0) // outside
+			if(selected[i] == 1)
 			{
-				countp1++;
-				colorsOffset[i].x = 0.5F;
-				colorsOffset[i].y = -0.5F;
-				colorsOffset[i].z = -0.5F;
-			}
-			else
-			{
-				countp2++;
-				colorsOffset[i].x = -0.5F;
-				colorsOffset[i].y = -0.5F;
-				colorsOffset[i].z = 0.5F;
+				Vector3 screenPoint = GameObject.Find("Camera").GetComponent<Camera>().WorldToScreenPoint(verts[i]);
+				Vector2 point2D = new Vector2(screenPoint.x, screenPoint.y);
+				if(wn_PnPoly(point2D,tLasso,tLassoVertices.Count-1) == 0) // outside
+				{
+					//						countp1++;
+					colorsOffset[i].x = 0.5F;
+					colorsOffset[i].y = -0.5F;
+					colorsOffset[i].z = -0.5F;
+				}
+				else
+				{
+					//						countp2++;
+					colorsOffset[i].x = -0.5F;
+					colorsOffset[i].y = -0.5F;
+					colorsOffset[i].z = 0.5F;
+				}
 			}
 		}
 		

@@ -14,7 +14,8 @@ public class Lasso {//}: MonoBehaviour {
 	float timeSinceLastClickCompleted = 0.0F;
 	DateTime timeLastUpdate;
 	float resetTimer = 0.0F;
-	float highVelocityThreshold = 400.0F;
+	float velocityThreshold = 200.0F;
+	float highVelocityThreshold = 300.0F;
 	float lowVelocityThreshold = 20.0F;
 	float lastFilteredVelocity = 0.0F;
 	float stateChangeTimeThreshold = 0.7F;
@@ -70,10 +71,7 @@ public class Lasso {//}: MonoBehaviour {
 		timeSinceLastClickCompleted += timeSinceLastUpdate;
 		if(timeSinceLastClickCompleted < 2.0F) 
 			return locked; // avoid detecting two clicks in one
-		if(currentState == state.DRAW)
-			timeSinceLastStateChange = 0.0F;
-		else
-			timeSinceLastStateChange += timeSinceLastUpdate;
+		timeSinceLastStateChange += timeSinceLastUpdate;
 		
 		// get reference to the index finger
 		FingerList indexFingers = frame.Fingers.FingerType(Finger.FingerType.TYPE_INDEX);
@@ -105,7 +103,7 @@ public class Lasso {//}: MonoBehaviour {
 		lastFilteredVelocity = filteredVelocity;
 
 		// update internal structures and visual feedback 		
-		if(currentState == state.DRAW)
+		if(currentState == state.DRAW && indexFinger != null)
 		{
 			pointCloud.TriggerSeparation(false,0);
 			fingerPosition.Add(goFingerList[1+5*System.Convert.ToInt32(indexFinger.Hand.IsRight)].transform.position);
@@ -117,10 +115,6 @@ public class Lasso {//}: MonoBehaviour {
 				fingerLineRenderer.SetPosition(i,fingerPosition[i]);
 			fingerLineRenderer.SetPosition(fingerPosition.Count,fingerPosition[0]);
 			goFingerLineRenderer.SetActive(true);
-			
-			List<Vector3> lasso = new List<Vector3>(fingerPosition);
-			lasso.Add(fingerPosition[0]);
-			canSelect = pointCloud.SetLasso(lasso);
 			
 			updateCountSinceMovingSlashStarted = 0;
 		}
@@ -147,6 +141,7 @@ public class Lasso {//}: MonoBehaviour {
 		{
 			pointCloud.TriggerSeparation(false,0);
 			currentState = state.DRAW;
+			timeSinceLastStateChange = 0.0F;
 			
 			fingerPosition.Clear();
 			handPosition.Clear();
@@ -156,6 +151,11 @@ public class Lasso {//}: MonoBehaviour {
 		else if(currentState == state.DRAW && strategy != Strategy.PRECISE && !(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && filteredVelocity < lowVelocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold)
 		{
 			pointCloud.currentStrategy = Strategy.FAST;
+
+			List<Vector3> lasso = new List<Vector3>(fingerPosition);
+			lasso.Add(fingerPosition[0]);
+			canSelect = pointCloud.SetLasso(lasso);
+
 			if(canSelect)
 			{
 				currentState = state.SELECT_IN_OUT;
@@ -169,46 +169,53 @@ public class Lasso {//}: MonoBehaviour {
 				pointCloud.ResetSelected();
 			}
 		}
-		else if(currentState == state.SELECT_IN_OUT && indexFinger != null && filteredVelocity < lowVelocityThreshold && timeSinceLastStateChange > stateChangeTimeThreshold) 
+		else if(currentState == state.SELECT_IN_OUT && indexFinger != null && timeSinceLastStateChange > stateChangeTimeThreshold) 
 		{
 			locked = true;
 			goFingerLineRenderer.SetActive(false);
 			pointCloud.TriggerSeparation(true,0);
+			Debug.Log("select in out");
 			
-			//Debug.Log(filteredVelocity);
-			if(filteredVelocity > highVelocityThreshold)
+			if(indexFinger != null)
 			{
-				updateCountSinceMovingSlashStarted++;
-			}
-			else if(filteredVelocity < lowVelocityThreshold && updateCountSinceMovingSlashStarted > 0)
-			{
-				int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
-				Vector3 direction = new Vector3();
-				for(int i = initialPosition; i < fingerPosition.Count; i++)
+				Debug.Log("filtered velocity:"+filteredVelocity);
+				// check finger velocity against velocity threshold for selection of side in swipe phase
+				if(filteredVelocity > velocityThreshold)
 				{
-					direction += fingerPosition[i];
+					Debug.Log("above velocity");
+					updateCountSinceMovingSlashStarted++;
 				}
-				direction /= fingerPosition.Count-initialPosition;
-				
-				Plane tmp = new Plane();
-				tmp.Set3Points(cameraTransform.position+cameraTransform.forward,
-				               cameraTransform.position,
-				               cameraTransform.position+cameraTransform.up);
-				
-				//Debug.Log(""+tmp.normal+direction.normalized+Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
-				
-				fingerPosition.Add(fingerPosition[0]);
-				pointCloud.SelectLasso(fingerPosition,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F));
-				pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
-				
-				timeSinceLastStateChange = 0.0F;
+				else if(filteredVelocity < velocityThreshold && updateCountSinceMovingSlashStarted > 1)
+				{
+					Debug.Log("below velocity");
+					int initialPosition = (fingerPosition.Count-1-updateCountSinceMovingSlashStarted < 0) ? 0 : (fingerPosition.Count-1-updateCountSinceMovingSlashStarted);
+					Vector3 direction = new Vector3();
+					for(int i = initialPosition; i < fingerPosition.Count; i++)
+					{
+						direction += fingerPosition[i];
+					}
+					direction /= fingerPosition.Count-initialPosition;
+					
+					Plane tmp = new Plane();
+					tmp.Set3Points(cameraTransform.position+cameraTransform.forward,
+					               cameraTransform.position,
+					               cameraTransform.position+cameraTransform.up);
+					
+					Debug.Log(""+tmp.normal+direction.normalized+Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)));
+					pointCloud.SelectLasso(fingerPosition,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F));
+					pointCloud.TriggerSeparation(false,(Mathf.Abs(Vector3.Angle(tmp.normal,direction.normalized)) > 90.0F) ? 1 : 2);
+					
+					timeSinceLastStateChange = 0.0F;
+					timeSinceLastClickCompleted = 0.0F;
+					updateCountSinceMovingSlashStarted = 0;
+					lastFilteredVelocity = 0;
+					currentState = state.NONE;
+				}
+			}
+			else
+			{
+				Debug.Log("no finger detected");
 				updateCountSinceMovingSlashStarted = 0;
-				currentState = state.NONE;
-				fingerPosition.Clear();
-				handPosition.Clear();
-				fingerPositionTime.Clear();
-				fingerLineRenderer.SetVertexCount(0);
-				lastFilteredVelocity = 0;
 			}
 		}
 
