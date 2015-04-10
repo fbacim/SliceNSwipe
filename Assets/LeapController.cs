@@ -49,8 +49,8 @@ public class LeapController : MonoBehaviour {
 		goHandList = new List<GameObject>();
 		for(int i = 0; i < 2; i++)
 		{
-			goFingerList[i].name = "Palm "+i;
 			goHandList.Add(GameObject.CreatePrimitive(PrimitiveType.Cube));
+			goHandList[i].name = "Palm "+i;
 			goHandList[i].GetComponent<Renderer>().material = Resources.Load("PhongUserLight", typeof(Material)) as Material;
 			goHandList[i].GetComponent<Renderer>().material.color = new Color(0.7F, 0.7F, 0.7F, 1.0F);
 		}
@@ -145,6 +145,8 @@ public class LeapController : MonoBehaviour {
 			goHandList[System.Convert.ToInt32(hl[i].IsRight)].transform.position = position;
 			goHandList[System.Convert.ToInt32(hl[i].IsRight)].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
 			goHandList[System.Convert.ToInt32(hl[i].IsRight)].GetComponent<Renderer>().enabled = false;
+			if(currentTechnique == Technique.LASSO)
+				goHandList[System.Convert.ToInt32(hl[i].IsRight)].GetComponent<Renderer>().material = Resources.Load("DiffuseZTop", typeof(Material)) as Material;
 		}
 
 		// update finger renderer
@@ -168,6 +170,8 @@ public class LeapController : MonoBehaviour {
 			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].transform.position = position;
 			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
 			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].GetComponent<Renderer>().enabled = false;
+			if(currentTechnique == Technique.LASSO)
+				goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].GetComponent<Renderer>().material = Resources.Load("DiffuseZTop", typeof(Material)) as Material;
 			//Debug.Log("finger["+i+";"+((int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight))+"]: "+f.Type()+"  -> "+f.IsValid+"  -> "+f.IsExtended+"  -> "+f.IsFinger+"  -> "+f.IsTool+"  -> "+f.TimeVisible);
 		}
 		
