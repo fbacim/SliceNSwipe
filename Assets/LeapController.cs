@@ -12,7 +12,7 @@ public class LeapController : MonoBehaviour {
 	VolumeSweep volumeSweep;
 	Lasso lasso;
 	
-	Technique currentTechnique = Technique.VOLUMESWEEP;  
+	public Technique currentTechnique = Technique.VOLUMESWEEP;  
 
 	Leap.Controller controller;
 	List<GameObject> goFingerList;
@@ -146,7 +146,8 @@ public class LeapController : MonoBehaviour {
 			goHandList[System.Convert.ToInt32(hl[i].IsRight)].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
 			goHandList[System.Convert.ToInt32(hl[i].IsRight)].GetComponent<Renderer>().enabled = false;
 			if(currentTechnique == Technique.LASSO)
-				goHandList[System.Convert.ToInt32(hl[i].IsRight)].GetComponent<Renderer>().material = Resources.Load("DiffuseZTop", typeof(Material)) as Material;
+				goHandList[System.Convert.ToInt32(hl[i].IsRight)].GetComponent<Renderer>().material = Resources.Load("AlwaysOnTop", typeof(Material)) as Material;
+//				goHandList[System.Convert.ToInt32(hl[i].IsRight)].layer = LayerMask.NameToLayer("OnTop");
 		}
 
 		// update finger renderer
@@ -171,7 +172,8 @@ public class LeapController : MonoBehaviour {
 			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].transform.localScale = new Vector3(pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F,pointCloud.bsRadius*0.05F);
 			goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].GetComponent<Renderer>().enabled = false;
 			if(currentTechnique == Technique.LASSO)
-				goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].GetComponent<Renderer>().material = Resources.Load("DiffuseZTop", typeof(Material)) as Material;
+				goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].GetComponent<Renderer>().material = Resources.Load("AlwaysOnTop", typeof(Material)) as Material;
+//				goFingerList[(int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight)].layer = LayerMask.NameToLayer("OnTop");
 			//Debug.Log("finger["+i+";"+((int)f.Type()+5*System.Convert.ToInt32(f.Hand.IsRight))+"]: "+f.Type()+"  -> "+f.IsValid+"  -> "+f.IsExtended+"  -> "+f.IsFinger+"  -> "+f.IsTool+"  -> "+f.TimeVisible);
 		}
 		

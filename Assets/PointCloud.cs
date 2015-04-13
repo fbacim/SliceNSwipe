@@ -585,6 +585,7 @@ public class PointCloud : MonoBehaviour
 		Graphics.DrawProcedural(MeshTopology.Points, vertexCount, instanceCount);
 
 		GameObject.Find("Leap").GetComponent<LeapController>().RenderTransparentObjects();
+
 	}
 
 	void UpdateAnnotations()

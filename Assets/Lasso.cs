@@ -69,8 +69,6 @@ public class Lasso {//}: MonoBehaviour {
 		float timeSinceLastUpdate = (float)(currentTime - timeLastUpdate).TotalSeconds;
 		timeLastUpdate = currentTime;
 		timeSinceLastClickCompleted += timeSinceLastUpdate;
-		if(timeSinceLastClickCompleted < 2.0F) 
-			return locked; // avoid detecting two clicks in one
 		timeSinceLastStateChange += timeSinceLastUpdate;
 		
 		// get reference to the index finger
@@ -84,12 +82,12 @@ public class Lasso {//}: MonoBehaviour {
 		// calculate velocity
 		float scalarVelocity;
 		float filteredVelocity;
-		if(indexFinger != null && indexFinger.TimeVisible > 1.0 && !pointCloud.animating)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
+		if(indexFinger != null && indexFinger.TimeVisible > 1.0 && !pointCloud.animating && timeSinceLastClickCompleted > 2.0F)// && distance != fl[0].StabilizedTipPosition.Magnitude ) 
 		{
 			scalarVelocity = indexFinger.TipVelocity.Magnitude;
 			filteredVelocity = 0.7F*lastFilteredVelocity + 0.3F*scalarVelocity;
 		}
-		else if(timeSinceLastStateChange <= stateChangeTimeThreshold)
+		else if(timeSinceLastStateChange <= stateChangeTimeThreshold || timeSinceLastClickCompleted <= 2.0F)
 		{
 			filteredVelocity = 0.0f;
 		}
@@ -101,6 +99,8 @@ public class Lasso {//}: MonoBehaviour {
 				currentState = state.NONE;
 		}
 		lastFilteredVelocity = filteredVelocity;
+
+		Debug.Log("update: "+currentState);
 
 		// update internal structures and visual feedback 		
 		if(currentState == state.DRAW && indexFinger != null)
@@ -278,6 +278,7 @@ public class Lasso {//}: MonoBehaviour {
 		//else if(Input.GetKeyUp(KeyCode.Escape))
 		if(Input.GetKeyUp(KeyCode.Escape))
 		{
+			Debug.Log(currentState);
 			pointCloud.TriggerSeparation(false,0);
 			if(currentState == state.NONE || currentState == state.DRAW)//timeSinceLastStateChange > 4.0F)
 				pointCloud.Undo();
